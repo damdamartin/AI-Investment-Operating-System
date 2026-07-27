@@ -1,22 +1,405 @@
 # 11 AI Rules
 
 Version: 0.1.0  
-Status: Placeholder  
+Status: Draft  
 Last Updated: 2026-07-27  
-Related Docs: 01_Project_Vision.md, 06_AI_Architecture.md, 07_Trading_System.md
+Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 10_Claude_Code_Guide.md
 
-## Purpose
+## 1. Document Purpose
 
-This document will define non-negotiable rules that all AI agents must follow when designing, reviewing, or implementing this system.
+This document defines non-negotiable rules for all AI agents working on AI Investment Operating System.
 
-## Initial Non-Negotiable Rules
+These rules apply to:
 
-- AI must not directly place broker orders.
-- Claude API must never call Toss Securities Open API directly.
-- News analysis alone must never trigger an order.
-- Every order must pass Risk Engine, Money Management Engine, and Order Approval Engine.
-- Unverified strategies must not be promoted to live trading.
-- Production strategy changes must be versioned, auditable, and reversible.
-- Secrets must not be committed to Git.
-- Any uncertainty in broker behavior must be tested, not assumed.
+- Claude API inside the product
+- Claude Code implementation sessions
+- Codex review and implementation sessions
+- any future AI agent added to the project
+
+The central rule is:
+
+> AI may analyze, research, audit, and implement. AI must not bypass safety controls or directly control capital.
+
+## 2. Rule Priority
+
+If documents conflict, follow this priority:
+
+1. `11_AI_RULES.md`
+2. `01_Project_Vision.md`
+3. `02_System_Architecture.md`
+4. `07_Trading_System.md`
+5. task-specific documents
+
+If a task conflicts with this document, the task is invalid until reviewed.
+
+## 3. Non-Negotiable Trading Rules
+
+### Rule 1: AI Must Not Directly Place Broker Orders
+
+AI must never directly call Toss Securities Open API order endpoints.
+
+Forbidden:
+
+```text
+Claude API -> Toss Securities API
+AI Agent -> Toss order submit
+Dashboard AI action -> broker order
+```
+
+Required path:
+
+```text
+Signal
+-> OrderIntent
+-> RiskCheck
+-> MoneyCheck
+-> OrderApproval
+-> TossSecuritiesAdapter
+```
+
+### Rule 2: News Alone Must Never Trigger an Order
+
+News may influence analysis and scoring.
+
+News must not directly create an executable order.
+
+Required:
+
+- deduplication
+- source review
+- asset mapping
+- AI or rule-based event assessment
+- market confirmation
+- strategy signal
+- risk check
+- money check
+- order approval
+
+### Rule 3: Signal Is Not Order
+
+A signal is only a candidate action.
+
+It must not be submitted to the broker.
+
+### Rule 4: Every Order Must Pass Approval Gates
+
+Every live order must pass:
+
+1. Risk Engine
+2. Money Management Engine
+3. Order Approval Engine
+4. Broker capability check
+5. Reconciliation state check
+
+If any gate is unavailable, the order is blocked.
+
+### Rule 5: Risk Engine Has Veto Authority
+
+Risk Engine may reject any signal regardless of:
+
+- AI confidence
+- backtest performance
+- strategy score
+- user preference
+- recent profit
+
+Capital protection overrides opportunity capture.
+
+## 4. AI Analysis Rules
+
+### Rule 6: AI Output Must Be Structured for Trading-Relevant Use
+
+Trading-relevant AI output must pass schema validation.
+
+Free-form prose alone cannot be used for order approval.
+
+### Rule 7: Invalid AI Output Is Rejected
+
+AI output is rejected when:
+
+- JSON parsing fails
+- schema validation fails
+- required fields are missing
+- confidence is missing
+- data freshness is unclear
+- output contains unsupported values
+
+Rejected AI output may be stored for debugging but must not influence live trading.
+
+### Rule 8: Low Confidence Cannot Increase Conviction
+
+Low-confidence AI analysis may reduce confidence, trigger review, or block use.
+
+It must not increase position size or trade urgency.
+
+### Rule 9: AI Must Report Uncertainty
+
+Prompts and schemas must require:
+
+- confidence
+- evidence
+- risks
+- contradictions
+- unknowns
+- requires_review flag
+
+AI output that hides uncertainty is not suitable for trading use.
+
+## 5. Strategy Rules
+
+### Rule 10: Unverified Strategies Must Not Touch Production Capital
+
+Every new or changed strategy must follow:
+
+```text
+Research
+-> Backtest
+-> Walk-Forward Validation
+-> Shadow Portfolio
+-> Paper Trading
+-> Small-Capital Live
+-> Production
+```
+
+No direct promotion to production is allowed.
+
+### Rule 11: Strategy Versions Are Immutable After Approval
+
+Approved strategy versions must not be edited in place.
+
+Any change creates a new strategy version.
+
+### Rule 12: AI May Propose Strategy Changes, Not Apply Them Directly
+
+AI may generate:
+
+- strategy hypotheses
+- parameter candidates
+- improvement suggestions
+- promotion review summaries
+
+AI must not directly:
+
+- activate production strategy
+- increase allocation
+- increase risk limit
+- skip validation
+
+### Rule 13: Overfitting Must Be Actively Checked
+
+AI-generated strategies must be checked for:
+
+- too many parameters
+- short-window overperformance
+- sector-specific overfit
+- sensitivity to small parameter changes
+- performance disappearing after costs
+- weak out-of-sample results
+
+## 6. Broker and API Rules
+
+### Rule 14: Broker Behavior Must Be Verified, Not Assumed
+
+Any uncertain Toss Securities API capability must be marked:
+
+```text
+UNVERIFIED
+```
+
+Unverified capabilities cannot be used in production.
+
+### Rule 15: No Blind Retry of Broker Writes
+
+Order submit, cancel, and replace operations must not be blindly retried.
+
+If broker state is uncertain:
+
+```text
+pause dependent trading
+query broker state
+run reconciliation
+```
+
+### Rule 16: Unknown Broker State Blocks Dependent Trading
+
+Unknown broker state is not the same as failure.
+
+It must be represented as:
+
+```text
+UNKNOWN_REQUIRES_RECONCILIATION
+```
+
+Related trading must pause until resolved.
+
+### Rule 17: Toss Securities API Access Is Adapter-Only
+
+Only `TossSecuritiesAdapter` may call Toss Securities API.
+
+No domain, strategy, AI, dashboard, or task code may call Toss directly.
+
+## 7. Data and Secret Rules
+
+### Rule 18: Secrets Must Not Enter Git
+
+Never commit:
+
+- Toss API credentials
+- Naver client secret
+- Claude API key
+- account passwords
+- certificate files
+- access tokens
+- refresh tokens
+
+### Rule 19: Secrets Must Not Enter AI Prompts
+
+No prompt may include:
+
+- API keys
+- broker tokens
+- account passwords
+- authorization headers
+- certificate data
+
+### Rule 20: Money Must Include Currency
+
+AI-generated code must not represent money as naked numbers.
+
+Every money amount needs currency.
+
+### Rule 21: Raw External Payloads Must Be Redacted
+
+Logs and stored payloads must redact:
+
+- authorization headers
+- access tokens
+- refresh tokens
+- secrets
+- unnecessary account identifiers
+
+## 8. Operation Rules
+
+### Rule 22: Fail Closed
+
+When uncertain, the system must choose:
+
+```text
+no trade
+pause
+block
+alert
+reconcile
+```
+
+not:
+
+```text
+guess
+continue
+force order
+ignore
+```
+
+### Rule 23: Kill Switch Must Not Be Bypassed
+
+Active kill switch blocks new live orders in its scope.
+
+No AI, user interface, strategy, or worker may bypass it.
+
+### Rule 24: Normal Operation Should Be Quiet
+
+AI must not design notification flows that spam the user during normal operation.
+
+Immediate alerts should focus on exceptions:
+
+- order failure
+- broker uncertainty
+- kill switch activation
+- risk breach
+- reconciliation mismatch
+- system outage
+
+### Rule 25: Recovery Requires Reconciliation
+
+After serious failure or restart, production trading must remain disabled until:
+
+- broker state is checked
+- open orders are known
+- fills are reconciled
+- positions match
+- cash balances match or mismatch is accepted by policy
+
+## 9. Development Rules for AI Agents
+
+### Rule 26: Read the Relevant Docs Before Coding
+
+AI coding agents must read relevant docs before implementation.
+
+Minimum:
+
+- `01_Project_Vision.md`
+- `02_System_Architecture.md`
+- `11_AI_RULES.md`
+- task-related docs
+
+### Rule 27: Do Not Refactor Across Boundaries Without Permission
+
+Broad refactors require explicit task scope.
+
+Do not merge unrelated changes into safety-critical work.
+
+### Rule 28: Add Tests for Safety Behavior
+
+Any code touching trading, AI, API, risk, money, order, or broker behavior must include tests.
+
+### Rule 29: Do Not Convert Warnings Into Silent Behavior
+
+If behavior is unsafe or unknown, expose it.
+
+Do not hide:
+
+- failed checks
+- rejected orders
+- invalid AI output
+- reconciliation mismatch
+- unverified broker capability
+
+### Rule 30: Do Not Optimize Away Auditability
+
+Performance improvements must not remove:
+
+- audit records
+- domain events
+- strategy version references
+- order approval evidence
+- AI analysis references
+- raw payload references where needed
+
+## 10. Enforcement
+
+If an AI agent detects a rule violation, it must:
+
+1. stop the unsafe work
+2. explain the violated rule
+3. propose a safe alternative
+4. update docs or tests if needed
+
+If code already violates a rule, the fix is higher priority than feature work.
+
+## 11. Final AI Rule Statement
+
+AI Investment Operating System may use AI deeply, but never blindly.
+
+The safe structure is:
+
+```text
+AI proposes
+systems validate
+risk controls veto
+approved adapters execute
+audit remembers
+```
+
+Any design that gives AI unchecked authority over capital is outside the project.
 
