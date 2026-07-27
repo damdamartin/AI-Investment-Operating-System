@@ -108,6 +108,12 @@ Exit criteria:
 
 ## 5. Phase 2: Codex Architecture Review
 
+Status:
+
+```text
+Completed with required revisions
+```
+
 Goal:
 
 Have Codex review the documentation set before implementation.
@@ -139,7 +145,28 @@ Exit criteria:
 - architecture documents revised to version `0.2.x`
 - unresolved questions are captured
 
+Current review report:
+
+- `docs/reviews/Codex_Architecture_Review_2026-07-28.md`
+
+Required Phase 2 revision themes:
+
+- compliance and broker terms review requirements
+- BrokerAccount model
+- historical data and corporate action architecture
+- cost, fee, tax, slippage, and currency conversion model ownership
+- strategy promotion threshold defaults
+- dashboard authentication and sensitive action controls
+- outbox table and worker retry semantics
+- central open questions tracker
+
 ## 6. Phase 3: Development Specification and Task Breakdown
+
+Status:
+
+```text
+Blocked until Phase 2 revisions are completed
+```
 
 Goal:
 

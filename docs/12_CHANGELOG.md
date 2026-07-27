@@ -139,15 +139,18 @@ Every entry should be understandable without reading the code diff.
 - Drafted `99_Development_Roadmap.md` with phased roadmap from documentation scaffold through Codex review, development specification, Claude Code parallel implementation, safety controls, adapters, validation environments, operations, small-capital live trading, production hardening, and continuous strategy evolution.
 - Added `docs/reviews/Codex_Architecture_Review_Prompt.md` for Phase 2 architecture review.
 - Added `docs/reviews/Architecture_Review_Checklist.md` for safety, broker execution, data, AI, strategy validation, operations, security, Claude Code readiness, and API verification review.
+- Added `docs/reviews/Codex_Architecture_Review_2026-07-28.md` with Phase 2 architecture review findings.
 
 ### Changed
 
 - Updated root README and docs index status to reflect the documentation foundation draft.
 - Updated docs index to reference the reviews folder.
+- Updated roadmap to mark Phase 2 as completed with required revisions and Phase 3 as blocked until Phase 2 revisions are complete.
 
 ### Safety
 
 - Added explicit roadmap gates preventing live broker write code before safety controls, small-capital live operation before readiness checklist completion, and production promotion before reviewed live validation evidence.
+- Identified required safety revisions before task generation: compliance gate, BrokerAccount model, historical data and corporate actions, cost/tax/fee model ownership, strategy promotion thresholds, dashboard control security, outbox semantics, and central open questions tracking.
 
 ## 0.1.0 - 2026-07-27
 
