@@ -29,3 +29,7 @@ All AI agents, including Codex and Claude Code, must treat these documents as th
 ## Templates
 
 Reusable templates are stored in [templates](templates/).
+
+## Reviews
+
+Architecture review prompts and checklists are stored in [reviews](reviews/).
