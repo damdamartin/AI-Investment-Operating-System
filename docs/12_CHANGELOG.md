@@ -11,4 +11,4 @@ Last Updated: 2026-07-27
 - Added official docs index.
 - Added placeholder architecture, trading, AI, API, testing, operation, and roadmap documents.
 - Added reusable documentation templates.
-
+- Drafted `01_Project_Vision.md` with project philosophy, scope, AI role boundaries, strategy evolution vision, Shadow Portfolio vision, success criteria, and development principles.
