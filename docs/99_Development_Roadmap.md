@@ -1,9 +1,9 @@
 # 99 Development Roadmap
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-28  
-Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
 
 ## 1. Document Purpose
 
@@ -165,12 +165,14 @@ Required Phase 2 revision themes:
 Status:
 
 ```text
-Blocked until Phase 2 revisions are completed
+Ready after Phase 2 revision acceptance
 ```
 
 Goal:
 
 Convert architecture documents into implementation-ready task documents.
+
+Phase 3 may start after the 0.2.x revision set is reviewed. Critical open questions remain tracked in `docs/open_questions.md` and must be resolved before the affected live-trading tasks are implemented.
 
 Deliverables:
 

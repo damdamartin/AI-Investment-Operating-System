@@ -1,9 +1,9 @@
 # 07 Trading System
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 03_Domain_Model.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 03_Domain_Model.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -400,6 +400,7 @@ Inputs:
 - MoneyCheck
 - current kill switch state
 - broker capability status
+- broker account permission status
 - market session status
 - latest reconciliation status
 
@@ -412,6 +413,7 @@ Rules:
 - approval requires passing risk check
 - approval requires passing money check
 - approval requires verified broker capability
+- approval requires exactly one verified BrokerAccount
 - approval requires clean reconciliation state
 - approval result must be stored before broker submission
 - rejected orders are stored with reasons
@@ -439,6 +441,36 @@ PARTIAL
 ```
 
 then production approval is blocked unless a specific safe exception exists.
+
+### 16.1 Broker Account Check
+
+Before production or small-capital live approval, the system must resolve the OrderIntent to exactly one BrokerAccount through an active PortfolioBrokerAccountLink.
+
+Required checks:
+
+- BrokerAccount exists.
+- BrokerAccount broker is `TOSS_SECURITIES`.
+- BrokerAccount status is active.
+- BrokerAccount permission status allows the requested operation.
+- Local `live_trading_enabled` flag is true for live trading.
+- PortfolioBrokerAccountLink is active.
+- Requested market and asset type are allowed by the link.
+- Account capability was verified recently enough for the configured environment.
+
+Blocking conditions:
+
+```text
+missing broker account
+multiple broker accounts resolved
+unverified permission status
+read-only account
+disabled portfolio-account link
+market not allowed
+asset type not allowed
+stale capability verification
+```
+
+If any blocking condition exists, the order is rejected before broker submission.
 
 ## 17. Execution Engine
 
@@ -853,4 +885,3 @@ Signal
 Any shortcut around this path is a system violation.
 
 The system may automate trading only because it refuses to trade when required evidence, approval, or reconciliation is missing.
-

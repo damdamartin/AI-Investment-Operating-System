@@ -1,9 +1,9 @@
 # 08 Testing Validation
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 02_System_Architecture.md, 03_Domain_Model.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 02_System_Architecture.md, 03_Domain_Model.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -486,6 +486,34 @@ A strategy must not be promoted based only on:
 - user excitement
 - recent market trend
 
+### 13.1 Default Strategy Promotion Gate v0.2
+
+The following default thresholds apply until a strategy-specific promotion policy is approved.
+
+Minimum evidence:
+
+- backtest covers multiple market regimes
+- walk-forward validation passes without material degradation
+- Shadow Portfolio runs for at least 30 trading days or 30 generated signals
+- Paper Trading runs for at least 30 trading days or 30 order lifecycle simulations
+- small-capital live stage is completed before production capital expansion
+- all tests use approved cost model versions
+- historical data includes required corporate action handling
+- AI Health Check is green or explicitly reviewed
+
+Default rejection conditions:
+
+- maximum drawdown exceeds the approved strategy risk limit
+- live or paper slippage is materially worse than modeled assumptions
+- trade count is too low to evaluate
+- results rely on one symbol, sector, event, or short date range
+- benchmark-relative performance is negative after costs
+- strategy correlation with existing production strategies is too high without diversification benefit
+- required Toss Securities capability or account permission remains unverified
+- compliance, data licensing, tax, or broker terms review is incomplete for the target use
+
+Promotion records must store the evidence, thresholds, decision, reviewer or approval mode, rollback plan, and strategy version.
+
 ## 14. Regression Testing
 
 Regression tests prevent old safety guarantees from breaking.
@@ -735,4 +763,3 @@ code evidence
 ```
 
 Without evidence, the correct state is no trade.
-

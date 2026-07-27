@@ -1,7 +1,7 @@
 # AI Investment Operating System Documentation
 
-Version: 0.1.0  
-Status: Documentation Foundation Draft  
+Version: 0.2.0
+Status: Architecture Review Revision Draft
 Last Updated: 2026-07-28
 
 ## Purpose
@@ -24,7 +24,9 @@ All AI agents, including Codex and Claude Code, must treat these documents as th
 10. [10_Claude_Code_Guide.md](10_Claude_Code_Guide.md) - implementation guide and task structure for Claude Code
 11. [11_AI_RULES.md](11_AI_RULES.md) - non-negotiable safety and behavior rules for AI agents
 12. [12_CHANGELOG.md](12_CHANGELOG.md) - documentation and architecture change history
-13. [99_Development_Roadmap.md](99_Development_Roadmap.md) - phased development roadmap from documentation review through production hardening
+13. [13_Compliance_and_Legal_Review.md](13_Compliance_and_Legal_Review.md) - compliance, broker terms, data licensing, tax, and live trading review gate
+14. [99_Development_Roadmap.md](99_Development_Roadmap.md) - phased development roadmap from documentation review through production hardening
+15. [open_questions.md](open_questions.md) - unresolved architecture and implementation questions that must be tracked before task generation
 
 ## Templates
 

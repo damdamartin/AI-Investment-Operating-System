@@ -1,9 +1,9 @@
 # 03 Domain Model
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -730,6 +730,66 @@ Rules:
 - Score sets must be persisted for all production candidate signals.
 
 ## 10. Portfolio Context
+
+### 10.0 BrokerAccount
+
+Represents an actual broker account exposed through Toss Securities Open API.
+
+Required properties:
+
+- broker_account_id
+- broker
+- external_account_ref
+- account_label
+- base_currency
+- supported_markets
+- supported_asset_types
+- permission_status
+- live_trading_enabled
+- read_only_enabled
+- last_verified_at
+- status
+
+Permission status values:
+
+```text
+UNVERIFIED
+READ_ONLY
+PAPER_ONLY
+LIVE_TRADING_ALLOWED
+LIVE_TRADING_BLOCKED
+SUSPENDED
+```
+
+Rules:
+
+- Production orders must resolve to exactly one verified BrokerAccount.
+- Unknown permission status blocks broker write operations.
+- BrokerAccount must not expose raw account numbers in logs or dashboards.
+- Multiple logical portfolios may map to one BrokerAccount only through explicit allocation rules.
+
+### 10.0.1 PortfolioBrokerAccountLink
+
+Represents the controlled mapping between an internal logical portfolio and an actual broker account.
+
+Required properties:
+
+- portfolio_broker_account_link_id
+- portfolio_id
+- broker_account_id
+- allocation_policy
+- allowed_markets
+- allowed_asset_types
+- max_capital_allocation
+- status
+- created_at
+- updated_at
+
+Rules:
+
+- Shadow, Paper, and Backtest portfolios must not link to live broker write permissions.
+- Production and Small-Capital Live portfolios require an active link before order approval.
+- A disabled link blocks new orders without deleting historical portfolio records.
 
 ### 10.1 Portfolio
 
@@ -1528,6 +1588,18 @@ An internal representation of a stock or ETF.
 
 The mapping between internal asset identity and Toss Securities API identity.
 
+### Broker Account
+
+The internal representation of a real Toss Securities account and its verified permission state.
+
+### Corporate Action
+
+An event such as a split, dividend, distribution, symbol change, merger, delisting, or trading halt that can change historical price interpretation or portfolio accounting.
+
+### Cost Model
+
+A versioned model for fees, taxes, slippage, spread, and currency conversion assumptions used in backtests, paper trading, Shadow Portfolio, and live performance analysis.
+
 ### Signal
 
 A strategy recommendation. It is not an order.
@@ -1592,4 +1664,3 @@ It separates:
 - normal operation from audited incidents
 
 These distinctions are not cosmetic. They are the safety rails that allow the system to automate trading while remaining explainable, testable, reversible, and controlled.
-

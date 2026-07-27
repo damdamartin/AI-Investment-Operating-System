@@ -1,7 +1,7 @@
 # AI Investment Operating System
 
-Version: 0.1.0  
-Status: Documentation Foundation Draft  
+Version: 0.2.0
+Status: Architecture Review Revision Draft
 Last Updated: 2026-07-28
 
 ## Overview
@@ -19,6 +19,8 @@ The system is intended to use:
 The system must prioritize survival, risk control, verification, and auditability over short-term returns.
 
 Claude or any AI component must not directly place orders. All orders must pass through deterministic risk, money management, and order approval layers before reaching the broker adapter.
+
+Live broker write operations are blocked until compliance, broker terms, data licensing, account permission, and strategy promotion gates are explicitly satisfied.
 
 ## Documentation
 

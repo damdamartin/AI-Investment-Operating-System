@@ -1,9 +1,9 @@
 # 09 Operation Deployment
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 02_System_Architecture.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 02_System_Architecture.md, 04_Database_Architecture.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -404,6 +404,37 @@ Critical controls require confirmation:
 - increase capital allocation
 - enable production mode
 
+### 13.1 Minimum Dashboard Security Requirements
+
+The dashboard is an operational control surface, not only a reporting screen.
+
+Minimum requirements:
+
+- authenticated access is required
+- production dashboard access is not public
+- read-only views and sensitive controls use separate permissions
+- sensitive controls require re-authentication or step-up confirmation
+- all sensitive actions create audit records
+- kill switch actions are logged with actor, time, reason, and resulting state
+- strategy promotion actions are logged with evidence references
+- capital allocation increases require explicit confirmation
+- production mode enablement requires all readiness gates to be green
+- broker account identifiers are masked
+- secrets are never displayed
+
+Sensitive actions include:
+
+- activating or deactivating kill switch
+- enabling live trading
+- linking a portfolio to a BrokerAccount
+- changing risk limits
+- changing capital allocation
+- promoting a strategy
+- retiring a production strategy
+- rotating or validating broker credentials
+
+If authentication or authorization state is uncertain, the dashboard must fail closed for sensitive actions.
+
 ## 14. Secrets Management
 
 Secrets include:
@@ -701,4 +732,3 @@ The system can only trade automatically if it can also:
 - preserve evidence
 
 An automated trading system that cannot be operated safely should not be allowed to trade.
-

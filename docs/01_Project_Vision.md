@@ -1,9 +1,9 @@
 # 01 Project Vision
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 02_System_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 11_AI_RULES.md, 99_Development_Roadmap.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 02_System_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
 
 ## 1. Document Purpose
 
@@ -205,6 +205,19 @@ research
 ```
 
 Skipping stages is not allowed.
+
+### 4.13 Legal, Broker, and Data Permission Gates Come Before Live Trading
+
+The system must not perform live broker write operations until the following are reviewed and recorded:
+
+- Toss Securities Open API terms and automated trading permissions
+- account permission and order capability model
+- Korean and U.S. market trading constraints
+- news, market data, and AI provider licensing constraints
+- tax, fee, slippage, and currency conversion assumptions
+- personal-use boundary and prohibition on third-party money management
+
+If any required permission or legal interpretation is unclear, the system remains limited to research, backtest, Shadow Portfolio, or Paper Trading mode.
 
 ## 5. Product Vision
 
@@ -667,4 +680,3 @@ It is a disciplined investment platform designed to:
 - preserve auditability
 
 The system may pursue returns only after safety, verification, and control are in place.
-

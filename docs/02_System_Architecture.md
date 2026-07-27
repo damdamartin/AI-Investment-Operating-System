@@ -1,9 +1,9 @@
 # 02 System Architecture
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 01_Project_Vision.md, 03_Domain_Model.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 01_Project_Vision.md, 03_Domain_Model.md, 05_API_Architecture.md, 06_AI_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -633,6 +633,21 @@ Candidate strategies may run only in research, backtest, shadow, paper, or confi
 
 Risk limits, capital limits, strategy weights, and production mode changes must be versioned and auditable.
 
+### 14.5 Compliance Boundary
+
+The Compliance and Safety Guard is a hard production boundary.
+
+It must block live broker write operations when:
+
+- broker terms review is not completed
+- automated trading permission is unknown
+- account permission state is unknown
+- data licensing is unclear for the intended use
+- tax, fee, slippage, or currency conversion assumptions are missing for the target market
+- the system is outside the documented personal-use scope
+
+This boundary is not an investment decision layer. It prevents the system from operating outside reviewed legal, broker, data, and account constraints.
+
 ## 15. Fail-Safe Principles
 
 The system must prefer no trade over unsafe trade.
@@ -757,6 +772,24 @@ Possible future extensions:
 
 Extension must happen through interfaces and adapters, not direct coupling.
 
+### 20.1 Historical Data and Corporate Action Architecture
+
+Backtesting, walk-forward validation, Shadow Portfolio, and strategy promotion require a dedicated historical data path.
+
+The historical data path must include:
+
+- historical price bars
+- corporate action records
+- split and reverse split adjustments
+- dividend and distribution records
+- delisting and trading halt records where available
+- market calendar and session metadata
+- cost, fee, tax, slippage, and FX model versions
+
+Historical data must be normalized before strategy validation. A strategy cannot be promoted when its performance depends on unadjusted split data, missing dividends, missing delisting events, or undefined trading cost assumptions.
+
+The live market data path and historical validation path may share normalized asset identifiers, but they must keep source, timestamp, adjustment method, and quality metadata separate.
+
 ## 21. Key Architecture Decisions
 
 ### 21.1 AI Is Not the Trader
@@ -862,4 +895,3 @@ Its architecture separates:
 - normal operation from exception handling
 
 This separation is the main mechanism that allows the system to improve over time without giving uncontrolled authority to any single AI model, strategy, API, or human impulse.
-

@@ -1,9 +1,9 @@
 # 04 Database Architecture
 
-Version: 0.1.0  
-Status: Draft  
-Last Updated: 2026-07-27  
-Related Docs: 02_System_Architecture.md, 03_Domain_Model.md, 05_API_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md
+Version: 0.2.0
+Status: Draft
+Last Updated: 2026-07-28
+Related Docs: 02_System_Architecture.md, 03_Domain_Model.md, 05_API_Architecture.md, 07_Trading_System.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md
 
 ## 1. Document Purpose
 
@@ -561,6 +561,64 @@ Rule:
 
 ## 12. Portfolio Tables
 
+### 12.0 `broker_accounts`
+
+Purpose:
+
+Stores actual broker accounts and their verified permission state.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| broker | text | `TOSS_SECURITIES` |
+| external_account_ref | text | encrypted or tokenized broker reference |
+| account_label | text | safe display label |
+| base_currency | text | primary currency |
+| supported_markets | jsonb | KR, US |
+| supported_asset_types | jsonb | stock, ETF |
+| permission_status | text | unverified, read_only, live_allowed, live_blocked |
+| live_trading_enabled | boolean | explicit local live flag |
+| read_only_enabled | boolean | read capability |
+| last_verified_at | timestamptz | latest capability check |
+| status | text | active, suspended, closed |
+| created_at | timestamptz | creation time |
+| updated_at | timestamptz | update time |
+
+Rules:
+
+- Raw account numbers must not be logged or shown in full.
+- `permission_status = unverified` blocks broker write operations.
+- Live trading requires both broker permission and local live flag.
+
+### 12.0.1 `portfolio_broker_account_links`
+
+Purpose:
+
+Maps logical portfolios to actual broker accounts.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| portfolio_id | uuid | references `portfolios.id` |
+| broker_account_id | uuid | references `broker_accounts.id` |
+| allocation_policy | jsonb | capital allocation rules |
+| allowed_markets | jsonb | market allowlist |
+| allowed_asset_types | jsonb | asset type allowlist |
+| max_capital_allocation | numeric | local allocation cap |
+| status | text | active, disabled |
+| created_at | timestamptz | creation time |
+| updated_at | timestamptz | update time |
+
+Rules:
+
+- Production order approval requires one active link.
+- Paper, Shadow, and Backtest portfolios must not use live broker write links.
+- Disabled links block new broker orders while preserving historical records.
+
 ### 12.1 `portfolios`
 
 Purpose:
@@ -1111,6 +1169,119 @@ Indexes:
 - `(provider, called_at desc)`
 - `(success, called_at desc)`
 
+### 17.3 `historical_price_bars`
+
+Purpose:
+
+Stores normalized historical price bars for backtesting, walk-forward validation, Shadow Portfolio, and research.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| asset_id | uuid | references `assets.id` |
+| market | text | KR or US |
+| timeframe | text | day, minute, etc. |
+| bar_time | timestamptz | bar timestamp |
+| open | numeric | adjusted or raw per adjustment method |
+| high | numeric | adjusted or raw per adjustment method |
+| low | numeric | adjusted or raw per adjustment method |
+| close | numeric | adjusted or raw per adjustment method |
+| volume | numeric | volume |
+| adjustment_method | text | raw, split_adjusted, total_return, provider_adjusted |
+| source | text | data provider |
+| quality_status | text | valid, suspect, missing |
+| created_at | timestamptz | ingestion time |
+
+Indexes:
+
+- `(asset_id, timeframe, bar_time)`
+- `(market, timeframe, bar_time)`
+
+### 17.4 `corporate_actions`
+
+Purpose:
+
+Stores actions that affect historical prices, portfolio accounting, or tradability.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| asset_id | uuid | references `assets.id` |
+| action_type | text | split, dividend, distribution, merger, symbol_change, delisting, halt |
+| effective_date | date | effective date |
+| declared_at | timestamptz | optional announcement time |
+| value | jsonb | action-specific values |
+| source | text | source provider |
+| quality_status | text | valid, suspect, unverified |
+| created_at | timestamptz | ingestion time |
+
+Rules:
+
+- Strategy validation must declare how corporate actions are applied.
+- Missing corporate action history blocks production promotion for affected validation windows.
+
+### 17.5 `cost_model_versions`
+
+Purpose:
+
+Stores versioned assumptions for fees, taxes, slippage, spread, and FX conversion.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| model_name | text | model name |
+| version | text | immutable version |
+| market | text | KR, US, or global |
+| asset_type | text | stock, ETF, or all |
+| assumptions | jsonb | fee, tax, slippage, spread, FX assumptions |
+| source_note | text | source or rationale |
+| status | text | draft, approved, retired |
+| approved_at | timestamptz | approval time |
+| created_at | timestamptz | creation time |
+
+Rules:
+
+- Backtest and Shadow Portfolio results must reference a cost model version.
+- Production promotion cannot rely on unversioned cost assumptions.
+
+### 17.6 `outbox_events`
+
+Purpose:
+
+Stores durable side-effect commands before workers call external systems.
+
+Key columns:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| event_type | text | order submission, notification, reconciliation, etc. |
+| aggregate_type | text | related aggregate type |
+| aggregate_id | uuid | related aggregate id |
+| payload | jsonb | normalized command payload |
+| idempotency_key | text | unique command key |
+| status | text | pending, processing, processed, failed, dead_letter |
+| attempt_count | integer | retry count |
+| next_attempt_at | timestamptz | retry schedule |
+| locked_by | text | worker id |
+| locked_at | timestamptz | lock time |
+| last_error | text | safe error summary |
+| created_at | timestamptz | creation time |
+| processed_at | timestamptz | completion time |
+
+Rules:
+
+- Production broker side effects must be created inside the same transaction as the approval record where practical.
+- Workers must use idempotency keys when sending external commands.
+- Unknown broker state must not be blindly retried.
+- Failed events move to `dead_letter` after the configured retry limit and require review.
+
 ## 18. Index Strategy
 
 General index principles:
@@ -1383,4 +1554,3 @@ The database must preserve:
 - how strategies evolved
 
 Without this record, automated trading becomes opaque and unsafe. With this record, the system can be reviewed, tested, improved, and trusted cautiously over time.
-

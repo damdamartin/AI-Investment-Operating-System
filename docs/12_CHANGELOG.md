@@ -1,9 +1,9 @@
 # 12 Changelog
 
-Version: 0.1.1  
-Status: Active  
-Last Updated: 2026-07-28  
-Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 99_Development_Roadmap.md
+Version: 0.2.0
+Status: Active
+Last Updated: 2026-07-28
+Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
 
 ## 1. Document Purpose
 
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.2.0 - 2026-07-28
+
+### Added
+
+- Added `13_Compliance_and_Legal_Review.md` as the formal gate for broker terms, compliance, data licensing, tax, AI provider, personal-use, and live trading readiness review.
+- Added `open_questions.md` to track unresolved architecture, API, data, and implementation questions before task generation.
+- Added first-class `BrokerAccount` and `PortfolioBrokerAccountLink` concepts to the domain model.
+- Added database table candidates for broker accounts, portfolio-account links, historical price bars, corporate actions, cost model versions, and outbox events.
+- Added default strategy promotion thresholds for backtest, walk-forward validation, Shadow Portfolio, Paper Trading, small-capital live validation, cost models, corporate action handling, and account permission checks.
+- Added minimum dashboard security requirements for authentication, sensitive action authorization, re-authentication, audit logging, masked broker identifiers, and fail-closed behavior.
+
+### Changed
+
+- Updated root README, docs index, project vision, system architecture, domain model, database architecture, trading system, testing validation, operation deployment, roadmap, and changelog documents to the 0.2.x architecture review revision set.
+- Updated Phase 3 roadmap status from blocked to ready after 0.2.x revision acceptance.
+
+### Safety
+
+- Blocked live broker write operations until compliance, broker terms, account permission, data licensing, tax/fee/currency assumptions, and strategy promotion gates are satisfied.
+- Required production and small-capital live orders to resolve to exactly one verified Toss Securities BrokerAccount through an active portfolio-account link.
+- Required historical strategy validation to account for corporate actions and versioned cost assumptions.
+- Required outbox semantics for production-critical external side effects where practical.
+
+### Open Questions
+
+- Created central open question records for Toss automated trading permission, account permission model, broker identifiers, ETF and fractional support, historical data provider, corporate actions, tax and fee sources, strategy promotion thresholds, dashboard authentication, and queue/outbox implementation.
 
 ## 0.1.1 - 2026-07-28
 
