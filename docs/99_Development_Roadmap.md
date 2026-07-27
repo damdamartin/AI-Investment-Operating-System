@@ -1,23 +1,576 @@
 # 99 Development Roadmap
 
 Version: 0.1.0  
-Status: Placeholder  
-Last Updated: 2026-07-27  
-Related Docs: 10_Claude_Code_Guide.md, 12_CHANGELOG.md
+Status: Draft  
+Last Updated: 2026-07-28  
+Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md
 
-## Purpose
+## 1. Document Purpose
 
-This document will define the phased development roadmap from documentation to Codex review, Claude Code parallel implementation, testing, paper trading, small-capital live trading, and production operation.
+This document defines the phased development roadmap for AI Investment Operating System.
 
-## Placeholder Phases
+It turns the architecture documents into an execution plan covering:
 
-- Phase 0: Documentation scaffold
-- Phase 1: Architecture documents
-- Phase 2: Codex technical review
-- Phase 3: Development specification
-- Phase 4: Core implementation
-- Phase 5: Backtesting and paper trading
-- Phase 6: Small-capital live trading
-- Phase 7: Production operation
-- Phase 8: Continuous strategy evolution
+- documentation completion
+- Codex technical review
+- development specification
+- Claude Code parallel implementation
+- test and validation stages
+- paper trading
+- small-capital live trading
+- production hardening
+- continuous strategy evolution
 
+The central roadmap principle is:
+
+> Build the safety system before building the trading system.
+
+## 2. Roadmap Overview
+
+```text
+Phase 0: Repository and documentation scaffold
+Phase 1: Architecture documentation foundation
+Phase 2: Codex architecture review
+Phase 3: Development specification and task breakdown
+Phase 4: Core implementation foundation
+Phase 5: External adapters and data ingestion
+Phase 6: Trading controls and approval pipeline
+Phase 7: Research, backtest, Shadow Portfolio, and Paper Trading
+Phase 8: Operations, dashboard, monitoring, and deployment
+Phase 9: Small-capital live trading preparation
+Phase 10: Small-capital live operation
+Phase 11: Production candidate hardening
+Phase 12: Continuous strategy evolution
+```
+
+## 3. Phase 0: Repository and Documentation Scaffold
+
+Status:
+
+```text
+Completed
+```
+
+Goal:
+
+Create the repository and documentation structure.
+
+Completed items:
+
+- repository initialized
+- root README created
+- MIT license added
+- `.gitignore` added
+- `docs` folder created
+- documentation templates created
+- initial documentation index created
+
+Exit criteria:
+
+- repository exists on GitHub
+- initial commit exists
+- docs folder structure exists
+
+## 4. Phase 1: Architecture Documentation Foundation
+
+Status:
+
+```text
+Completed
+```
+
+Goal:
+
+Create the first complete documentation baseline.
+
+Documents:
+
+- `01_Project_Vision.md`
+- `02_System_Architecture.md`
+- `03_Domain_Model.md`
+- `04_Database_Architecture.md`
+- `05_API_Architecture.md`
+- `06_AI_Architecture.md`
+- `07_Trading_System.md`
+- `08_Testing_Validation.md`
+- `09_Operation_Deployment.md`
+- `10_Claude_Code_Guide.md`
+- `11_AI_RULES.md`
+- `12_CHANGELOG.md`
+- `99_Development_Roadmap.md`
+
+Exit criteria:
+
+- all listed documents have Draft status
+- all placeholder documents are replaced
+- changelog records all major documentation additions
+- repository is pushed to GitHub
+
+## 5. Phase 2: Codex Architecture Review
+
+Goal:
+
+Have Codex review the documentation set before implementation.
+
+Review targets:
+
+- logical consistency
+- missing safety controls
+- implementation risks
+- API uncertainty
+- data model gaps
+- testing gaps
+- production operation gaps
+- Claude Code task readiness
+
+Codex review prompt should ask for:
+
+- findings by severity
+- architectural contradictions
+- missing requirements
+- unsafe assumptions
+- recommended revisions
+- implementation order changes
+
+Exit criteria:
+
+- Codex review report exists
+- critical findings resolved or explicitly accepted
+- architecture documents revised to version `0.2.x`
+- unresolved questions are captured
+
+## 6. Phase 3: Development Specification and Task Breakdown
+
+Goal:
+
+Convert architecture documents into implementation-ready task documents.
+
+Deliverables:
+
+- development specification
+- module boundaries
+- API interface contracts
+- database migration plan
+- initial folder structure
+- coding standards
+- task list
+- acceptance criteria
+
+Recommended task folder:
+
+```text
+docs/tasks/
+```
+
+Recommended task naming:
+
+```text
+Task-001_Project_Structure.md
+Task-002_Core_Value_Objects.md
+Task-003_Domain_State_Machines.md
+```
+
+Exit criteria:
+
+- first 50-100 implementation tasks exist
+- task dependencies are clear
+- each task has tests and safety requirements
+- Claude Code sessions can start without guessing architecture
+
+## 7. Phase 4: Core Implementation Foundation
+
+Goal:
+
+Build the project skeleton and core domain foundation.
+
+Primary tasks:
+
+- project structure
+- language and framework selection
+- package management
+- configuration loading
+- secret loading pattern
+- structured logging
+- test framework
+- database migration framework
+- core value objects
+- domain entities
+- state machines
+- error model
+
+Required tests:
+
+- unit tests for value objects
+- unit tests for state transitions
+- secret redaction tests
+- configuration tests
+- database migration tests
+
+Exit criteria:
+
+- core project builds
+- test suite runs
+- no production secrets required
+- domain model can represent assets, strategies, signals, orders, risk checks, and portfolios
+
+## 8. Phase 5: External Adapters and Data Ingestion
+
+Goal:
+
+Implement safe read-first external integrations.
+
+Primary modules:
+
+- ClaudeAIAdapter
+- NaverNewsAdapter
+- TossSecuritiesAdapter read-only methods
+- API capability registry
+- API call logging
+- raw payload redaction
+
+Order of implementation:
+
+1. Claude adapter with mocked responses
+2. Claude schema validation
+3. Naver news adapter with fixtures
+4. Toss read-only adapter interface
+5. Toss account and market data read tests
+6. capability registry
+
+Live broker write operations are not allowed in this phase.
+
+Exit criteria:
+
+- adapters pass contract tests
+- API responses normalize into domain contracts
+- secrets are not logged
+- Toss read-only capability is verified where possible
+- unverified capabilities remain blocked
+
+## 9. Phase 6: Trading Controls and Approval Pipeline
+
+Goal:
+
+Build the controls that make live trading safe before any broker write operation exists.
+
+Primary modules:
+
+- Risk Engine
+- Money Management Engine
+- Order Approval Engine
+- Kill Switch
+- duplicate order prevention
+- outbox pattern
+- order lifecycle state machine
+- audit records
+
+Required tests:
+
+- risk limit tests
+- money check tests
+- order approval reject tests
+- kill switch tests
+- stale data tests
+- unknown broker state tests
+- duplicate order tests
+
+Exit criteria:
+
+- Signal cannot become BrokerOrder directly
+- failed RiskCheck blocks approval
+- failed MoneyCheck blocks approval
+- kill switch blocks approval
+- unverified broker capability blocks production order approval
+- all approval decisions are auditable
+
+## 10. Phase 7: Research, Backtest, Shadow Portfolio, and Paper Trading
+
+Goal:
+
+Create non-production strategy validation environments.
+
+Primary modules:
+
+- Backtest Engine
+- Walk-Forward Validation
+- Shadow Portfolio
+- Paper Trading
+- Strategy Promotion Review
+- Strategy Diversity Engine
+- AI Health Check
+
+Required capabilities:
+
+- simulate orders without broker writes
+- include fees, taxes, slippage, liquidity, and currency assumptions
+- compare strategy versions
+- record validation evidence
+- reject overfit strategies
+
+Exit criteria:
+
+- candidate strategies can be tested without live capital
+- Shadow Portfolio cannot call broker order APIs
+- Paper Trading validates full order lifecycle
+- strategy promotion requires evidence
+
+## 11. Phase 8: Operations, Dashboard, Monitoring, and Deployment
+
+Goal:
+
+Prepare the system to run continuously.
+
+Primary modules:
+
+- dashboard status API
+- dashboard UI
+- scheduler
+- worker system
+- alerting
+- monitoring metrics
+- backup process
+- restore process
+- incident runbooks
+- deployment pipeline
+
+Required dashboard status:
+
+- system status
+- trading status
+- kill switch state
+- broker state
+- data freshness
+- reconciliation state
+- AI Health Check state
+- open alerts
+
+Exit criteria:
+
+- dashboard can show system health
+- alerts work for exceptions
+- backup can be restored
+- deployment and rollback process exists
+- production remains disabled by default
+
+## 12. Phase 9: Small-Capital Live Trading Preparation
+
+Goal:
+
+Prepare for the first real but tightly limited broker write operations.
+
+Prerequisites:
+
+- all critical tests pass
+- Toss order capabilities verified
+- read-only reconciliation works
+- order approval pipeline works
+- kill switch works
+- duplicate order prevention works
+- alerting works
+- operator runbooks exist
+- small-capital limits configured
+
+Allowed scope:
+
+- minimal capital
+- limited assets
+- regular market hours only
+- limit orders only
+- no unverified ETF/fractional/extended-hours features
+
+Exit criteria:
+
+- production readiness checklist for small-capital mode passes
+- manual approval received
+- rollback plan exists
+
+## 13. Phase 10: Small-Capital Live Operation
+
+Goal:
+
+Validate the system with real orders under strict limits.
+
+Measure:
+
+- order submission correctness
+- fill reconciliation
+- slippage
+- fees
+- taxes
+- cash updates
+- alert behavior
+- dashboard accuracy
+- broker API stability
+- operator response process
+
+Rules:
+
+- no automatic capital increase
+- no automatic strategy promotion
+- daily review during early period
+- unresolved broker state blocks trading
+- any severe incident returns system to Paper Trading
+
+Exit criteria:
+
+- no duplicate orders
+- no unresolved reconciliation issues
+- actual fills match internal records
+- alerts are actionable
+- system can run without local computer
+- results support or reject production expansion
+
+## 14. Phase 11: Production Candidate Hardening
+
+Goal:
+
+Harden the system for larger but still controlled production operation.
+
+Work items:
+
+- performance tuning
+- security review
+- recovery drill
+- extended monitoring
+- risk parameter review
+- strategy allocation review
+- production incident simulation
+- documentation update
+- Codex review
+
+Exit criteria:
+
+- production candidate review completed
+- critical and high-severity findings resolved
+- rollback process verified
+- operator is comfortable with emergency procedures
+
+## 15. Phase 12: Continuous Strategy Evolution
+
+Goal:
+
+Operate the system as a learning investment platform.
+
+Ongoing loops:
+
+```text
+production results
+-> AI Health Check
+-> performance analysis
+-> candidate strategy generation
+-> backtest
+-> walk-forward validation
+-> Shadow Portfolio
+-> Paper Trading
+-> small-capital live
+-> promotion review
+```
+
+Rules:
+
+- production strategies remain controlled
+- candidate strategies run separately
+- Shadow Portfolio is always separated from real capital
+- promotion requires evidence
+- risk limits remain conservative
+
+## 16. Suggested Timeline
+
+This timeline is directional, not a promise.
+
+| Period | Focus |
+|---|---|
+| Week 1 | finish documentation foundation and Codex review |
+| Week 2 | development specification and task breakdown |
+| Weeks 3-4 | core domain, database, config, logging, test harness |
+| Weeks 5-6 | Claude, Naver, and Toss read-only adapters |
+| Weeks 7-8 | risk, money, order approval, kill switch |
+| Weeks 9-10 | backtest, Shadow Portfolio, Paper Trading |
+| Weeks 11-12 | dashboard, monitoring, alerts, deployment |
+| Month 4 | small-capital live preparation and operation |
+| Month 5+ | production candidate hardening and continuous strategy evolution |
+
+Schedule may change after Codex review.
+
+## 17. Risk-Based Priority
+
+Highest priority:
+
+- AI safety boundary
+- risk engine
+- money management
+- order approval
+- duplicate order prevention
+- reconciliation
+- kill switch
+- secrets management
+- audit trail
+
+Lower priority until core safety exists:
+
+- advanced dashboard design
+- strategy optimization
+- automatic strategy promotion
+- extended-hours trading
+- fractional trading
+- complex AI strategy generation
+
+## 18. First Claude Code Parallel Session Plan
+
+After Phase 3, start with these sessions:
+
+| Session | Branch | Goal |
+|---|---|---|
+| 1 | `feature/project-foundation` | project skeleton, config, logging, tests |
+| 2 | `feature/core-domain` | value objects and domain state machines |
+| 3 | `feature/database-foundation` | migrations and repositories |
+| 4 | `feature/claude-adapter` | Claude schema validation and adapter |
+| 5 | `feature/naver-news-adapter` | news ingestion and normalization |
+| 6 | `feature/toss-readonly-adapter` | Toss read-only gateway |
+| 7 | `feature/risk-engine` | risk limits and checks |
+| 8 | `feature/testing-harness` | fixtures, mocks, regression tests |
+
+Do not start live execution branch until the approval pipeline is complete.
+
+## 19. Roadmap Gates
+
+Gate rules:
+
+- no Phase 4 until Phase 2 review is complete or explicitly deferred
+- no live broker write code until Phase 6 controls exist
+- no small-capital live until Phase 9 checklist passes
+- no production candidate until Phase 10 results are reviewed
+- no automatic strategy promotion until manual promotion process has proven safe
+
+## 20. Roadmap Maintenance
+
+Update this roadmap when:
+
+- Codex review changes priorities
+- API verification changes scope
+- development tasks are generated
+- a phase completes
+- a phase is blocked
+- production safety assumptions change
+- new major module is added
+
+Roadmap updates should be recorded in `12_CHANGELOG.md`.
+
+## 21. Final Roadmap Statement
+
+The roadmap exists to prevent the project from rushing into live trading.
+
+The correct order is:
+
+```text
+document
+review
+specify
+build controls
+test
+simulate
+validate small
+expand slowly
+```
+
+If a shortcut threatens safety, the roadmap says no.

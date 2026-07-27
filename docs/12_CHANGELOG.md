@@ -1,8 +1,8 @@
 # 12 Changelog
 
-Version: 0.1.0  
+Version: 0.1.1  
 Status: Active  
-Last Updated: 2026-07-27  
+Last Updated: 2026-07-28  
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 99_Development_Roadmap.md
 
 ## 1. Document Purpose
@@ -132,6 +132,20 @@ Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
 
+## 0.1.1 - 2026-07-28
+
+### Added
+
+- Drafted `99_Development_Roadmap.md` with phased roadmap from documentation scaffold through Codex review, development specification, Claude Code parallel implementation, safety controls, adapters, validation environments, operations, small-capital live trading, production hardening, and continuous strategy evolution.
+
+### Changed
+
+- Updated root README and docs index status to reflect the documentation foundation draft.
+
+### Safety
+
+- Added explicit roadmap gates preventing live broker write code before safety controls, small-capital live operation before readiness checklist completion, and production promotion before reviewed live validation evidence.
+
 ## 0.1.0 - 2026-07-27
 
 ### Added
@@ -201,4 +215,3 @@ The changelog is part of the safety system.
 It helps future developers and AI agents understand not only what exists, but how the system's rules evolved.
 
 If a change affects capital, safety, AI authority, or production operation, it belongs here.
-
