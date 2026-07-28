@@ -14,6 +14,7 @@ export * from "./application/order-approval/index.js";
 export * from "./application/paper-trading/index.js";
 export * from "./application/risk-engine/index.js";
 export * from "./application/shadow-portfolio/index.js";
+export * from "./application/strategy-diversity/index.js";
 export * from "./application/strategy-scoring/index.js";
 export * from "./application/toss/index.js";
 export * from "./application/walk-forward/index.js";

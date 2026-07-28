@@ -1,5 +1,8 @@
 # Task-035: Strategy Diversity Engine
 
+Status: Complete
+Implemented In: 0.4.20
+
 ## Objective
 
 Implement baseline strategy diversity analysis to prevent overconcentration in similar strategies.
@@ -31,6 +34,17 @@ Required reading: `docs/06_AI_Architecture.md`, `docs/08_Testing_Validation.md`.
 - Highly overlapping strategies can be flagged.
 - Diversity review can be referenced by promotion workflow.
 - Lower-return defensive strategies can be marked as diversification candidates.
+
+## Implementation Notes
+
+- Added a `StrategyDiversityEngine` baseline.
+- Added strategy category modeling.
+- Added holdings overlap detection.
+- Added signal timing similarity calculation by signal date.
+- Added return correlation threshold behavior as a baseline placeholder.
+- Added diversity review output for future promotion workflow references.
+- Added defensive diversification candidate detection.
+- Added a warning that recent high return alone cannot justify concentrated allocation.
 
 ## Tests Required
 

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.19
+Version: 0.4.20
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.20 - 2026-07-28
+
+### Added
+
+- Added StrategyDiversityEngine.
+- Added strategy category model for baseline diversity reviews.
+- Added holdings overlap metric.
+- Added signal timing similarity calculation.
+- Added return correlation threshold behavior.
+- Added defensive diversification candidate detection.
+- Added tests for overlap detection, correlation threshold behavior, defensive candidates, recent-winner concentration warning, and signal timing similarity.
+
+### Changed
+
+- Marked Task-035 as complete.
+- Updated repository and package version to `0.4.20`.
+
+### Safety
+
+- Strategy diversity reviews are review-only and do not allocate capital or promote strategies.
+- Recent high return alone now produces a concentration warning instead of supporting automatic allocation.
+- Highly overlapping or highly correlated strategies can be flagged before promotion.
+
+### Verification
+
+- Targeted Strategy Diversity tests passed with 5 tests.
 
 ## 0.4.19 - 2026-07-28
 
