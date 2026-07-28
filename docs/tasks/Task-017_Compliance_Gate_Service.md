@@ -1,5 +1,8 @@
 # Task-017: Compliance Gate Service
 
+Status: Complete
+Implemented In: 0.4.4
+
 ## Objective
 
 Implement the internal compliance gate model that blocks live broker write operations until required reviews are satisfied.

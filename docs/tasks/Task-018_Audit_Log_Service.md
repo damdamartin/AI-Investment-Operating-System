@@ -1,5 +1,8 @@
 # Task-018: Audit Log Service
 
+Status: Complete
+Implemented In: 0.4.4
+
 ## Objective
 
 Create the audit logging foundation for safety-relevant decisions and operator actions.

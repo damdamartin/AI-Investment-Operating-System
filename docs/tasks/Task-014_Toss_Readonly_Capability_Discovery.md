@@ -1,5 +1,8 @@
 # Task-014: Toss Read-Only Capability Discovery
 
+Status: Complete
+Implemented In: 0.4.4
+
 ## Objective
 
 Implement read-only Toss Securities capability discovery using safe adapter boundaries.

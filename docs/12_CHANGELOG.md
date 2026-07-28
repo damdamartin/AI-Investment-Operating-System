@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.3
+Version: 0.4.4
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.4 - 2026-07-28
+
+### Added
+
+- Added TossCapabilityRegistry for read-only capability discovery results.
+- Added Compliance Gate service for live-trading review requirements and live-blocking open questions.
+- Added AuditRecord, AuditLogService, and InMemoryAuditLogSink.
+- Added application tests for Toss capability states, compliance gate outcomes, and audit redaction.
+
+### Changed
+
+- Marked Task-014, Task-017, and Task-018 as complete.
+- Updated repository and package version to `0.4.4`.
+
+### Safety
+
+- Unknown Toss capabilities default to `UNVERIFIED`.
+- Unsupported, partial, or unverified capabilities produce blocking reasons.
+- Live trading compliance defaults to blocked when reviews are missing.
+- Critical and high live-blocking open questions block compliance approval.
+- Audit metadata is redacted before storage.
+
+### Verification
+
+- `npm run check` passed with 68 tests.
 
 ## 0.4.3 - 2026-07-28
 
