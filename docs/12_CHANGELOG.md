@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.7
+Version: 0.5.8
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.8 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyVerificationPlanner` to combine credential readiness, endpoint catalog validation, and dry-run request preparation.
+- Added tests for verified endpoint planning, incomplete credentials, invalid catalogs, unverified endpoint skipping, and secret non-disclosure.
+
+### Safety
+
+- Verification planning performs no network calls.
+- Verification planning only prepares requests for verified read-only endpoints.
+- Verification plans never enable live broker writes or expose secret values.
 
 ## 0.5.7 - 2026-07-28
 

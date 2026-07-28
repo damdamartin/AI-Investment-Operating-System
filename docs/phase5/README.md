@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.7
+Version: 0.5.8
 Status: Active
 Last Updated: 2026-07-28
 
@@ -181,6 +181,22 @@ Rules:
 - every endpoint must map to an open question
 - non-authentication `POST` endpoints are rejected
 - live broker write operations remain blocked
+
+## Verification Planning
+
+The codebase includes `TossReadOnlyVerificationPlanner`.
+
+It combines:
+
+- local credential readiness
+- endpoint catalog validation
+- dry-run request preparation
+
+The planner prepares sanitized requests only for verified read-only endpoints.
+
+It performs no network calls.
+
+It skips unverified endpoints and keeps their warnings visible.
 
 ## Phase 5 Exit Direction
 
