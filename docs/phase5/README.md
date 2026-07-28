@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.2
+Version: 0.5.3
 Status: Active
 Last Updated: 2026-07-28
 
@@ -23,6 +23,10 @@ API keys must be entered only into a local `.env` file or a secret manager.
 Do not paste API keys, client secrets, access tokens, account numbers, or raw API responses into chat, documentation, commits, screenshots, or logs.
 
 The repository provides `.env.example` with placeholder names only.
+
+Local setup checklist:
+
+- `docs/phase5/toss-read-only-verification-checklist.md`
 
 ## Required Toss Evidence
 
@@ -105,6 +109,23 @@ Rules:
 - manifests must not contain raw Toss payloads
 
 The codebase includes `TossReadOnlyEvidenceManifestValidator` to review these constraints.
+
+## Credential Readiness
+
+The codebase includes `TossReadOnlyCredentialReadinessService`.
+
+It checks whether local configuration is ready for read-only Toss API verification without returning or logging secret values.
+
+It verifies:
+
+- Toss API base URL is configured
+- Toss client ID is present
+- Toss client secret is present
+- Toss account reference is present
+- live trading is disabled
+- Toss read-only mode is enabled
+
+The readiness service never approves live broker write operations.
 
 ## Phase 5 Exit Direction
 

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.2
+Version: 0.5.3
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.3 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyCredentialReadinessService` for safe local readiness checks before read-only Toss API calls.
+- Added a Toss read-only verification checklist for local `.env` setup and allowed/blocked Phase 5 calls.
+- Added tests for complete read-only config, missing fields, placeholder rejection, and live-write denial.
+
+### Safety
+
+- Readiness checks never return secret values.
+- Readiness checks never approve live broker write operations.
+- Phase 5 setup continues to require `LIVE_TRADING_ENABLED=false` and `TOSS_READ_ONLY_MODE=true`.
 
 ## 0.5.2 - 2026-07-28
 
