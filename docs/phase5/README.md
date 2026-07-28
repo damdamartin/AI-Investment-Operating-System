@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.10
+Version: 0.5.11
 Status: Active
 Last Updated: 2026-07-28
 
@@ -121,6 +121,16 @@ To validate another local evidence manifest:
 ```bash
 npm run phase5:toss:evidence -- path/to/evidence-manifest.json
 ```
+
+## Doctor Command
+
+The local doctor command summarizes readiness, endpoint catalog state, evidence manifest state, and dry-run request count:
+
+```bash
+npm run phase5:toss:doctor
+```
+
+It performs no network calls and never prints secret values.
 
 ## Credential Readiness
 

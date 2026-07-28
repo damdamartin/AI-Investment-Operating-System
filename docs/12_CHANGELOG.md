@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.10
+Version: 0.5.11
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.11 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:doctor` for combined Phase 5 Toss readiness, endpoint, evidence, and dry-run planning status.
+- Added doctor script tests for ready dry-run state, missing credential blockers, and unsafe evidence blockers.
+
+### Safety
+
+- The doctor command performs no network calls.
+- The doctor command never prints Toss secret values.
+- The doctor command keeps live broker writes disabled in its report.
 
 ## 0.5.10 - 2026-07-28
 

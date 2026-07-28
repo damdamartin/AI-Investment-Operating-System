@@ -1,6 +1,6 @@
 {
   "name": "ai-investment-operating-system",
-  "version": "0.5.10",
+  "version": "0.5.11",
   "private": true,
   "type": "module",
   "description": "Safety-first AI Investment Operating System foundation.",
@@ -13,7 +13,8 @@
     "phase5:toss:readiness": "node scripts/check-toss-readiness.mjs",
     "phase5:toss:endpoints": "node scripts/validate-toss-endpoints.mjs",
     "phase5:toss:plan": "node scripts/plan-toss-read-only-verification.mjs",
-    "phase5:toss:evidence": "node scripts/validate-toss-evidence-manifest.mjs"
+    "phase5:toss:evidence": "node scripts/validate-toss-evidence-manifest.mjs",
+    "phase5:toss:doctor": "node scripts/phase5-toss-doctor.mjs"
   },
   "engines": {
     "node": ">=22"

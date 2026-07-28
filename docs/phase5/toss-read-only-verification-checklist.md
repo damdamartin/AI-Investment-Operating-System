@@ -68,6 +68,14 @@ Validate sanitized evidence before committing or using it in readiness decisions
 npm run phase5:toss:evidence
 ```
 
+Run the combined Phase 5 Toss doctor:
+
+```bash
+npm run phase5:toss:doctor
+```
+
+The doctor command performs no network calls and should be used before any real read-only verification attempt.
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:
