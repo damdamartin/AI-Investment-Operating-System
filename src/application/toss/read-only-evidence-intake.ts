@@ -75,27 +75,35 @@ const requestHeaderLikePattern = /\b(x-[a-z0-9-]{2,}|cookie|set-cookie)\s*:\s*\S
  * come from account-scoped read-only calls that describe the same
  * identifier and permission shapes.
  *
- * `MARKET_DATA_READ` intentionally has no canonical open-question mapping:
- * it is part of the minimum Phase 5 readiness evidence set, but it is not
- * one of OQ-001 through OQ-004.
+ * `MARKET_DATA_READ` maps to `OQ-004` (Toss ETF, fractional, and
+ * extended-hours support), matching the endpoint catalog convention already
+ * recorded in `docs/phase5/toss-official-api-source-notes.md` ("Current
+ * price lookup | GET | /api/v1/prices | MARKET_DATA_READ, OQ-004"). Mapping
+ * it here does not, by itself, mark OQ-004 resolved or trading safe — see
+ * `docs/phase5/open-question-evidence-policy.md`. Every kind in
+ * `TossEvidenceKind` now has a canonical mapping; this map is total, not
+ * partial, as a reminder that a future new evidence kind must be given an
+ * explicit mapping decision rather than silently falling through.
  */
-const evidenceKindOpenQuestionMap: Partial<Record<TossEvidenceKind, string>> = {
+const evidenceKindOpenQuestionMap: Record<TossEvidenceKind, string> = {
   API_TERMS_REVIEW: "OQ-001",
   AUTHENTICATION_READ: "OQ-001",
   ACCOUNT_SNAPSHOT_READ: "OQ-002",
   POSITION_QUERY_READ: "OQ-002",
   ORDER_STATUS_QUERY_READ: "OQ-003",
   FILL_QUERY_READ: "OQ-003",
+  MARKET_DATA_READ: "OQ-004",
   ETF_SUPPORT_DOCUMENTATION: "OQ-004",
   FRACTIONAL_SUPPORT_DOCUMENTATION: "OQ-004",
   EXTENDED_HOURS_DOCUMENTATION: "OQ-004"
 };
 
 /**
- * Returns the canonical open question a Toss evidence kind supports, or
- * `undefined` when the kind (for example `MARKET_DATA_READ`) has no fixed
- * mapping and must be linked to an open question by a human preparing the
- * intake item.
+ * Returns the canonical open question a Toss evidence kind supports.
+ * `TossEvidenceKind` is a closed union and every member is mapped above, so
+ * this is only ever `undefined` for a value that does not type-check as
+ * `TossEvidenceKind` in the first place (for example raw JSON parsed from a
+ * hand-edited file at a boundary where TypeScript cannot verify the shape).
  */
 export function openQuestionForEvidenceKind(kind: TossEvidenceKind): string | undefined {
   return evidenceKindOpenQuestionMap[kind];
@@ -549,6 +557,317 @@ export class TossReadOnlyVerificationResultValidator {
       rawPayloadIncluded: result.rawPayloadStored,
       screenshotContainsSecrets: false,
       liveWriteOperation: false
+    };
+  }
+}
+
+/**
+ * All evidence kinds this module knows how to map to an open question.
+ * Derived directly from `evidenceKindOpenQuestionMap` so it can never drift
+ * out of sync with the canonical mapping above.
+ */
+const knownEvidenceKinds = new Set<TossEvidenceKind>(
+  Object.keys(evidenceKindOpenQuestionMap) as TossEvidenceKind[]
+);
+
+/**
+ * Sanitized receipt shape actually written to disk by a read-only
+ * verification runner (task P5-013's `scripts/phase5-toss-read-only-verify.mjs`,
+ * and any future equivalent such as a P5-016 market-prices runner) under
+ * `tmp/phase5/`, git-ignored. This is distinct from
+ * `TossReadOnlyVerificationResultSummary` above, which validates the
+ * runner's *stdout report* (which references the receipt file by path via
+ * `sanitizedEvidencePath`). This type validates the receipt file's own
+ * content shape instead, so that multiple completed receipts — for example
+ * one `ACCOUNT_SNAPSHOT_READ` receipt and one `POSITION_QUERY_READ` receipt,
+ * both supporting OQ-002 — can be classified and summarized together without
+ * ever reading anything beyond these eight sanitized fields.
+ *
+ * Deliberately excludes any per-item field (symbols, quantities, account
+ * identifiers, raw payload): only a rollup `itemCount` is present, matching
+ * what the runner itself extracts from a real response.
+ */
+export interface TossReadOnlyEvidenceReceipt {
+  operation: TossReadOnlyOperation;
+  evidenceKind: TossEvidenceKind;
+  /** ISO 8601 timestamp string (receipts are read from JSON, not live `Date` objects). */
+  collectedAt: string;
+  itemCount: number;
+  liveBrokerWriteAllowed: false;
+  networkCallsPerformed: boolean;
+  rawPayloadStored: false;
+  safetyType: string;
+}
+
+/**
+ * A receipt paired with a reference to the local, git-ignored file it came
+ * from. The reference is never read from disk by this module — it exists so
+ * the same unsafe-content checks already applied to
+ * `TossReadOnlyEvidenceIntakeItem.sourceReference` and
+ * `TossReadOnlyVerificationResultSummary.sanitizedEvidencePath` can also
+ * guard a hand-edited or malicious receipt reference here.
+ */
+export interface TossReadOnlyEvidenceReceiptRecord {
+  receipt: TossReadOnlyEvidenceReceipt;
+  sourceReference: string;
+}
+
+export interface TossReadOnlyEvidenceReceiptReview {
+  accepted: boolean;
+  reasonCodes: string[];
+  warnings: string[];
+  /** The open question this receipt's evidence kind canonically supports, if any. */
+  relatedOpenQuestion: string | undefined;
+  liveBrokerWriteAllowed: false;
+  safetyType: "TOSS_READ_ONLY_EVIDENCE_RECEIPT_REVIEW_ONLY";
+}
+
+const maxReceiptAgeDays = 30;
+
+export class TossReadOnlyEvidenceReceiptValidator {
+  /**
+   * Reviews one sanitized evidence receipt record. Never reads
+   * `sourceReference` from disk and never performs a network call; it only
+   * inspects the receipt's own fields and the reference string for safety.
+   */
+  review(record: TossReadOnlyEvidenceReceiptRecord, now: Date = new Date()): TossReadOnlyEvidenceReceiptReview {
+    const reasonCodes: string[] = [];
+    const warnings: string[] = [];
+    const receipt = record.receipt;
+
+    if (!allowedApprovableOperations.includes(receipt.operation)) {
+      reasonCodes.push("receipt_operation_not_read_only");
+    }
+
+    if (writeOperationPattern.test(String(receipt.operation))) {
+      reasonCodes.push("receipt_operation_looks_write_scoped");
+    }
+
+    if (!receipt.evidenceKind || !knownEvidenceKinds.has(receipt.evidenceKind)) {
+      reasonCodes.push("receipt_unknown_evidence_kind");
+    }
+
+    if (receipt.liveBrokerWriteAllowed !== false) {
+      reasonCodes.push("receipt_live_broker_write_allowed_must_be_false");
+    }
+
+    if (receipt.rawPayloadStored !== false) {
+      reasonCodes.push("receipt_raw_payload_stored_must_be_false");
+    }
+
+    if (typeof receipt.networkCallsPerformed !== "boolean") {
+      reasonCodes.push("receipt_network_calls_performed_must_be_boolean");
+    }
+
+    if (
+      typeof receipt.itemCount !== "number" ||
+      !Number.isInteger(receipt.itemCount) ||
+      receipt.itemCount < 0
+    ) {
+      reasonCodes.push("receipt_item_count_invalid");
+    }
+
+    let collectedAtDate: Date | undefined;
+    if (!receipt.collectedAt || receipt.collectedAt.trim().length === 0) {
+      reasonCodes.push("receipt_missing_collected_at");
+    } else {
+      const parsed = new Date(receipt.collectedAt);
+      if (Number.isNaN(parsed.getTime())) {
+        reasonCodes.push("receipt_collected_at_invalid");
+      } else {
+        collectedAtDate = parsed;
+      }
+    }
+
+    if (!receipt.safetyType || receipt.safetyType.trim().length === 0) {
+      reasonCodes.push("receipt_missing_safety_type");
+    }
+
+    // Defense in depth: scan every receipt string field for secret-like,
+    // account-identifier-like, raw-response-like, or request-header-like
+    // content, even though a genuine receipt from the runner never contains
+    // any of these. A hand-edited or maliciously modified receipt file must
+    // still be rejected, exactly like the manifest validator's philosophy
+    // that self-declared safety flags are never trusted alone.
+    const searchableText = [receipt.operation, receipt.evidenceKind, receipt.collectedAt, receipt.safetyType]
+      .filter((value): value is string => typeof value === "string")
+      .join("\n");
+
+    if (blockedSecretPattern.test(searchableText)) {
+      reasonCodes.push("receipt_may_contain_secret");
+    }
+
+    if (accountIdentifierLikePattern.test(searchableText)) {
+      reasonCodes.push("receipt_may_contain_account_identifier");
+    }
+
+    if (rawResponseLikePattern.test(searchableText)) {
+      reasonCodes.push("receipt_looks_like_raw_response");
+    }
+
+    if (requestHeaderLikePattern.test(searchableText)) {
+      reasonCodes.push("receipt_may_contain_request_header");
+    }
+
+    if (!record.sourceReference || record.sourceReference.trim().length === 0) {
+      reasonCodes.push("receipt_source_reference_missing");
+    } else {
+      const reference = record.sourceReference;
+
+      if (reference.includes("..")) {
+        reasonCodes.push("receipt_source_reference_path_traversal_rejected");
+      }
+
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(reference)) {
+        reasonCodes.push("receipt_source_reference_must_be_local");
+      }
+
+      if (reference.includes(".env")) {
+        reasonCodes.push("receipt_source_reference_must_not_reference_env_file");
+      }
+
+      if (blockedSecretPattern.test(reference)) {
+        reasonCodes.push("receipt_source_reference_may_contain_secret");
+      }
+
+      if (accountIdentifierLikePattern.test(reference)) {
+        reasonCodes.push("receipt_source_reference_may_contain_account_identifier");
+      }
+
+      if (rawResponseLikePattern.test(reference) || requestHeaderLikePattern.test(reference)) {
+        reasonCodes.push("receipt_source_reference_looks_unsafe");
+      }
+    }
+
+    if (collectedAtDate && daysBetween(collectedAtDate, now) > maxReceiptAgeDays) {
+      warnings.push(`receipt_stale_${record.sourceReference || "unknown"}`);
+    }
+
+    const relatedOpenQuestion = knownEvidenceKinds.has(receipt.evidenceKind)
+      ? openQuestionForEvidenceKind(receipt.evidenceKind)
+      : undefined;
+
+    return {
+      accepted: reasonCodes.length === 0,
+      reasonCodes: [...new Set(reasonCodes)].sort(),
+      warnings: [...new Set(warnings)].sort(),
+      relatedOpenQuestion,
+      liveBrokerWriteAllowed: false,
+      safetyType: "TOSS_READ_ONLY_EVIDENCE_RECEIPT_REVIEW_ONLY"
+    };
+  }
+}
+
+function daysBetween(left: Date, right: Date): number {
+  return Math.floor((right.getTime() - left.getTime()) / 86_400_000);
+}
+
+const requiredTossOpenQuestionsForReceiptSummary = ["OQ-001", "OQ-002", "OQ-003", "OQ-004"];
+
+export interface TossReadOnlyEvidenceReceiptOpenQuestionSummary {
+  openQuestionId: string;
+  receiptCount: number;
+  validReceiptCount: number;
+  /** Sorted, de-duplicated evidence kinds that contributed a valid receipt. */
+  evidenceKinds: string[];
+  readyForReview: boolean;
+}
+
+export interface TossReadOnlyEvidenceReceiptOperatorSummary {
+  /** Always exactly OQ-001 through OQ-004, in that order, even when a question has zero receipts. */
+  openQuestionSummaries: TossReadOnlyEvidenceReceiptOpenQuestionSummary[];
+  totalReceiptCount: number;
+  validReceiptCount: number;
+  rejectedReceiptCount: number;
+  reasonCodes: string[];
+  warnings: string[];
+  liveBrokerWriteAllowed: false;
+  /**
+   * Always false. This summary rolls up how many sanitized receipts exist
+   * per open question; it never authorizes Toss order creation, order
+   * cancellation, order replacement, live capital use, or production
+   * reconciliation, no matter how many receipts are valid. See
+   * `docs/phase5/open-question-evidence-policy.md`.
+   */
+  liveTradingAuthorized: false;
+  safetyType: "TOSS_READ_ONLY_EVIDENCE_RECEIPT_OPERATOR_SUMMARY_REVIEW_ONLY";
+}
+
+/**
+ * Builds a deterministic, operator-facing rollup of multiple sanitized
+ * read-only evidence receipts (for example one accounts receipt and one
+ * holdings receipt, both supporting OQ-002). Given the same input receipts,
+ * in any order, this always returns the same summary: open questions are
+ * always listed in the fixed OQ-001..OQ-004 order, and every array inside
+ * the result is sorted and de-duplicated. This never reads a receipt file
+ * from disk and never performs a network call — it only reasons about the
+ * receipt objects and reference strings it is given.
+ */
+export class TossReadOnlyEvidenceReceiptOperatorSummaryBuilder {
+  summarize(
+    records: TossReadOnlyEvidenceReceiptRecord[],
+    now: Date = new Date()
+  ): TossReadOnlyEvidenceReceiptOperatorSummary {
+    const validator = new TossReadOnlyEvidenceReceiptValidator();
+    const reasonCodes: string[] = [];
+    const warnings: string[] = [];
+    const seenSourceReferences = new Set<string>();
+
+    const reviewed = records.map((record) => {
+      const isDuplicate = seenSourceReferences.has(record.sourceReference);
+      seenSourceReferences.add(record.sourceReference);
+
+      const review = validator.review(record, now);
+      warnings.push(...review.warnings);
+
+      if (isDuplicate) {
+        reasonCodes.push(`receipt_duplicate_source_reference_${record.sourceReference}`);
+      }
+
+      return {
+        record,
+        review,
+        // A duplicate reference is never counted as an additional valid
+        // receipt, even if the receipt content itself passes review, so a
+        // caller accidentally passing the same file twice cannot inflate an
+        // open question's count.
+        countsAsValid: review.accepted && !isDuplicate
+      };
+    });
+
+    for (const { review } of reviewed) {
+      if (!review.accepted) {
+        reasonCodes.push(...review.reasonCodes);
+      }
+    }
+
+    const openQuestionSummaries = requiredTossOpenQuestionsForReceiptSummary.map((openQuestionId) => {
+      const matching = reviewed.filter(({ review }) => review.relatedOpenQuestion === openQuestionId);
+      const valid = matching.filter(({ countsAsValid }) => countsAsValid);
+      const evidenceKinds = [...new Set(valid.map(({ record }) => record.receipt.evidenceKind))].sort();
+
+      return {
+        openQuestionId,
+        receiptCount: matching.length,
+        validReceiptCount: valid.length,
+        evidenceKinds,
+        readyForReview: valid.length > 0
+      };
+    });
+
+    const validReceiptCount = reviewed.filter(({ countsAsValid }) => countsAsValid).length;
+    const rejectedReceiptCount = reviewed.filter(({ review }) => !review.accepted).length;
+
+    return {
+      openQuestionSummaries,
+      totalReceiptCount: records.length,
+      validReceiptCount,
+      rejectedReceiptCount,
+      reasonCodes: [...new Set(reasonCodes)].sort(),
+      warnings: [...new Set(warnings)].sort(),
+      liveBrokerWriteAllowed: false,
+      liveTradingAuthorized: false,
+      safetyType: "TOSS_READ_ONLY_EVIDENCE_RECEIPT_OPERATOR_SUMMARY_REVIEW_ONLY"
     };
   }
 }
