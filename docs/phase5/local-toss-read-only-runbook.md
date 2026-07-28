@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.16
+Version: 0.5.17
 Status: Active
 Last Updated: 2026-07-28
 
@@ -155,6 +155,22 @@ npm run phase5:toss:preflight
 
 The preflight command runs the local safety checks together and performs no network calls.
 
+## 9. Run Final Read-Only Call Gate
+
+Before any real Toss read-only API call, run:
+
+```bash
+npm run phase5:toss:call-gate
+```
+
+The call gate fails closed unless preflight passes and the operator explicitly approves one scoped read-only verification attempt.
+
+Details:
+
+```text
+docs/phase5/toss-read-only-call-gate.md
+```
+
 Evidence must not contain:
 
 - API keys
@@ -165,7 +181,7 @@ Evidence must not contain:
 - raw Toss API payloads
 - live write command shapes
 
-## 9. Stop Conditions
+## 10. Stop Conditions
 
 Stop immediately if any of the following appears:
 

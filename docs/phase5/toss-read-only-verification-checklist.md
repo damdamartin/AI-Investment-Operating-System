@@ -1,6 +1,6 @@
 # Toss Read-Only Verification Checklist
 
-Version: 0.5.16
+Version: 0.5.17
 Status: Active
 Last Updated: 2026-07-28
 
@@ -99,6 +99,14 @@ Run preflight:
 ```bash
 npm run phase5:toss:preflight
 ```
+
+Run the final read-only call gate:
+
+```bash
+npm run phase5:toss:call-gate
+```
+
+The call gate must pass before the next task attempts any real Toss read-only API request.
 
 ## Allowed Read-Only Calls
 

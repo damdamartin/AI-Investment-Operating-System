@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.16
+Version: 0.5.17
 Status: Active
 Last Updated: 2026-07-28
 
@@ -13,6 +13,7 @@ The first target is Toss Securities Open API read-only validation.
 Primary local runbook:
 
 - `docs/phase5/local-toss-read-only-runbook.md`
+- `docs/phase5/toss-read-only-call-gate.md`
 
 ## Non-Negotiable Boundary
 
@@ -177,6 +178,20 @@ npm run phase5:toss:preflight
 ```
 
 The preflight command performs no network calls. It should pass before any later task attempts a real read-only Toss API call.
+
+## Read-Only Call Gate
+
+The final local gate before a real read-only Toss API call is:
+
+```bash
+npm run phase5:toss:call-gate
+```
+
+The gate performs no network calls and fails closed by default. Even if an operator approval flag is present, the gate remains blocked until preflight is ready.
+
+Gate details:
+
+- `docs/phase5/toss-read-only-call-gate.md`
 
 ## Toss Open Question Evidence
 

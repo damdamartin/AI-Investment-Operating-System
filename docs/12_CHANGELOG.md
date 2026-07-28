@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.16
+Version: 0.5.17
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.17 - 2026-07-28
+
+### Added
+
+- Added `docs/phase5/toss-read-only-call-gate.md` as the final local gate before real Toss read-only API verification.
+- Added `npm run phase5:toss:call-gate` to combine preflight readiness with explicit operator approval.
+- Added tests confirming the gate fails closed without preflight readiness and remains blocked even when approval is present but preflight fails.
+
+### Safety
+
+- The call gate performs no network calls.
+- The call gate never enables live broker writes.
+- Passing the call gate permits only one scoped read-only verification attempt in a later task.
 
 ## 0.5.16 - 2026-07-28
 
