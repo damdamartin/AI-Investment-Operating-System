@@ -20,7 +20,7 @@ Primary local runbook:
 
 - `accounts` (account snapshot read) — completed at least once by the human operator.
 - `holdings` (position query read) — completed at least once by the human operator.
-- `market-prices` (market data read) — next pending target. Not yet available as a real call target on this branch; support is being added as a separate, parallel effort.
+- `market-prices` (market data read) — implemented and mock-tested. Official `GET /api/v1/prices` with required `symbols` query has been confirmed; the first real human-operated read-only attempt is still pending.
 
 Real receipts for any completed target exist only as local, git-ignored files under `tmp/phase5/`, alongside a local `.env`. Neither is part of this repository. Full detail and per-step instructions: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 

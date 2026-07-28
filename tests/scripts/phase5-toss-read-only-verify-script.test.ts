@@ -618,7 +618,13 @@ function startMockTossServer(config: {
         return;
       }
 
-      if (request.method === "GET" && request.url === "/api/v1/prices") {
+      if (request.method === "GET" && request.url?.startsWith("/api/v1/prices")) {
+        const url = new URL(request.url, "http://127.0.0.1");
+        if (url.searchParams.get("symbols") !== "005930") {
+          response.writeHead(400, { "content-type": "application/json" });
+          response.end(JSON.stringify({ error: "missing-symbols" }));
+          return;
+        }
         response.writeHead(200, { "content-type": "application/json" });
         response.end(JSON.stringify(config.pricesBody ?? { result: [] }));
         return;

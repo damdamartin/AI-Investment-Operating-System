@@ -71,6 +71,7 @@ const ALLOWED_TARGETS = {
     operation: "MARKET_DATA_READ",
     evidenceKind: "MARKET_DATA_READ",
     path: "/api/v1/prices",
+    query: { symbols: "005930" },
     // Only this target carries this extra flag. See
     // isMarketDataEndpointVerified() and the check in main() below - it is
     // gated on this flag alone, so accounts/holdings behavior is unchanged.
@@ -231,7 +232,7 @@ async function issueAccessToken(baseUrl, env) {
 async function fetchTargetItemCount(baseUrl, accessToken, config) {
   let response;
   try {
-    response = await fetch(new URL(config.path, baseUrl), {
+    response = await fetch(readOnlyRequestUrl(baseUrl, config), {
       method: "GET",
       headers: readOnlyRequestHeaders(accessToken, config)
     });
@@ -257,6 +258,16 @@ async function fetchTargetItemCount(baseUrl, accessToken, config) {
   // extracted here: this runner never stores or prints any per-item field
   // from a real Toss response, only how many items came back.
   return items.length;
+}
+
+function readOnlyRequestUrl(baseUrl, config) {
+  const url = new URL(config.path, baseUrl);
+  if (config.query) {
+    for (const [key, value] of Object.entries(config.query)) {
+      url.searchParams.set(key, value);
+    }
+  }
+  return url;
 }
 
 function readOnlyRequestHeaders(accessToken, config) {

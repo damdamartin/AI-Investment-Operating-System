@@ -98,15 +98,13 @@ export interface TossReadOnlyHoldingSummary {
 }
 
 /**
- * Intentionally count-only. Official Toss documentation confirms only the
- * `GET /api/v1/prices` path for Phase 5 (see
- * docs/phase5/toss-official-api-source-notes.md); the response body's exact
- * field names for individual price quotes are not yet officially confirmed
- * for this repository's Phase 5 evidence work. Rather than guess at symbol or
- * price field names, this client never extracts a per-item value from a
- * market-prices response at all - only how many items came back - matching
- * the task requirement that raw prices and raw symbols must never be stored
- * or exposed anywhere in this pipeline.
+ * Intentionally count-only. Official Toss documentation confirms the
+ * `GET /api/v1/prices` path and required `symbols` query parameter for Phase 5
+ * (see docs/phase5/toss-official-api-source-notes.md). Even though the
+ * response documents symbol and price fields, this client never extracts a
+ * per-item value from a market-prices response at all - only how many items
+ * came back - matching the task requirement that raw prices and raw symbols
+ * must never be stored or exposed anywhere in this pipeline.
  */
 export interface TossReadOnlyMarketDataSummary {
   itemCount: number;
@@ -123,6 +121,7 @@ const TOKEN_PATH = "/oauth2/token";
 const ACCOUNTS_PATH = "/api/v1/accounts";
 const HOLDINGS_PATH = "/api/v1/holdings";
 const MARKET_PRICES_PATH = "/api/v1/prices";
+const MARKET_PRICES_SYMBOLS = "005930";
 
 /**
  * Narrowly scoped, real Toss Securities read-only HTTP client.
@@ -396,12 +395,10 @@ export class TossReadOnlyHttpClient {
    * Unlike `getAccounts()`/`getHoldings()`, this method deliberately never
    * extracts a per-item symbol or price value from the response - only how
    * many items came back. This is stricter than the account/holding methods
-   * on purpose: this endpoint's response body field names are not yet
-   * officially confirmed for this repository (only the path is), and the
-   * task this method was added under (P5-016) explicitly requires that raw
-   * prices and raw symbols never be stored or exposed anywhere in this
-   * pipeline, at every layer - not just in the sanitized evidence a caller
-   * later writes to disk.
+   * on purpose: the task this method was added under (P5-016) explicitly
+   * requires that raw prices and raw symbols never be stored or exposed
+   * anywhere in this pipeline, at every layer - not just in the sanitized
+   * evidence a caller later writes to disk.
    */
   async getMarketPrices(): Promise<TossReadOnlyHttpResult<TossReadOnlyMarketDataSummary>> {
     const collectedAt = this.#now();
@@ -411,7 +408,7 @@ export class TossReadOnlyHttpClient {
 
     let response: TossReadOnlyHttpFetchResponse;
     try {
-      response = await this.#fetchImpl(this.#buildUrl(MARKET_PRICES_PATH), {
+      response = await this.#fetchImpl(this.#buildMarketPricesUrl(), {
         method: "GET",
         headers: { authorization: `Bearer ${tokenResult.data}` }
       });
@@ -487,6 +484,12 @@ export class TossReadOnlyHttpClient {
 
   #buildUrl(path: string): string {
     return new URL(path, this.#baseUrl).toString();
+  }
+
+  #buildMarketPricesUrl(): string {
+    const url = new URL(MARKET_PRICES_PATH, this.#baseUrl);
+    url.searchParams.set("symbols", MARKET_PRICES_SYMBOLS);
+    return url.toString();
   }
 
   #accountScopedHeaders(accessToken: string): Record<string, string> {

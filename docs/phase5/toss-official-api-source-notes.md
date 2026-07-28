@@ -31,7 +31,7 @@ The following endpoints are official-documentation candidates for Phase 5 read-o
 | Operation | Method | Path | Phase 5 Mapping | Notes |
 |---|---:|---|---|---|
 | OAuth2 token issuance | POST | `/oauth2/token` | `AUTHENTICATION_READ`, OQ-001 | Authentication only. Does not authorize broker writes. |
-| Current price lookup | GET | `/api/v1/prices` | `MARKET_DATA_READ`, OQ-004 | Market data only. Confirm required query parameters locally. |
+| Current price lookup | GET | `/api/v1/prices?symbols=005930` | `MARKET_DATA_READ`, OQ-004 | Market data only. Official docs require the `symbols` query parameter. The Phase 5 runner uses one public documentation-style symbol and records only item count, never raw symbols or prices. |
 | Account list lookup | GET | `/api/v1/accounts` | `ACCOUNT_SNAPSHOT_READ`, OQ-002 | Account APIs require careful account identifier redaction. |
 | Holdings lookup | GET | `/api/v1/holdings` | `POSITION_QUERY_READ`, OQ-002 | Record only sanitized position summary evidence. |
 
@@ -62,4 +62,3 @@ The official docs list write-capable endpoints including:
 - conditional order create, modify, and cancel endpoints
 
 These remain blocked in Phase 5.
-
