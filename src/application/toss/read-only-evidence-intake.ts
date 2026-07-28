@@ -37,6 +37,70 @@ export interface TossReadOnlyEvidenceIntakeReview {
 const blockedSecretPattern =
   /(access[_-]?token|refresh[_-]?token|client[_-]?secret|app[_-]?secret|authorization|bearer\s+[a-z0-9._-]+|계좌번호|account[_-]?number)/i;
 
+/**
+ * Matches long digit runs that look like account numbers, card numbers, or
+ * other sensitive identifiers rather than ordinary prose. Shared by every
+ * validator in this file so account-number-like text is rejected wherever it
+ * appears: intake items, call approval records, and future verification
+ * result receipts.
+ */
+const accountIdentifierLikePattern = /\b\d{6,}\b/;
+
+/**
+ * Matches text shaped like a raw JSON API response body (quoted keys
+ * followed by a colon, a JSON array of objects) or a raw HTTP response
+ * (status line, HTML document). Phase 5 evidence must be a sanitized human
+ * summary, never a pasted raw payload.
+ */
+const rawResponseLikePattern =
+  /(\{\s*"[a-zA-Z0-9_]+"\s*:)|(\[\s*\{\s*")|(<html[\s>])|(<!doctype\s+html)|(HTTP\/1\.[01]\s+\d{3})/i;
+
+/**
+ * Matches text shaped like a raw HTTP request/response header line (a
+ * vendor `X-...` header, a cookie header, or a header name immediately
+ * followed by a colon and a value). Sanitized evidence must describe
+ * findings in prose, never paste header lines. ("Authorization:" is already
+ * covered by `blockedSecretPattern` above, so it is intentionally not
+ * repeated here.)
+ */
+const requestHeaderLikePattern = /\b(x-[a-z0-9-]{2,}|cookie|set-cookie)\s*:\s*\S+/i;
+
+/**
+ * Canonical mapping from a Toss evidence kind to the open question it
+ * primarily supports, per `docs/phase5/open-question-evidence-policy.md`
+ * and the "Required Toss Evidence" list in `docs/phase5/README.md`.
+ *
+ * `ACCOUNT_SNAPSHOT_READ` and `POSITION_QUERY_READ` evidence both map to
+ * `OQ-002` (the Toss account and permission model question) because both
+ * come from account-scoped read-only calls that describe the same
+ * identifier and permission shapes.
+ *
+ * `MARKET_DATA_READ` intentionally has no canonical open-question mapping:
+ * it is part of the minimum Phase 5 readiness evidence set, but it is not
+ * one of OQ-001 through OQ-004.
+ */
+const evidenceKindOpenQuestionMap: Partial<Record<TossEvidenceKind, string>> = {
+  API_TERMS_REVIEW: "OQ-001",
+  AUTHENTICATION_READ: "OQ-001",
+  ACCOUNT_SNAPSHOT_READ: "OQ-002",
+  POSITION_QUERY_READ: "OQ-002",
+  ORDER_STATUS_QUERY_READ: "OQ-003",
+  FILL_QUERY_READ: "OQ-003",
+  ETF_SUPPORT_DOCUMENTATION: "OQ-004",
+  FRACTIONAL_SUPPORT_DOCUMENTATION: "OQ-004",
+  EXTENDED_HOURS_DOCUMENTATION: "OQ-004"
+};
+
+/**
+ * Returns the canonical open question a Toss evidence kind supports, or
+ * `undefined` when the kind (for example `MARKET_DATA_READ`) has no fixed
+ * mapping and must be linked to an open question by a human preparing the
+ * intake item.
+ */
+export function openQuestionForEvidenceKind(kind: TossEvidenceKind): string | undefined {
+  return evidenceKindOpenQuestionMap[kind];
+}
+
 export class TossReadOnlyEvidenceIntakeValidator {
   review(intake: TossReadOnlyEvidenceIntake): TossReadOnlyEvidenceIntakeReview {
     const reasonCodes: string[] = [];
@@ -88,6 +152,27 @@ export class TossReadOnlyEvidenceIntakeValidator {
       const searchableText = `${item.sourceReference}\n${item.sanitizedSummary}`;
       if (blockedSecretPattern.test(searchableText)) {
         reasonCodes.push(`intake_may_contain_secret_${item.id}`);
+      }
+
+      if (accountIdentifierLikePattern.test(searchableText)) {
+        reasonCodes.push(`intake_may_contain_account_identifier_${item.id}`);
+      }
+
+      if (rawResponseLikePattern.test(searchableText)) {
+        reasonCodes.push(`intake_looks_like_raw_response_${item.id}`);
+      }
+
+      if (requestHeaderLikePattern.test(searchableText)) {
+        reasonCodes.push(`intake_may_contain_request_header_${item.id}`);
+      }
+
+      const canonicalOpenQuestion = openQuestionForEvidenceKind(item.kind);
+      if (
+        canonicalOpenQuestion &&
+        item.relatedOpenQuestion.startsWith("OQ-") &&
+        item.relatedOpenQuestion !== canonicalOpenQuestion
+      ) {
+        reasonCodes.push(`intake_open_question_mismatch_${item.id}`);
       }
     }
 
@@ -213,8 +298,6 @@ const allowedApprovableOperations: TossReadOnlyOperation[] = [
 const writeOperationPattern =
   /(submit|place|create|cancel|modify|replace)[_-]?order|order[_-]?(submit|place|create|cancel|modify|replace)|withdraw|transfer|exchange[_-]?money/i;
 
-const accountIdentifierLikePattern = /\b\d{6,}\b/;
-
 export class TossReadOnlyCallApprovalValidator {
   review(record: TossReadOnlyCallApprovalRecord): TossReadOnlyCallApprovalReview {
     const reasonCodes: string[] = [];
@@ -321,5 +404,151 @@ export class TossReadOnlyCallApprovalLedger {
 
   isConsumed(id: string): boolean {
     return this.consumedApprovalIds.has(id);
+  }
+}
+
+/**
+ * Sanitized receipt shape a future read-only verification runner (task
+ * P5-013) is expected to produce after performing exactly one approved
+ * read-only Toss call. This module does not implement that runner and does
+ * not perform any network call itself; it only validates that a receipt
+ * claiming to be sanitized actually looks safe, and helps a human turn it
+ * into a full evidence intake item.
+ *
+ * `sanitizedEvidencePath` is a reference to a local, git-ignored file where
+ * the runner wrote its sanitized summary. This pipeline never reads that
+ * file automatically — a human must open it, confirm it is safe, and copy a
+ * sanitized summary into a `TossReadOnlyEvidenceIntakeItem` by hand. That
+ * keeps file-content review a human act, consistent with
+ * `docs/phase5/open-question-evidence-policy.md`.
+ */
+export interface TossReadOnlyVerificationResultSummary {
+  operation: TossReadOnlyOperation;
+  evidenceKind: TossEvidenceKind;
+  sanitizedEvidencePath: string;
+  liveBrokerWriteAllowed: false;
+  networkCallsPerformed: boolean;
+  rawPayloadStored: false;
+}
+
+export interface TossReadOnlyVerificationResultReview {
+  acceptedForIntakeDraft: boolean;
+  reasonCodes: string[];
+  warnings: string[];
+  /** The open question this evidence kind canonically supports, if any. */
+  suggestedRelatedOpenQuestion: string | undefined;
+  liveBrokerWriteAllowed: false;
+  safetyType: "TOSS_READ_ONLY_VERIFICATION_RESULT_REVIEW_ONLY";
+}
+
+export class TossReadOnlyVerificationResultValidator {
+  /**
+   * Reviews a sanitized verification result receipt. This never reads
+   * `sanitizedEvidencePath` from disk and never performs a network call; it
+   * only inspects the fields and the path string itself for safety.
+   */
+  review(result: TossReadOnlyVerificationResultSummary): TossReadOnlyVerificationResultReview {
+    const reasonCodes: string[] = [];
+    const warnings: string[] = [];
+
+    if (!allowedApprovableOperations.includes(result.operation)) {
+      reasonCodes.push("verification_result_operation_not_read_only");
+    }
+
+    if (writeOperationPattern.test(String(result.operation))) {
+      reasonCodes.push("verification_result_operation_looks_write_scoped");
+    }
+
+    if (result.liveBrokerWriteAllowed !== false) {
+      reasonCodes.push("verification_result_live_broker_write_allowed_must_be_false");
+    }
+
+    if (result.rawPayloadStored !== false) {
+      reasonCodes.push("verification_result_raw_payload_stored_must_be_false");
+    }
+
+    if (typeof result.networkCallsPerformed !== "boolean") {
+      reasonCodes.push("verification_result_network_calls_performed_must_be_boolean");
+    }
+
+    if (!result.sanitizedEvidencePath || result.sanitizedEvidencePath.trim().length === 0) {
+      reasonCodes.push("verification_result_missing_sanitized_evidence_path");
+    } else {
+      const path = result.sanitizedEvidencePath;
+
+      if (path.includes("..")) {
+        reasonCodes.push("verification_result_evidence_path_traversal_rejected");
+      }
+
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(path)) {
+        reasonCodes.push("verification_result_evidence_path_must_be_local");
+      }
+
+      if (path.includes(".env")) {
+        reasonCodes.push("verification_result_evidence_path_must_not_reference_env_file");
+      }
+
+      if (blockedSecretPattern.test(path)) {
+        reasonCodes.push("verification_result_evidence_path_may_contain_secret");
+      }
+
+      if (accountIdentifierLikePattern.test(path)) {
+        reasonCodes.push("verification_result_evidence_path_may_contain_account_identifier");
+      }
+
+      if (rawResponseLikePattern.test(path) || requestHeaderLikePattern.test(path)) {
+        reasonCodes.push("verification_result_evidence_path_looks_unsafe");
+      }
+    }
+
+    const suggestedRelatedOpenQuestion = openQuestionForEvidenceKind(result.evidenceKind);
+    if (!suggestedRelatedOpenQuestion) {
+      warnings.push(
+        `verification_result_evidence_kind_has_no_canonical_open_question_${result.evidenceKind.toLowerCase()}`
+      );
+    }
+
+    return {
+      acceptedForIntakeDraft: reasonCodes.length === 0,
+      reasonCodes: [...new Set(reasonCodes)].sort(),
+      warnings: [...new Set(warnings)].sort(),
+      suggestedRelatedOpenQuestion,
+      liveBrokerWriteAllowed: false,
+      safetyType: "TOSS_READ_ONLY_VERIFICATION_RESULT_REVIEW_ONLY"
+    };
+  }
+
+  /**
+   * Builds an unreviewed intake item draft from an accepted verification
+   * result receipt. The draft always carries `reviewedByHuman: false` and an
+   * empty `sanitizedSummary` — a human must read the sanitized evidence file
+   * at `sourceReference`, write an actual summary, and explicitly mark the
+   * item reviewed before `TossReadOnlyEvidenceIntakeValidator` will accept
+   * it. This method never promotes evidence on its own.
+   */
+  draftIntakeItem(
+    result: TossReadOnlyVerificationResultSummary,
+    options: { id: string }
+  ): TossReadOnlyEvidenceIntakeItem {
+    const review = this.review(result);
+
+    if (!review.acceptedForIntakeDraft) {
+      throw new Error(
+        `Refusing to draft an intake item from an unsafe verification result: ${review.reasonCodes.join(", ")}`
+      );
+    }
+
+    return {
+      id: options.id,
+      kind: result.evidenceKind,
+      relatedOpenQuestion: review.suggestedRelatedOpenQuestion ?? "",
+      source: "LOCAL_READ_ONLY_CHECK",
+      sourceReference: result.sanitizedEvidencePath,
+      sanitizedSummary: "",
+      reviewedByHuman: false,
+      rawPayloadIncluded: result.rawPayloadStored,
+      screenshotContainsSecrets: false,
+      liveWriteOperation: false
+    };
   }
 }
