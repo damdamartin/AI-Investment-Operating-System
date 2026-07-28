@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.14
+Version: 0.4.15
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.15 - 2026-07-28
+
+### Added
+
+- Added baseline OrderApprovalEngine service.
+- Added approval prerequisite checks for RiskCheck, MoneyCheck, BrokerAccount, compliance gate, and Toss capability registry.
+- Added rejection reason codes for missing or failed approval dependencies.
+- Added tests for approval path, missing risk and money checks, failed risk checks, broker/compliance/capability rejection, and AI-shaped non-dependencies.
+
+### Changed
+
+- Marked Task-030 as complete.
+- Updated repository and package version to `0.4.15`.
+
+### Safety
+
+- Order approval is rejected when any dependency is missing, failed, blocked, or unverified.
+- Approved OrderApproval remains separate from BrokerOrder and does not submit to Toss.
+- AI output cannot stand in for RiskCheck or MoneyCheck.
+
+### Verification
+
+- `npm run check` passed with 126 tests.
 
 ## 0.4.14 - 2026-07-28
 

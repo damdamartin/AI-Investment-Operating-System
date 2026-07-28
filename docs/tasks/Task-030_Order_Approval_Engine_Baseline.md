@@ -1,5 +1,8 @@
 # Task-030: Order Approval Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.15
+
 ## Objective
 
 Implement the baseline Order Approval Engine that accepts or rejects OrderIntent records before any broker submission.
