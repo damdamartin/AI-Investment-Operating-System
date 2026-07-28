@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.39
+Version: 0.4.40
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.40 - 2026-07-28
+
+### Added
+
+- Added Incident Runbooks document.
+- Added runbooks for broker API failure, unknown order state, reconciliation mismatch, Claude API failure, Naver API failure, and kill switch activation.
+- Added IncidentRunbookReview.
+- Added tests for required runbook sections, explicit restrictive trading safety state, no-trade preference, and required scenario coverage.
+
+### Changed
+
+- Marked Task-055 as complete.
+- Updated repository and package version to `0.4.40`.
+
+### Safety
+
+- Incident runbooks prefer no trade over uncertain trade.
+- Runbooks make trading safety state explicit for each scenario.
+- Unknown order and reconciliation incidents require state verification before resume.
+
+### Verification
+
+- Targeted Incident Runbook Review tests passed with 5 tests.
 
 ## 0.4.39 - 2026-07-28
 
