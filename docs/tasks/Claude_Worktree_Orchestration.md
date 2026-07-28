@@ -1,7 +1,7 @@
 # Claude Code Worktree Orchestration Guide
 
-Version: 0.3.3
-Status: Draft
+Version: 0.4.44
+Status: Active
 Last Updated: 2026-07-28
 
 ## 1. Purpose
@@ -378,3 +378,35 @@ These require explicit architecture review, compliance review, and resolved open
 Claude Code should optimize for small, reviewable pull requests.
 
 When uncertain, preserve safety and ask for architecture review rather than guessing.
+
+## 7. Worktree Plan Review Checklist
+
+Before opening parallel Claude Code sessions, the operator should review the session plan for the following conditions:
+
+- each session has a unique session ID
+- each session has a unique `feature/*` branch
+- each session has a unique worktree path
+- each task ID is assigned to only one session
+- owned source and documentation paths do not overlap between sessions
+- every session reads `docs/10_Claude_Code_Guide.md`
+- every session reads `docs/11_AI_RULES.md`
+- no session owns `.env`, secret, or live production credential files
+- no session implements live Toss write operations
+- integration happens through an `integration/*` branch before `main`
+
+The repository includes a review-only `ClaudeWorktreeOrchestrationGuide` service that can validate these conditions in tests or local planning tools.
+
+## 8. Merge Readiness Rule
+
+A worktree wave is ready for integration only when every assigned session is either:
+
+- `READY_FOR_REVIEW`
+- `MERGED`
+
+After each worktree merge:
+
+1. run the full project check
+2. review whitespace and generated-file issues
+3. confirm safety rules were not weakened
+4. confirm live broker write operations remain blocked
+5. commit the integration result with a clear summary

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.43
+Version: 0.4.44
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.4.44 - 2026-07-28
+
+### Added
+
+- Added a review-only Claude worktree orchestration validation service.
+- Added tests for duplicate branch detection, duplicate worktree detection, duplicate task ownership, overlapping owned paths, required safety document checks, sensitive path blocking, and merge-readiness evaluation.
+- Expanded the Claude worktree orchestration guide with pre-session review rules and merge readiness rules.
+
+### Safety
+
+- Confirmed every Claude Code session must read `docs/10_Claude_Code_Guide.md` and `docs/11_AI_RULES.md` before implementation.
+- Blocked `.env`, secret, and live production credential paths from worktree ownership plans.
+- Reconfirmed that live broker write work remains blocked during parallel Claude Code development.
 
 Every entry should be understandable without reading the code diff.
 
