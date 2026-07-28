@@ -1,5 +1,8 @@
 # Task-033: Shadow Portfolio Engine
 
+Status: Complete
+Implemented In: 0.4.18
+
 ## Objective
 
 Implement Shadow Portfolio simulation for candidate strategies using live-like market inputs without real capital.

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.17
+Version: 0.4.18
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.18 - 2026-07-28
+
+### Added
+
+- Added ShadowPortfolioEngine.
+- Added virtual portfolio state for candidate strategies.
+- Added simulated buy and sell fills with commission and slippage assumptions.
+- Added shadow trade and performance records.
+- Added tests for virtual portfolio creation, simulated buys, simulated sells, candidate isolation, and HOLD behavior.
+
+### Changed
+
+- Marked Task-033 as complete.
+- Updated repository and package version to `0.4.18`.
+
+### Safety
+
+- Shadow portfolios are virtual-only and do not include broker account IDs or live trading permissions.
+- Shadow trades are simulation-only and do not contain broker order references.
+- Shadow Portfolio engine does not call Toss write methods or create real broker orders.
+
+### Verification
+
+- `npm run check` passed with 141 tests.
 
 ## 0.4.17 - 2026-07-28
 
