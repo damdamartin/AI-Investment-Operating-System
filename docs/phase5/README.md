@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.8
+Version: 0.5.9
 Status: Active
 Last Updated: 2026-07-28
 
@@ -197,6 +197,18 @@ The planner prepares sanitized requests only for verified read-only endpoints.
 It performs no network calls.
 
 It skips unverified endpoints and keeps their warnings visible.
+
+Local command:
+
+```bash
+npm run phase5:toss:plan
+```
+
+To use another local endpoint catalog:
+
+```bash
+npm run phase5:toss:plan -- path/to/catalog.json
+```
 
 ## Phase 5 Exit Direction
 

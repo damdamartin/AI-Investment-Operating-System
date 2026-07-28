@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.8
+Version: 0.5.9
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.9 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:plan` for local dry-run Toss read-only verification planning.
+- Added script tests for sanitized verified endpoint plans, missing credential failure, and unverified endpoint skipping.
+
+### Safety
+
+- The local verification plan command performs no network calls.
+- The local verification plan command masks Toss headers and never prints secret values.
+- Unverified endpoints are skipped rather than executed.
 
 ## 0.5.8 - 2026-07-28
 

@@ -54,6 +54,14 @@ Validate the read-only endpoint catalog before using endpoint paths:
 npm run phase5:toss:endpoints
 ```
 
+Generate a dry-run verification plan:
+
+```bash
+npm run phase5:toss:plan
+```
+
+This command performs no network calls.
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:
