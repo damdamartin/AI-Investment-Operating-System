@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.36
+Version: 0.4.37
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.37 - 2026-07-28
+
+### Added
+
+- Added DataQualityMonitor.
+- Added data quality statuses for `GREEN`, `YELLOW`, `RED`, and `BLOCKED`.
+- Added market data freshness and missing data checks.
+- Added news freshness and missing-count checks.
+- Added AI validation failure-rate checks.
+- Added alert hooks for critical stale market data and repeated Claude schema validation failures.
+- Added tests for green status, stale market data, missing market data, stale news, and high AI validation failure rate.
+
+### Changed
+
+- Marked Task-052 as complete.
+- Updated repository and package version to `0.4.37`.
+
+### Safety
+
+- Suspect or missing market data blocks trading-dependent flows.
+- Data quality output is dashboard-ready and does not generate trading signals.
+- Critical data quality findings are exposed through operational alert hooks.
+
+### Verification
+
+- Targeted Data Quality Monitor tests passed with 5 tests.
 
 ## 0.4.36 - 2026-07-28
 

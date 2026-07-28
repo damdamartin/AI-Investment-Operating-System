@@ -11,6 +11,7 @@ export * from "./application/cancel-simulation/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/config-versioning/index.js";
 export * from "./application/dashboard/index.js";
+export * from "./application/data-quality/index.js";
 export * from "./application/execution-simulation/index.js";
 export * from "./application/fill-processing/index.js";
 export * from "./application/fundamental/index.js";
