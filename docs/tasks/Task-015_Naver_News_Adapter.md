@@ -1,5 +1,8 @@
 # Task-015: Naver News Adapter
 
+Status: Complete
+Implemented In: 0.4.5
+
 ## Objective
 
 Implement the Naver News adapter for news search and normalized article metadata.

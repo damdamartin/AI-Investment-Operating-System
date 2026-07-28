@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.4
+Version: 0.4.5
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.5 - 2026-07-28
+
+### Added
+
+- Added NaverNewsAdapter with fetch injection, HTML cleanup, normalized article output, duplicate key generation, and safe adapter errors.
+- Added Claude analysis schema validator.
+- Added ValidatingClaudeAdapter that rejects malformed Claude outputs before they can influence downstream logic.
+- Added fixture tests for Naver article normalization, malformed news items, API errors, duplicate keys, Claude schema validation, forbidden broker command keys, and Claude adapter failure behavior.
+
+### Changed
+
+- Marked Task-015 and Task-016 as complete.
+- Updated repository and package version to `0.4.5`.
+
+### Safety
+
+- News normalization creates articles only, not signals or orders.
+- Malformed news items are skipped safely.
+- Claude output containing broker command keys is rejected.
+- Invalid Claude schema output returns a non-retryable validation error and cannot become valid analysis.
+
+### Verification
+
+- `npm run check` passed with 79 tests.
 
 ## 0.4.4 - 2026-07-28
 

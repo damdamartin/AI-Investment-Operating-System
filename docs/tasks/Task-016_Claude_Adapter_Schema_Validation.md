@@ -1,5 +1,8 @@
 # Task-016: Claude Adapter Schema Validation
 
+Status: Complete
+Implemented In: 0.4.5
+
 ## Objective
 
 Implement Claude API adapter boundaries with strict structured output validation.

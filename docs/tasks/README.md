@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.4
+Version: 0.4.5
 Status: Active
 Last Updated: 2026-07-28
 
@@ -28,8 +28,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-012](Task-012_Outbox_Event_Schema.md) | Outbox Event Schema | Database | Complete |
 | [Task-013](Task-013_Adapter_Interface_Contracts.md) | Adapter Interface Contracts | API | Complete |
 | [Task-014](Task-014_Toss_Readonly_Capability_Discovery.md) | Toss Read-Only Capability Discovery | Broker API | Complete |
-| [Task-015](Task-015_Naver_News_Adapter.md) | Naver News Adapter | News API | Draft |
-| [Task-016](Task-016_Claude_Adapter_Schema_Validation.md) | Claude Adapter Schema Validation | AI API | Draft |
+| [Task-015](Task-015_Naver_News_Adapter.md) | Naver News Adapter | News API | Complete |
+| [Task-016](Task-016_Claude_Adapter_Schema_Validation.md) | Claude Adapter Schema Validation | AI API | Complete |
 | [Task-017](Task-017_Compliance_Gate_Service.md) | Compliance Gate Service | Safety | Complete |
 | [Task-018](Task-018_Audit_Log_Service.md) | Audit Log Service | Audit | Complete |
 | [Task-019](Task-019_Safety_Regression_Test_Harness.md) | Safety Regression Test Harness | Testing | Complete |
