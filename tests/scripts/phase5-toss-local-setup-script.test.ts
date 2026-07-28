@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -25,5 +25,32 @@ describe("phase5-toss-local-setup script", () => {
     expect(report.liveBrokerWriteAllowed).toBe(false);
     expect(report.networkCallsPerformed).toBe(false);
     expect(output).not.toContain("client-secret");
+  });
+
+  it("accepts pasted or piped credential input without printing secret values", () => {
+    const secret = "client-secret-from-paste";
+    const result = spawnSync(process.execPath, [scriptPath, "--force", "--dry-run"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: { PATH: process.env.PATH },
+      input: [
+        "https://openapi.tossinvest.com",
+        "client-id-from-paste",
+        secret,
+        "account-ref-from-paste",
+        ""
+      ].join("\n")
+    });
+
+    expect(result.status).toBe(0);
+    const output = `${result.stdout}\n${result.stderr}`;
+    const report = JSON.parse(result.stdout);
+
+    expect(report.dryRun).toBe(true);
+    expect(report.envWritten).toBe(false);
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+    expect(output).not.toContain(secret);
+    expect(output).not.toContain("account-ref-from-paste");
   });
 });

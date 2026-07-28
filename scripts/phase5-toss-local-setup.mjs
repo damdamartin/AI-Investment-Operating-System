@@ -71,11 +71,32 @@ async function collectEnv() {
   console.error("Secrets are written only to local .env. They are not printed in the JSON report.");
   console.error("LIVE_TRADING_ENABLED will be false and TOSS_READ_ONLY_MODE will be true.\n");
 
+  if (!process.stdin.isTTY) {
+    return collectEnvFromPipedInput();
+  }
+
   return {
     tossApiBaseUrl: await promptText("Official Toss API base URL: "),
     tossClientId: await promptSecret("Toss client ID: "),
     tossClientSecret: await promptSecret("Toss client secret: "),
     tossAccountRef: await promptSecret("Toss account reference: ")
+  };
+}
+
+async function collectEnvFromPipedInput() {
+  console.error("Reading four newline-separated values from stdin:");
+  console.error("1. Official Toss API base URL");
+  console.error("2. Toss client ID");
+  console.error("3. Toss client secret");
+  console.error("4. Toss account reference\n");
+
+  const lines = (await readStdin()).split(/\r?\n/);
+
+  return {
+    tossApiBaseUrl: (lines[0] ?? "").trim(),
+    tossClientId: (lines[1] ?? "").trim(),
+    tossClientSecret: (lines[2] ?? "").trim(),
+    tossAccountRef: (lines[3] ?? "").trim()
   };
 }
 
@@ -220,45 +241,40 @@ function promptText(question) {
 }
 
 function promptSecret(question) {
-  if (!process.stdin.isTTY) {
-    return promptText(question);
-  }
+  return new Promise((resolvePrompt) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    const originalWriteToOutput = rl._writeToOutput.bind(rl);
+    let muted = false;
 
-  return new Promise((resolvePrompt, rejectPrompt) => {
-    let value = "";
-    const onData = (chunk) => {
-      for (const char of chunk.toString("utf8")) {
-        if (char === "\u0003") {
-          cleanup();
-          rejectPrompt(new Error("Input cancelled."));
-          return;
-        }
+    rl._writeToOutput = (value) => {
+      if (!muted) {
+        originalWriteToOutput(value);
+        return;
+      }
 
-        if (char === "\r" || char === "\n") {
-          cleanup();
-          process.stderr.write("\n");
-          resolvePrompt(value);
-          return;
-        }
-
-        if (char === "\u007f" || char === "\b") {
-          value = value.slice(0, -1);
-          continue;
-        }
-
-        value += char;
+      if (value.includes("\n") || value.includes("\r")) {
+        originalWriteToOutput(value);
       }
     };
 
-    const cleanup = () => {
-      process.stdin.off("data", onData);
-      process.stdin.setRawMode(false);
-      process.stdin.pause();
-    };
-
     process.stderr.write(question);
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on("data", onData);
+    muted = true;
+    rl.question("", (answer) => {
+      muted = false;
+      rl.close();
+      resolvePrompt(answer.trim());
+    });
+  });
+}
+
+function readStdin() {
+  return new Promise((resolveRead, rejectRead) => {
+    let value = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      value += chunk;
+    });
+    process.stdin.on("end", () => resolveRead(value));
+    process.stdin.on("error", rejectRead);
   });
 }
