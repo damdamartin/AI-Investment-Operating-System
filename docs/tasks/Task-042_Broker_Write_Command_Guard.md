@@ -1,5 +1,8 @@
 # Task-042: Broker Write Command Guard
 
+Status: Complete
+Implemented In: 0.4.27
+
 ## Objective
 
 Create a hard guard that prevents broker write commands unless all live-trading gates are satisfied.
@@ -29,6 +32,15 @@ Required reading: `docs/07_Trading_System.md`, `docs/11_AI_RULES.md`, `docs/13_C
 - Default state blocks all broker write commands.
 - Guard returns explicit blocking reasons.
 - Guard cannot be disabled by strategy or AI code.
+
+## Implementation Notes
+
+- Added a `BrokerWriteCommandGuard`.
+- Added explicit allowed/blocked decision model for broker write commands.
+- Added checks for order approval, broker account permission, portfolio link, compliance, Toss capability, environment policy, kill switch state, reconciliation state, unresolved open questions, and forbidden AI broker command shapes.
+- Default state blocks all broker write commands when gates are missing or unknown.
+- The guard returns reason codes instead of executing broker commands.
+- Claude-shaped broker commands cannot bypass the guard.
 
 ## Tests Required
 

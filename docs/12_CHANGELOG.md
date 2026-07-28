@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.26
+Version: 0.4.27
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.27 - 2026-07-28
+
+### Added
+
+- Added BrokerWriteCommandGuard.
+- Added explicit broker write allowed/blocked decision model.
+- Added guard checks for order approval, broker account permission, portfolio link, compliance, Toss capability, environment policy, kill switch state, reconciliation state, unresolved open questions, and forbidden AI broker command shapes.
+- Added tests for default blocking, fully passing gates, individual blocking conditions, open-question blocks, portfolio link blocks, and Claude-shaped command bypass attempts.
+
+### Changed
+
+- Marked Task-042 as complete.
+- Updated repository and package version to `0.4.27`.
+
+### Safety
+
+- Default state blocks all broker write commands.
+- Unknown or missing gates block broker writes.
+- Guard decisions do not execute broker commands.
+- Claude output cannot bypass the broker write guard.
+
+### Verification
+
+- Targeted Broker Write Command Guard tests passed with 6 tests.
 
 ## 0.4.26 - 2026-07-28
 

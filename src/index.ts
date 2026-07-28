@@ -6,6 +6,7 @@ export * from "./application/ai-health-check/index.js";
 export * from "./application/alerting/index.js";
 export * from "./application/audit/index.js";
 export * from "./application/backtest/index.js";
+export * from "./application/broker-write-guard/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/dashboard/index.js";
 export * from "./application/fundamental/index.js";
