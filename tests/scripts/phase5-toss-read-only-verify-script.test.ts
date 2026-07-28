@@ -215,7 +215,8 @@ describe("phase5-toss-read-only-verify script", () => {
     "an approved holdings call against a local mock server writes sanitized evidence only",
     async () => {
       const server = await startMockTossServer({
-        holdingsBody: { result: [{ symbol: "AAPL", quantity: "3" }, { symbol: "MSFT", quantity: "1" }] }
+        holdingsBody: { result: { items: [{ symbol: "AAPL", quantity: "3" }, { symbol: "MSFT", quantity: "1" }] } },
+        requireHoldingsAccountHeader: true
       });
       const [endpointPath, manifestPath, intakePath] = readyLocalPaths("POSITION_QUERY_READ");
 
@@ -354,7 +355,11 @@ function tempJson(value: unknown): string {
   return path;
 }
 
-function startMockTossServer(config: { accountsBody?: unknown; holdingsBody?: unknown }): Promise<{ url: string }> {
+function startMockTossServer(config: {
+  accountsBody?: unknown;
+  holdingsBody?: unknown;
+  requireHoldingsAccountHeader?: boolean;
+}): Promise<{ url: string }> {
   return new Promise((resolve) => {
     const server = createServer((request, response) => {
       response.setHeader("connection", "close");
@@ -375,6 +380,11 @@ function startMockTossServer(config: { accountsBody?: unknown; holdingsBody?: un
       }
 
       if (request.method === "GET" && request.url === "/api/v1/holdings") {
+        if (config.requireHoldingsAccountHeader && request.headers["x-tossinvest-account"] !== "fixture-account-ref") {
+          response.writeHead(400, { "content-type": "application/json" });
+          response.end(JSON.stringify({ error: "missing-account-ref" }));
+          return;
+        }
         response.writeHead(200, { "content-type": "application/json" });
         response.end(JSON.stringify(config.holdingsBody ?? { result: [] }));
         return;

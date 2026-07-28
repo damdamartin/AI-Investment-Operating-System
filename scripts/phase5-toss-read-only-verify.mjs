@@ -101,7 +101,7 @@ async function main() {
   // 3. Run local preflight as a child process (same pattern preflight.mjs
   // and call-gate.mjs use to compose other Phase 5 scripts). No network call
   // has happened yet.
-  const preflight = runJsonCommand("npm", ["run", "phase5:toss:preflight", "--silent", ...forwardedPaths]);
+  const preflight = runPhase5Script("phase5:toss:preflight", forwardedPaths);
   report.preflight = {
     readyForReadOnlyCall: preflight.report.readyForReadOnlyCall === true,
     reasonCodes: preflight.report.reasonCodes ?? []
@@ -114,7 +114,7 @@ async function main() {
   // 4. Run the final read-only call gate as a child process. This also
   // re-checks the approval flag and re-runs preflight internally; a failure
   // here fails closed even if step 3 above passed.
-  const callGate = runJsonCommand("npm", ["run", "phase5:toss:call-gate", "--silent", ...forwardedPaths]);
+  const callGate = runPhase5Script("phase5:toss:call-gate", forwardedPaths);
   report.callGate = {
     readyToAttemptRealReadOnlyCall: callGate.report.readyToAttemptRealReadOnlyCall === true,
     reasonCodes: callGate.report.reasonCodes ?? []
@@ -199,7 +199,7 @@ async function fetchTargetItemCount(baseUrl, accessToken, config) {
   try {
     response = await fetch(new URL(config.path, baseUrl), {
       method: "GET",
-      headers: { authorization: `Bearer ${accessToken}` }
+      headers: readOnlyRequestHeaders(accessToken, config)
     });
   } catch {
     report.reasonCodes.push(`${config.operation.toLowerCase()}_request_network_error`);
@@ -212,7 +212,7 @@ async function fetchTargetItemCount(baseUrl, accessToken, config) {
   }
 
   const payload = await safeJson(response);
-  const items = extractArray(payload);
+  const items = extractArray(payload, config);
   if (!items) {
     report.reasonCodes.push(`${config.operation.toLowerCase()}_response_invalid_shape`);
     return undefined;
@@ -223,6 +223,16 @@ async function fetchTargetItemCount(baseUrl, accessToken, config) {
   // extracted here: this runner never stores or prints any per-item field
   // from a real Toss response, only how many items came back.
   return items.length;
+}
+
+function readOnlyRequestHeaders(accessToken, config) {
+  const headers = { authorization: `Bearer ${accessToken}` };
+
+  if (config.operation === "POSITION_QUERY_READ") {
+    headers["X-Tossinvest-Account"] = loadEnv().TOSS_ACCOUNT_REF;
+  }
+
+  return headers;
 }
 
 function writeSanitizedEvidence(config, itemCount) {
@@ -295,6 +305,10 @@ function runJsonCommand(command, args) {
   }
 }
 
+function runPhase5Script(scriptName, args) {
+  return runJsonCommand("npm", ["run", "--silent", scriptName, "--", ...args]);
+}
+
 function loadEnv() {
   const envPath = resolve(process.cwd(), ".env");
   const env = { ...process.env };
@@ -330,10 +344,20 @@ async function safeJson(response) {
 }
 
 /** Accepts either `{ result: [...] }` or a bare array response envelope. */
-function extractArray(payload) {
+function extractArray(payload, config) {
   if (Array.isArray(payload)) return payload;
   if (payload !== null && typeof payload === "object" && Array.isArray(payload.result)) {
     return payload.result;
+  }
+  if (
+    config.operation === "POSITION_QUERY_READ" &&
+    payload !== null &&
+    typeof payload === "object" &&
+    payload.result !== null &&
+    typeof payload.result === "object" &&
+    Array.isArray(payload.result.items)
+  ) {
+    return payload.result.items;
   }
   return undefined;
 }

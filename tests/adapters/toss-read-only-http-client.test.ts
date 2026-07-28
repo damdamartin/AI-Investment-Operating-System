@@ -131,10 +131,12 @@ describe("TossReadOnlyHttpClient", () => {
       accountsBody: { result: [] },
       holdingsStatus: 200,
       holdingsBody: {
-        result: [
-          { symbol: "005930", quantity: "10", market: "KR", currency: "KRW" },
-          { notASymbolField: "ignored" }
-        ]
+        result: {
+          items: [
+            { symbol: "005930", quantity: "10", market: "KR", currency: "KRW" },
+            { notASymbolField: "ignored" }
+          ]
+        }
       }
     });
     const client = clientFor(server.url);
@@ -273,8 +275,9 @@ describe("TossReadOnlyHttpClient", () => {
     ).not.toThrow();
   });
 
-  it("never sends the client secret to the accounts or holdings endpoints", async () => {
+  it("sends only the bearer token to accounts and adds the account header for holdings", async () => {
     const receivedAuthHeaders: string[] = [];
+    const receivedAccountHeaders: string[] = [];
     const server = await startMockTossServer({
       tokenStatus: 200,
       tokenBody: { access_token: "mock-access-token", token_type: "Bearer" },
@@ -284,14 +287,21 @@ describe("TossReadOnlyHttpClient", () => {
       holdingsBody: { result: [] },
       onAccountsRequest: (headers) => {
         receivedAuthHeaders.push(String(headers.authorization ?? ""));
+      },
+      onHoldingsRequest: (headers) => {
+        receivedAuthHeaders.push(String(headers.authorization ?? ""));
+        receivedAccountHeaders.push(String(headers["x-tossinvest-account"] ?? ""));
       }
     });
     const client = clientFor(server.url);
 
     await client.getAccounts();
+    await client.getHoldings();
 
-    expect(receivedAuthHeaders).toEqual(["Bearer mock-access-token"]);
+    expect(receivedAuthHeaders).toEqual(["Bearer mock-access-token", "Bearer mock-access-token"]);
+    expect(receivedAccountHeaders).toEqual(["fixture-account-ref"]);
     expect(receivedAuthHeaders.join(" ")).not.toContain("client-secret-value");
+    expect(receivedAccountHeaders.join(" ")).not.toContain("client-secret-value");
   });
 });
 
@@ -300,6 +310,7 @@ function clientFor(baseUrl: string): TossReadOnlyHttpClient {
     baseUrl,
     clientId: "client-id-value",
     clientSecret: "client-secret-value",
+    accountRef: "fixture-account-ref",
     now: () => new Date("2026-07-28T00:00:00Z")
   });
 }
@@ -313,6 +324,7 @@ function startMockTossServer(config: {
   holdingsBody: unknown;
   onTokenRequest?: () => void;
   onAccountsRequest?: (headers: IncomingMessage["headers"]) => void;
+  onHoldingsRequest?: (headers: IncomingMessage["headers"]) => void;
 }): Promise<{ url: string }> {
   return new Promise((resolve) => {
     const server = createServer((request: IncomingMessage, response: ServerResponse) => {
@@ -339,6 +351,7 @@ function startMockTossServer(config: {
       }
 
       if (request.method === "GET" && request.url === "/api/v1/holdings") {
+        config.onHoldingsRequest?.(request.headers);
         request.on("data", () => {});
         request.on("end", () => {
           response.writeHead(config.holdingsStatus, { "content-type": "application/json" });

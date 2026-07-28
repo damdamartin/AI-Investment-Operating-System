@@ -38,6 +38,8 @@ export interface TossReadOnlyHttpClientOptions {
   baseUrl: string;
   clientId: string;
   clientSecret: string;
+  /** Safe local Toss `accountSeq`, used only for account-scoped read-only calls such as holdings. */
+  accountRef?: string;
   fetch?: TossReadOnlyHttpFetchLike;
   now?: () => Date;
 }
@@ -142,6 +144,7 @@ export class TossReadOnlyHttpClient {
   readonly #baseUrl: URL;
   readonly #clientId: string;
   readonly #clientSecret: string;
+  readonly #accountRef: string | undefined;
   readonly #fetchImpl: TossReadOnlyHttpFetchLike;
   readonly #now: () => Date;
   #cachedToken: CachedToken | undefined;
@@ -157,6 +160,7 @@ export class TossReadOnlyHttpClient {
     this.#baseUrl = baseUrl;
     this.#clientId = options.clientId;
     this.#clientSecret = options.clientSecret;
+    this.#accountRef = options.accountRef;
     this.#fetchImpl = options.fetch ?? defaultFetch;
     this.#now = options.now ?? (() => new Date());
   }
@@ -321,7 +325,7 @@ export class TossReadOnlyHttpClient {
     try {
       response = await this.#fetchImpl(this.#buildUrl(HOLDINGS_PATH), {
         method: "GET",
-        headers: { authorization: `Bearer ${tokenResult.data}` }
+        headers: this.#accountScopedHeaders(tokenResult.data)
       });
     } catch {
       return this.#errorResult(
@@ -344,7 +348,7 @@ export class TossReadOnlyHttpClient {
     }
 
     const payload = await safeJson(response);
-    const items = extractArray(payload);
+    const items = extractHoldingsArray(payload);
     if (!items) {
       return this.#errorResult(
         "TOSS_HTTP_HOLDINGS_RESPONSE_INVALID_SHAPE",
@@ -401,6 +405,14 @@ export class TossReadOnlyHttpClient {
 
   #buildUrl(path: string): string {
     return new URL(path, this.#baseUrl).toString();
+  }
+
+  #accountScopedHeaders(accessToken: string): Record<string, string> {
+    const headers: Record<string, string> = { authorization: `Bearer ${accessToken}` };
+    if (this.#accountRef) {
+      headers["X-Tossinvest-Account"] = this.#accountRef;
+    }
+    return headers;
   }
 
   #metadataFor(collectedAt: Date, startedAt: number): TossReadOnlyHttpMetadata {
@@ -491,6 +503,21 @@ function extractArray(payload: unknown): unknown[] | undefined {
     const result = (payload as Record<string, unknown>).result;
     if (Array.isArray(result)) return result;
   }
+  return undefined;
+}
+
+function extractHoldingsArray(payload: unknown): unknown[] | undefined {
+  const direct = extractArray(payload);
+  if (direct) return direct;
+
+  if (payload !== null && typeof payload === "object") {
+    const result = (payload as Record<string, unknown>).result;
+    if (result !== null && typeof result === "object") {
+      const items = (result as Record<string, unknown>).items;
+      if (Array.isArray(items)) return items;
+    }
+  }
+
   return undefined;
 }
 

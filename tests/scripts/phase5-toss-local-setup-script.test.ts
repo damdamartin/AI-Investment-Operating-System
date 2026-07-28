@@ -55,7 +55,7 @@ describe("phase5-toss-local-setup script", () => {
   });
 
   it("rejects piped input with missing client credentials without writing env", () => {
-    const result = spawnSync(process.execPath, [scriptPath, "--force"], {
+    const result = spawnSync(process.execPath, [scriptPath, "--force", "--dry-run"], {
       cwd: repoRoot,
       encoding: "utf8",
       env: { PATH: process.env.PATH },
