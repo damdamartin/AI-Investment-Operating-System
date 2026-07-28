@@ -1,5 +1,8 @@
 # Task-013: Adapter Interface Contracts
 
+Status: Complete
+Implemented In: 0.4.3
+
 ## Objective
 
 Define internal adapter interfaces for Toss Securities, Naver News, and Claude API.

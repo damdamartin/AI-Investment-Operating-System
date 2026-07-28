@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.2
+Version: 0.4.3
 Status: Active
 Last Updated: 2026-07-28
 
@@ -22,11 +22,11 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-006](Task-006_Strategy_Signal_Model.md) | Strategy and Signal Model | Domain | Complete |
 | [Task-007](Task-007_Order_State_Machines.md) | Order State Machines | Trading | Complete |
 | [Task-008](Task-008_Risk_and_Money_Model.md) | Risk and Money Model | Trading | Complete |
-| [Task-009](Task-009_Database_Migration_Framework.md) | Database Migration Framework | Database | Draft |
-| [Task-010](Task-010_Core_Database_Schema.md) | Core Database Schema | Database | Draft |
-| [Task-011](Task-011_Historical_Data_Schema.md) | Historical Data Schema | Database | Draft |
-| [Task-012](Task-012_Outbox_Event_Schema.md) | Outbox Event Schema | Database | Draft |
-| [Task-013](Task-013_Adapter_Interface_Contracts.md) | Adapter Interface Contracts | API | Draft |
+| [Task-009](Task-009_Database_Migration_Framework.md) | Database Migration Framework | Database | Complete |
+| [Task-010](Task-010_Core_Database_Schema.md) | Core Database Schema | Database | Complete |
+| [Task-011](Task-011_Historical_Data_Schema.md) | Historical Data Schema | Database | Complete |
+| [Task-012](Task-012_Outbox_Event_Schema.md) | Outbox Event Schema | Database | Complete |
+| [Task-013](Task-013_Adapter_Interface_Contracts.md) | Adapter Interface Contracts | API | Complete |
 | [Task-014](Task-014_Toss_Readonly_Capability_Discovery.md) | Toss Read-Only Capability Discovery | Broker API | Draft |
 | [Task-015](Task-015_Naver_News_Adapter.md) | Naver News Adapter | News API | Draft |
 | [Task-016](Task-016_Claude_Adapter_Schema_Validation.md) | Claude Adapter Schema Validation | AI API | Draft |

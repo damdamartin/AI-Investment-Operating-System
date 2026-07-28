@@ -1,6 +1,6 @@
 {
   "name": "ai-investment-operating-system",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "description": "Safety-first AI Investment Operating System foundation.",
@@ -8,12 +8,14 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:migrations": "vitest run tests/persistence/migrations.test.ts",
     "check": "npm run typecheck && npm test"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^24.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"

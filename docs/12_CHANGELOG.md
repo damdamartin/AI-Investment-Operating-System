@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.2
+Version: 0.4.3
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,35 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.3 - 2026-07-28
+
+### Added
+
+- Added SQL migration framework and migration loader.
+- Added core schema migration for assets, broker mappings, portfolios, broker accounts, strategies, signals, risk limits, and audit records.
+- Added historical data schema migration for historical bars, corporate actions, cost model versions, and market calendars.
+- Added outbox event schema migration with idempotency key support and retry state fields.
+- Added adapter interface contracts for Toss read-only/write-separated adapters, Naver News adapter, Claude AI adapter, normalized adapter results, and adapter errors.
+- Added migration smoke tests using a clean local Postgres-compatible test database.
+- Added `npm run test:migrations`.
+
+### Changed
+
+- Marked Task-009, Task-010, Task-011, Task-012, and Task-013 as complete.
+- Updated repository and package version to `0.4.3`.
+
+### Safety
+
+- Broker account schema defaults to `UNVERIFIED` and `live_trading_enabled = false`.
+- Portfolio-broker account link schema defaults to `DISABLED`.
+- Outbox events require unique idempotency keys.
+- Toss write interface is separated from Toss read-only interface and has no usable command payload yet.
+- Claude adapter contract returns advisory analysis only, not executable broker commands.
+
+### Verification
+
+- `npm run check` passed with 57 tests.
 
 ## 0.4.2 - 2026-07-28
 

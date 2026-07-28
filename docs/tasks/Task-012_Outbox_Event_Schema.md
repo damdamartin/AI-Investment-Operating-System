@@ -1,5 +1,8 @@
 # Task-012: Outbox Event Schema
 
+Status: Complete
+Implemented In: 0.4.3
+
 ## Objective
 
 Create database support for durable side-effect commands.

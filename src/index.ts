@@ -1,3 +1,4 @@
+export * from "./adapters/contracts/index.js";
 export * from "./config/index.js";
 export * from "./domain/assets/index.js";
 export * from "./domain/broker/index.js";
@@ -7,4 +8,5 @@ export * from "./domain/portfolio/index.js";
 export * from "./domain/risk/index.js";
 export * from "./domain/strategy/index.js";
 export * from "./domain/value-objects/index.js";
+export * from "./persistence/migrations.js";
 export * from "./shared/errors.js";

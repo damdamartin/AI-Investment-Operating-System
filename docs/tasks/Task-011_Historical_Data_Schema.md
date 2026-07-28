@@ -1,5 +1,8 @@
 # Task-011: Historical Data Schema
 
+Status: Complete
+Implemented In: 0.4.3
+
 ## Objective
 
 Create schema support for historical price bars, corporate actions, market calendars, and cost model versions.

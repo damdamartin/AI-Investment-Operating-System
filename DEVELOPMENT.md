@@ -35,6 +35,12 @@ Run tests only:
 npm test
 ```
 
+Run migration smoke tests only:
+
+```bash
+npm run test:migrations
+```
+
 Run type checks only:
 
 ```bash

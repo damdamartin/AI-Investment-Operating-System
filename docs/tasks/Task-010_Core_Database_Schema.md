@@ -1,5 +1,8 @@
 # Task-010: Core Database Schema
 
+Status: Complete
+Implemented In: 0.4.3
+
 ## Objective
 
 Create initial database migrations for core domain tables.
