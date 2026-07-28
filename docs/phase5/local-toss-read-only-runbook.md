@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.15
+Version: 0.5.16
 Status: Active
 Last Updated: 2026-07-28
 
@@ -121,7 +121,17 @@ The example worksheet intentionally fails until each item is manually reviewed a
 
 The intake worksheet must contain only public-safe summaries. It must not contain raw API responses, account numbers, tokens, request headers, client secrets, or screenshots containing secrets.
 
-## 7. Record Evidence
+## 7. Promote Intake To Evidence Manifest
+
+After the intake worksheet is reviewed and passes validation, promote it to a sanitized evidence manifest:
+
+```bash
+npm run phase5:toss:promote-intake -- path/to/evidence-intake.json path/to/evidence-manifest.json
+```
+
+The promotion command performs no network calls and fails closed if the intake worksheet is unsafe.
+
+## 8. Record Evidence
 
 After a real read-only verification step is performed in a later task, record only sanitized summaries.
 
@@ -155,7 +165,7 @@ Evidence must not contain:
 - raw Toss API payloads
 - live write command shapes
 
-## 8. Stop Conditions
+## 9. Stop Conditions
 
 Stop immediately if any of the following appears:
 

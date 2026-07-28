@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.15
+Version: 0.5.16
 Status: Active
 Last Updated: 2026-07-28
 
@@ -137,6 +137,14 @@ npm run phase5:toss:intake -- path/to/evidence-intake.json
 The intake validator rejects unreviewed entries, raw payloads, screenshots with secrets, secret-like text, and live write operation evidence.
 
 The example worksheet intentionally fails until each item is manually reviewed and sanitized.
+
+Reviewed intake can be promoted into a sanitized evidence manifest:
+
+```bash
+npm run phase5:toss:promote-intake -- path/to/evidence-intake.json path/to/evidence-manifest.json
+```
+
+Promotion performs no network calls. It fails closed if the intake validator does not approve the file.
 
 Local validation command:
 

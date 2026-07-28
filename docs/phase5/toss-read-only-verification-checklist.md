@@ -1,6 +1,6 @@
 # Toss Read-Only Verification Checklist
 
-Version: 0.5.15
+Version: 0.5.16
 Status: Active
 Last Updated: 2026-07-28
 
@@ -72,6 +72,12 @@ Validate public-safe evidence intake before promoting evidence to a manifest:
 
 ```bash
 npm run phase5:toss:intake
+```
+
+Promote reviewed intake into a sanitized manifest only after intake validation passes:
+
+```bash
+npm run phase5:toss:promote-intake -- path/to/evidence-intake.json path/to/evidence-manifest.json
 ```
 
 Run the combined Phase 5 Toss doctor:

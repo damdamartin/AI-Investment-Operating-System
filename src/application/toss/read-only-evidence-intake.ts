@@ -1,4 +1,5 @@
 import type { TossEvidenceKind } from "./read-only-evidence-plan.js";
+import type { TossReadOnlyEvidenceManifest } from "./read-only-evidence-manifest.js";
 
 export interface TossReadOnlyEvidenceIntakeItem {
   id: string;
@@ -98,6 +99,65 @@ export class TossReadOnlyEvidenceIntakeValidator {
       warnings: [...new Set(warnings)].sort(),
       liveBrokerWriteAllowed: false,
       safetyType: "TOSS_READ_ONLY_EVIDENCE_INTAKE_REVIEW_ONLY"
+    };
+  }
+}
+
+export interface TossReadOnlyEvidenceManifestPromotion {
+  promoted: boolean;
+  manifest?: TossReadOnlyEvidenceManifest;
+  reasonCodes: string[];
+  warnings: string[];
+  liveBrokerWriteAllowed: false;
+  safetyType: "TOSS_READ_ONLY_EVIDENCE_MANIFEST_PROMOTION_REVIEW_ONLY";
+}
+
+export class TossReadOnlyEvidenceManifestPromoter {
+  promote(
+    intake: TossReadOnlyEvidenceIntake,
+    options: {
+      generatedAt: Date;
+      environment: TossReadOnlyEvidenceManifest["environment"];
+    }
+  ): TossReadOnlyEvidenceManifestPromotion {
+    const review = new TossReadOnlyEvidenceIntakeValidator().review(intake);
+
+    if (!review.readyForEvidenceManifest) {
+      return {
+        promoted: false,
+        reasonCodes: review.reasonCodes,
+        warnings: review.warnings,
+        liveBrokerWriteAllowed: false,
+        safetyType: "TOSS_READ_ONLY_EVIDENCE_MANIFEST_PROMOTION_REVIEW_ONLY"
+      };
+    }
+
+    return {
+      promoted: true,
+      manifest: {
+        manifestVersion: "1",
+        generatedAt: options.generatedAt,
+        environment: options.environment,
+        evidence: intake.items.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          mode: item.source === "LOCAL_READ_ONLY_CHECK" ? "READ_ONLY_API_CALL" : "DOCUMENTATION_REVIEW",
+          collectedAt: intake.preparedAt,
+          relatedOpenQuestion: item.relatedOpenQuestion,
+          summary: item.sanitizedSummary,
+          sanitized: true,
+          containsCredential: false,
+          liveWriteOperation: false
+        })),
+        notes: [
+          "Generated from sanitized Toss read-only evidence intake.",
+          ...intake.notes.map((note) => `Intake note: ${note}`)
+        ]
+      },
+      reasonCodes: [],
+      warnings: review.warnings,
+      liveBrokerWriteAllowed: false,
+      safetyType: "TOSS_READ_ONLY_EVIDENCE_MANIFEST_PROMOTION_REVIEW_ONLY"
     };
   }
 }

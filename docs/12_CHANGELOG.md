@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.15
+Version: 0.5.16
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.16 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyEvidenceManifestPromoter` for converting reviewed evidence intake into sanitized evidence manifests.
+- Added `npm run phase5:toss:promote-intake` for local intake-to-manifest promotion.
+- Added tests for successful sanitized promotion and fail-closed unsafe intake behavior.
+
+### Safety
+
+- Intake promotion performs no network calls.
+- Intake promotion refuses unreviewed, raw-payload, secret-like, or live-write evidence.
+- Generated manifests mark promoted evidence as sanitized and live-write disabled.
 
 ## 0.5.15 - 2026-07-28
 
