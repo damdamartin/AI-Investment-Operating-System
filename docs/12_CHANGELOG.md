@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.25
+Version: 0.4.26
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.26 - 2026-07-28
+
+### Added
+
+- Added OutboxWorkerService.
+- Added outbox event model with pending, processing, processed, failed, and dead-letter states.
+- Added worker lock metadata, attempt count updates, retry scheduling, success transition, failure transition, and dead-letter transition.
+- Added idempotency key preservation in worker state transitions.
+- Added tests for successful processing, active worker lock skipping, retry failure, retry exhaustion, unknown broker state dead-lettering, and idempotency key handling.
+
+### Changed
+
+- Marked Task-041 as complete.
+- Updated repository and package version to `0.4.26`.
+
+### Safety
+
+- Unknown broker state is dead-lettered rather than blindly retried.
+- Non-retryable error codes can be configured as dead-letter conditions.
+- Outbox worker output is state-transition-only and does not expose broker write helpers.
+
+### Verification
+
+- Targeted Outbox Worker tests passed with 6 tests.
 
 ## 0.4.25 - 2026-07-28
 

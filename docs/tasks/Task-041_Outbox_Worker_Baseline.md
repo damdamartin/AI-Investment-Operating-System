@@ -1,5 +1,8 @@
 # Task-041: Outbox Worker Baseline
 
+Status: Complete
+Implemented In: 0.4.26
+
 ## Objective
 
 Implement the baseline worker pattern for processing durable outbox events.
@@ -31,6 +34,17 @@ Required reading: `docs/04_Database_Architecture.md`, `docs/07_Trading_System.md
 - A worker cannot process the same event concurrently.
 - Failed events are retried according to policy.
 - Events move to dead-letter after retry exhaustion.
+
+## Implementation Notes
+
+- Added an `OutboxWorkerService`.
+- Added outbox event status model for pending, processing, processed, failed, and dead-letter states.
+- Added worker lock metadata handling.
+- Added attempt count updates.
+- Added success, retry failure, and dead-letter transitions.
+- Added idempotency key preservation.
+- Unknown broker state and configured non-retryable errors move to dead-letter rather than being blindly retried.
+- Output is state-transition-only and does not expose external command helpers.
 
 ## Tests Required
 

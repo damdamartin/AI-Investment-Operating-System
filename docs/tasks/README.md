@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.25
+Version: 0.4.26
 Status: Active
 Last Updated: 2026-07-28
 
@@ -64,7 +64,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 
 | Task | Title | Primary Module | Status |
 |---|---|---|---|
-| [Task-041](Task-041_Outbox_Worker_Baseline.md) | Outbox Worker Baseline | Execution | Draft |
+| [Task-041](Task-041_Outbox_Worker_Baseline.md) | Outbox Worker Baseline | Execution | Complete |
 | [Task-042](Task-042_Broker_Write_Command_Guard.md) | Broker Write Command Guard | Safety | Draft |
 | [Task-043](Task-043_Order_Execution_Simulation.md) | Order Execution Simulation | Execution | Draft |
 | [Task-044](Task-044_Order_Cancel_Simulation.md) | Order Cancel Simulation | Execution | Draft |
