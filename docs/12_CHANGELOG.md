@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.30
+Version: 0.4.31
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.31 - 2026-07-28
+
+### Added
+
+- Added ReconciliationWorkflowService.
+- Added reconciliation severity classification for clean, mismatch, stale, unknown, and critical missing-record states.
+- Added trading safety states for `CLEAR`, `WATCH`, and `BLOCKED`.
+- Added operational alert hooks for severe reconciliation mismatch and stale reconciliation reports.
+- Added audit record output for reconciliation workflow evaluations.
+- Added tests for match, severe mismatch, unknown broker state, stale report, and critical missing-record cases.
+
+### Changed
+
+- Marked Task-046 as complete.
+- Updated repository and package version to `0.4.31`.
+
+### Safety
+
+- Unknown broker state blocks dependent trading.
+- Stale reconciliation reports block dependent trading.
+- Reconciliation mismatch handling does not create corrective broker orders.
+- Workflow output explicitly sets `correctiveTradingAllowed` to `false`.
+
+### Verification
+
+- Targeted Reconciliation Workflow tests passed with 5 tests.
 
 ## 0.4.30 - 2026-07-28
 

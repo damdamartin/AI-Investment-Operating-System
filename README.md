@@ -1,6 +1,6 @@
 # AI Investment Operating System
 
-Version: 0.4.30
+Version: 0.4.31
 Status: Safe Foundation Implementation Started
 Last Updated: 2026-07-28
 
