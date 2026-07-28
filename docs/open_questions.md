@@ -1,6 +1,6 @@
 # Open Questions
 
-Version: 0.2.0
+Version: 0.3.0
 Status: Active
 Last Updated: 2026-07-28
 
@@ -9,6 +9,23 @@ Last Updated: 2026-07-28
 This document tracks unresolved architecture, API, data, compliance, testing, and operation questions.
 
 Questions in this document should be resolved before related implementation tasks are assigned.
+
+## Phase 5 Evidence Status Fields (OQ-001 through OQ-004)
+
+OQ-001 through OQ-004 carry an additional `Evidence Status` block. This
+exists because Phase 5 collects sanitized read-only Toss evidence for these
+four questions, and evidence must never be confused with resolution.
+
+Full policy, the seven-state model, and per-question notes on what evidence
+does and does not authorize:
+
+- `docs/phase5/open-question-evidence-policy.md`
+
+Short version:
+
+- `Evidence status` here is one of `NO_EVIDENCE`, `EVIDENCE_COLLECTED`, `EVIDENCE_SANITIZED` (computed by `TossOpenQuestionEvidenceTracker`), or `EVIDENCE_REVIEWED` (recorded by a human only, after actually reading sanitized evidence).
+- `Status` (`OPEN` / `IN_REVIEW` / `RESOLVED`) at the top of each question may only move to `IN_REVIEW` after a human has recorded `Evidence status: EVIDENCE_REVIEWED` with a reviewer and reviewed date, and may only move to `RESOLVED` after an explicit recorded decision.
+- No amount of sanitized evidence, by itself, authorizes Toss order creation, Toss order cancellation, Toss order replacement, live capital use, or production reconciliation based on unverified identifiers. Live trading remains blocked regardless of `Status` on these four questions; see `docs/11_AI_RULES.md`.
 
 ## Status Values
 
@@ -46,6 +63,17 @@ Blocks:
 - live broker write operations
 - small-capital live trading
 
+Evidence Status:
+
+```text
+Evidence status: NO_EVIDENCE
+Evidence manifest reference: none
+Reviewer: none
+Reviewed date: none
+Decision: none
+Remaining blockers: live broker write operations remain blocked regardless of evidence status; see docs/11_AI_RULES.md and docs/phase5/open-question-evidence-policy.md
+```
+
 ### OQ-002: Toss Account and Permission Model
 
 Priority: HIGH
@@ -60,6 +88,17 @@ Blocks:
 
 - production reconciliation
 - live order execution
+
+Evidence Status:
+
+```text
+Evidence status: NO_EVIDENCE
+Evidence manifest reference: none
+Reviewer: none
+Reviewed date: none
+Decision: none
+Remaining blockers: production reconciliation and live order execution remain blocked regardless of evidence status; see docs/11_AI_RULES.md and docs/phase5/open-question-evidence-policy.md
+```
 
 ### OQ-003: Toss Order and Fill Identifiers
 
@@ -76,6 +115,17 @@ Blocks:
 - broker write retry policy
 - reconciliation design
 
+Evidence Status:
+
+```text
+Evidence status: NO_EVIDENCE
+Evidence manifest reference: none
+Reviewer: none
+Reviewed date: none
+Decision: none
+Remaining blockers: broker write retry policy and reconciliation design remain blocked regardless of evidence status; see docs/11_AI_RULES.md and docs/phase5/open-question-evidence-policy.md
+```
+
 ### OQ-004: Toss ETF, Fractional, and Extended-Hours Support
 
 Priority: HIGH
@@ -91,6 +141,17 @@ Blocks:
 - ETF production trading
 - fractional orders
 - extended-hours trading
+
+Evidence Status:
+
+```text
+Evidence status: NO_EVIDENCE
+Evidence manifest reference: none
+Reviewer: none
+Reviewed date: none
+Decision: none
+Remaining blockers: ETF production trading, fractional orders, and extended-hours trading remain blocked regardless of evidence status; see docs/11_AI_RULES.md and docs/phase5/open-question-evidence-policy.md
+```
 
 ### OQ-005: Historical Market Data Provider
 
