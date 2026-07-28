@@ -1,0 +1,18 @@
+{
+  "approvalVersion": "1",
+  "id": "replace-with-a-unique-local-approval-id",
+  "approvedOperation": "ACCOUNT_SNAPSHOT_READ",
+  "approvedAt": "2026-07-28T00:00:00.000Z",
+  "operatorNote": "Replace with a short, public-safe reason for approving this one scoped read-only call. Do not include tokens, client secrets, or account numbers.",
+  "endpointCatalogReference": "Replace with the endpoint catalog item id this approval is scoped to.",
+  "expectedEvidenceKind": "ACCOUNT_SNAPSHOT_READ",
+  "singleUseAcknowledged": true,
+  "liveBrokerWritesRemainBlocked": true,
+  "notes": [
+    "This file is an example approval artifact.",
+    "approvedOperation must be a read-only operation only. Write-shaped operations are rejected.",
+    "This approval authorizes exactly one future scoped read-only Toss verification call.",
+    "A consumed approval id cannot approve a second call. Generate a new id and record for any additional call.",
+    "Do not commit real credentials, access tokens, refresh tokens, account numbers, or raw API responses in this file."
+  ]
+}
