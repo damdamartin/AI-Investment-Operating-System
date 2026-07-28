@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.18
+Version: 0.4.19
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.19 - 2026-07-28
+
+### Added
+
+- Added PaperTradingEngine.
+- Added paper-only order, fill, event, and result records.
+- Added simulated order lifecycle handling for submitted, accepted, partially filled, filled, canceled, rejected, and unknown states.
+- Added tests for paper order submission, lifecycle simulation, rejected approvals, live broker account blocking, and unknown state handling.
+
+### Changed
+
+- Marked Task-034 as complete.
+- Updated repository and package version to `0.4.19`.
+
+### Safety
+
+- Paper Trading is simulation-only and does not call Toss write methods.
+- Paper records do not include broker order references or broker account identifiers.
+- Live write-enabled broker accounts are rejected from Paper Trading.
+- Unknown paper broker state blocks dependent trading.
+
+### Verification
+
+- Targeted Paper Trading tests passed with 5 tests.
 
 ## 0.4.18 - 2026-07-28
 
