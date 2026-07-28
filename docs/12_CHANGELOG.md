@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.10
+Version: 0.4.11
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.11 - 2026-07-28
+
+### Added
+
+- Added baseline NewsEventEngine service.
+- Added event importance, sentiment, and confidence score outputs.
+- Added refusal paths for stale news events, invalid timestamps, missing AI analysis, untraceable AI analysis, and low AI confidence.
+- Added contradiction penalties and review-required handling.
+- Added tests for confidence thresholds, contradiction behavior, review-required analysis, stale events, and source analysis traceability.
+
+### Changed
+
+- Marked Task-026 as complete.
+- Updated repository and package version to `0.4.11`.
+- Increased Vitest timeout to reduce false failures from the existing PGlite migration smoke tests.
+
+### Safety
+
+- NewsEventEngine produces analysis scores only and does not create signals, orders, or broker commands.
+- Review-required or contradictory analysis cannot become an automated trade candidate.
+- Event scores reference source event and AI analysis IDs for auditability.
+
+### Verification
+
+- `npm run check` passed with 108 tests.
 
 ## 0.4.10 - 2026-07-28
 

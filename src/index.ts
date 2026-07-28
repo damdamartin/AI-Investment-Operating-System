@@ -6,6 +6,7 @@ export * from "./application/audit/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/fundamental/index.js";
 export * from "./application/market/index.js";
+export * from "./application/news-event-engine/index.js";
 export * from "./application/news/index.js";
 export * from "./application/toss/index.js";
 export * from "./config/index.js";

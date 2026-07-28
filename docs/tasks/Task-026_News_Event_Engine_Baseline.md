@@ -1,5 +1,8 @@
 # Task-026: News Event Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.11
+
 ## Objective
 
 Implement a baseline News and Event Engine that converts normalized news and validated AI analysis into event scores.
