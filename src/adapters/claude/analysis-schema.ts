@@ -8,6 +8,11 @@ export interface ClaudeValidationResult {
 
 const sentiments = new Set(["positive", "neutral", "negative"]);
 const horizons = new Set(["short", "medium", "long"]);
+// Keep in sync with the recursive AI-context scan in
+// src/application/broker-write-guard/broker-write-command-guard.ts.
+// Claude output must never be able to carry an executable broker command at
+// any nesting depth, so the whole analysis is rejected outright rather than
+// silently dropping unrecognized fields.
 const forbiddenCommandKeys = new Set([
   "order",
   "orders",
@@ -15,6 +20,7 @@ const forbiddenCommandKeys = new Set([
   "broker_command",
   "submitOrder",
   "cancelOrder",
+  "replaceOrder",
   "tossRequest"
 ]);
 
@@ -27,10 +33,8 @@ export function validateClaudeAnalysis(value: unknown): ClaudeValidationResult {
 
   const record = value as Record<string, unknown>;
 
-  for (const key of Object.keys(record)) {
-    if (forbiddenCommandKeys.has(key)) {
-      errors.push(`forbidden_command_key_${key}`);
-    }
+  for (const forbiddenKey of findForbiddenCommandKeys(record)) {
+    errors.push(`forbidden_command_key_${forbiddenKey}`);
   }
 
   const analysisId = requireString(record.analysisId, "analysisId", errors);
@@ -68,6 +72,32 @@ export function validateClaudeAnalysis(value: unknown): ClaudeValidationResult {
     },
     errors: []
   };
+}
+
+function findForbiddenCommandKeys(value: unknown): string[] {
+  const found = new Set<string>();
+  scanForForbiddenCommandKeys(value, found);
+  return [...found].sort();
+}
+
+function scanForForbiddenCommandKeys(value: unknown, found: Set<string>): void {
+  if (value === null || value === undefined) return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      scanForForbiddenCommandKeys(item, found);
+    }
+    return;
+  }
+
+  if (typeof value !== "object") return;
+
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    if (forbiddenCommandKeys.has(key)) {
+      found.add(key);
+    }
+    scanForForbiddenCommandKeys(nested, found);
+  }
 }
 
 function requireString(value: unknown, field: string, errors: string[]): string | undefined {

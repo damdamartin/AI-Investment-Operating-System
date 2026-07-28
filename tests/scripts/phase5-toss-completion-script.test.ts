@@ -16,14 +16,39 @@ describe("phase5-toss-completion script", () => {
     expect(report.liveBrokerWriteAllowed).toBe(false);
     expect(report.networkCallsPerformed).toBe(false);
   });
+
+  it("still fails closed with liveBrokerWriteAllowed=false even when human approval is set", () => {
+    // P5-006 acceptance: completion may legitimately fail closed while local
+    // readiness is incomplete. That failure report must still show
+    // liveBrokerWriteAllowed:false and networkCallsPerformed:false even when
+    // an operator has already set the read-only call approval flag.
+    const output = runScript(false, { PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true" });
+    const report = JSON.parse(output);
+
+    expect(report.phase5TossPreparationComplete).toBe(false);
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+    // The nested call-gate reason must still surface through the completion
+    // report's prefixing so the chain of blockers stays auditable.
+    expect(report.reasonCodes.some((code: string) => code.startsWith("call_gate_"))).toBe(true);
+  });
+
+  it("always reports the PHASE5_TOSS_COMPLETION_LOCAL_REPORT safety type", () => {
+    const output = runScript(false);
+    const report = JSON.parse(output);
+
+    expect(report.safetyType).toBe("PHASE5_TOSS_COMPLETION_LOCAL_REPORT");
+    expect(typeof report.nextAction).toBe("string");
+    expect(report.nextAction.length).toBeGreaterThan(0);
+  });
 });
 
-function runScript(expectSuccess = true): string {
+function runScript(expectSuccess = true, extraEnv: NodeJS.ProcessEnv = {}): string {
   try {
     return execFileSync("node", [scriptPath], {
       cwd: repoRoot,
       encoding: "utf8",
-      env: { PATH: process.env.PATH },
+      env: { PATH: process.env.PATH, ...extraEnv },
       stdio: ["ignore", "pipe", "pipe"]
     });
   } catch (error) {

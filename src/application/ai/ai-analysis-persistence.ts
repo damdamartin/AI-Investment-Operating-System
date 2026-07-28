@@ -155,6 +155,85 @@ export class InMemoryAIAnalysisRepository implements AIAnalysisRepository {
   }
 }
 
+/**
+ * Raw token usage shape as documented in docs/05_API_Architecture.md section
+ * 7.5 (`token_usage: { input, output }`). This describes only the Claude API
+ * call itself (never broker or account data), so deriving it from an
+ * already-fetched or fixture response requires no additional network calls.
+ */
+export interface RawClaudeUsageMetadata {
+  token_usage?: {
+    input?: unknown;
+    output?: unknown;
+  };
+}
+
+/**
+ * Extracts sanitized, non-negative integer token counts from a raw Claude
+ * response metadata shape. Returns undefined when no usable token usage is
+ * present ("where available", per P5-005) instead of guessing values.
+ */
+export function extractUsageMetadata(raw: unknown): AIAnalysisUsageMetadata | undefined {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined;
+  }
+
+  const tokenUsage = (raw as RawClaudeUsageMetadata).token_usage;
+  if (tokenUsage === null || typeof tokenUsage !== "object") {
+    return undefined;
+  }
+
+  const tokenInputCount = toNonNegativeInteger(tokenUsage.input);
+  const tokenOutputCount = toNonNegativeInteger(tokenUsage.output);
+
+  if (tokenInputCount === undefined && tokenOutputCount === undefined) {
+    return undefined;
+  }
+
+  const usage: AIAnalysisUsageMetadata = {};
+  if (tokenInputCount !== undefined) usage.tokenInputCount = tokenInputCount;
+  if (tokenOutputCount !== undefined) usage.tokenOutputCount = tokenOutputCount;
+  return usage;
+}
+
+export interface ClaudeCostRateCard {
+  currency: string;
+  inputPerMillionTokens: number;
+  outputPerMillionTokens: number;
+}
+
+/**
+ * Estimates AI API cost (never a trading Money amount) from token usage and a
+ * locally supplied rate card. Returns undefined when usage is incomplete so
+ * callers never fabricate a cost figure. This never touches broker capital
+ * and must not be confused with domain Money used for order sizing.
+ */
+export function estimateAnalysisCost(
+  usage: AIAnalysisUsageMetadata | undefined,
+  rateCard: ClaudeCostRateCard
+): string | undefined {
+  if (!usage || usage.tokenInputCount === undefined || usage.tokenOutputCount === undefined) {
+    return undefined;
+  }
+
+  if (rateCard.inputPerMillionTokens < 0 || rateCard.outputPerMillionTokens < 0) {
+    throw new DomainValidationError("Claude cost rate card values must not be negative.");
+  }
+
+  const inputCost = (usage.tokenInputCount / 1_000_000) * rateCard.inputPerMillionTokens;
+  const outputCost = (usage.tokenOutputCount / 1_000_000) * rateCard.outputPerMillionTokens;
+
+  return (inputCost + outputCost).toFixed(6);
+}
+
+function toNonNegativeInteger(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    return undefined;
+  }
+
+  return value;
+}
+
 function assertPromptReference(request: ClaudeAnalysisRequest): void {
   if (request.promptTemplateId.trim() === "" || request.promptTemplateVersion.trim() === "") {
     throw new DomainValidationError("AI analysis records require prompt template id and version.");
