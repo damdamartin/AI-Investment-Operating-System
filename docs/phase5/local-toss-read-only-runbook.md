@@ -70,6 +70,18 @@ Check local readiness:
 npm run phase5:toss:readiness
 ```
 
+If only `TOSS_ACCOUNT_REF` is missing after client credentials are configured, populate it from the
+official Toss read-only account list endpoint:
+
+```bash
+npm run phase5:toss:account-ref
+npm run phase5:toss:readiness
+```
+
+This command performs only `POST /oauth2/token` and `GET /api/v1/accounts`, prints a sanitized report,
+and updates local `.env` only when exactly one `accountSeq` is returned. It does not print access
+tokens, client secrets, account numbers, or the selected account reference value.
+
 Expected result before real read-only verification:
 
 ```text

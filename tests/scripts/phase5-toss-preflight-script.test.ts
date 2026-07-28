@@ -16,7 +16,7 @@ describe("phase5-toss-preflight script", () => {
     try {
       output = execFileSync(process.execPath, [scriptPath], {
         cwd: repoRoot,
-        env: { PATH: process.env.PATH }
+        env: { PATH: process.env.PATH, ...missingCredentialEnv() }
       }).toString();
     } catch (error) {
       output = String((error as { stdout?: Buffer }).stdout);
@@ -135,4 +135,15 @@ function tempJson(value: unknown): string {
   const path = join(dir, "input.json");
   writeFileSync(path, JSON.stringify(value), "utf8");
   return path;
+}
+
+function missingCredentialEnv(): NodeJS.ProcessEnv {
+  return {
+    LIVE_TRADING_ENABLED: "false",
+    TOSS_READ_ONLY_MODE: "true",
+    TOSS_API_BASE_URL: "replace-with-local-secret",
+    TOSS_CLIENT_ID: "replace-with-local-secret",
+    TOSS_CLIENT_SECRET: "replace-with-local-secret",
+    TOSS_ACCOUNT_REF: "replace-with-local-secret"
+  };
 }

@@ -21,7 +21,8 @@
     "phase5:toss:preflight": "node scripts/phase5-toss-preflight.mjs",
     "phase5:toss:call-gate": "node scripts/phase5-toss-call-gate.mjs",
     "phase5:toss:completion": "node scripts/phase5-toss-completion.mjs",
-    "phase5:toss:local-setup": "node scripts/phase5-toss-local-setup.mjs"
+    "phase5:toss:local-setup": "node scripts/phase5-toss-local-setup.mjs",
+    "phase5:toss:account-ref": "node scripts/phase5-toss-account-ref-setup.mjs"
   },
   "engines": {
     "node": ">=22"
