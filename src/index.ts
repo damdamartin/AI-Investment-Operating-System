@@ -2,6 +2,7 @@ export * from "./adapters/contracts/index.js";
 export * from "./adapters/claude/index.js";
 export * from "./adapters/naver/index.js";
 export * from "./application/ai/index.js";
+export * from "./application/ai-health-check/index.js";
 export * from "./application/audit/index.js";
 export * from "./application/backtest/index.js";
 export * from "./application/compliance/index.js";

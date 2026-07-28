@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.21
+Version: 0.4.22
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.22 - 2026-07-28
+
+### Added
+
+- Added AIHealthCheckService.
+- Added AI health status model for `GREEN`, `YELLOW`, `RED`, and `BLOCKED`.
+- Added deterministic health metrics input model and default health policy.
+- Added Claude health check schema validation.
+- Added audit-only health check record output for future dashboard and alerting use.
+- Added tests for valid Claude output, invalid Claude output rejection, deterministic fallback status, blocked broker state, and deterministic red status precedence.
+
+### Changed
+
+- Marked Task-037 as complete.
+- Updated repository and package version to `0.4.22`.
+
+### Safety
+
+- AI Health Check remains auditor-only and does not trigger trades.
+- Invalid Claude health output is rejected.
+- Claude output cannot downgrade deterministic `RED` or `BLOCKED` status.
+- `BLOCKED` status requires trading pause and human review flags in the health record.
+
+### Verification
+
+- Targeted AI Health Check tests passed with 6 tests.
 
 ## 0.4.21 - 2026-07-28
 
