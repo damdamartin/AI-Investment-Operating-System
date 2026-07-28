@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.3
+Version: 0.5.4
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.4 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyDryRunClient` for sanitized Toss read-only request preparation.
+- Added tests for dry-run GET preparation, authentication POST allowance, non-authentication POST rejection, write-shaped body rejection, and path validation.
+- Documented dry-run request preparation in the Phase 5 read-only evidence plan.
+
+### Safety
+
+- The dry-run client performs no network calls.
+- Prepared requests mask Toss client ID, client secret, and account reference headers.
+- Write-shaped request bodies are rejected before any real adapter implementation is added.
 
 ## 0.5.3 - 2026-07-28
 

@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.3
+Version: 0.5.4
 Status: Active
 Last Updated: 2026-07-28
 
@@ -126,6 +126,23 @@ It verifies:
 - Toss read-only mode is enabled
 
 The readiness service never approves live broker write operations.
+
+## Dry-Run Request Preparation
+
+The codebase includes `TossReadOnlyDryRunClient`.
+
+It prepares sanitized dry-run requests for allowed read-only operation types.
+
+It does not perform network calls.
+
+It rejects:
+
+- non-normalized paths
+- non-authentication `POST` requests
+- write-shaped request bodies
+- order creation or cancellation command shapes
+
+Prepared requests mask client ID, client secret, and account reference headers.
 
 ## Phase 5 Exit Direction
 
