@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.23
+Version: 0.4.24
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.24 - 2026-07-28
+
+### Added
+
+- Added ReadOnlyDashboardService.
+- Added read-only dashboard status model for system, trading, broker, data freshness, reconciliation, AI health, portfolio, strategy, and risk views.
+- Added broker account masking for dashboard output.
+- Added dashboard output redaction before return.
+- Added tests for OK status, broker identifier masking, reconciliation blocking, AI health red status, and sensitive key redaction.
+
+### Changed
+
+- Marked Task-039 as complete.
+- Updated repository and package version to `0.4.24`.
+
+### Safety
+
+- Dashboard status output is read-only and does not expose order, kill switch, or strategy promotion controls.
+- Broker external account references are masked.
+- Sensitive keys are redacted from dashboard output.
+- No dashboard path calls Toss write methods.
+
+### Verification
+
+- Targeted Dashboard Read-Only tests passed with 5 tests.
 
 ## 0.4.23 - 2026-07-28
 
