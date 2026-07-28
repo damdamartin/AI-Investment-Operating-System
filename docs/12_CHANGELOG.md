@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.31
+Version: 0.4.32
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.32 - 2026-07-28
+
+### Added
+
+- Added KillSwitchControlService.
+- Added kill switch control states for `INACTIVE`, `ACTIVE`, and `UNKNOWN`.
+- Added activation and deactivation workflows with actor, reason, and timestamp metadata.
+- Added trading gate evaluation for active, inactive, missing, and unknown kill switch state.
+- Added operational alert hook for kill switch activation.
+- Added tests for activation, deactivation, active-state blocking, fail-closed unknown state, and broker write guard integration.
+
+### Changed
+
+- Marked Task-047 as complete.
+- Updated repository and package version to `0.4.32`.
+
+### Safety
+
+- Missing kill switch state fails closed.
+- Unknown kill switch state fails closed.
+- Deactivation requires explicit action metadata.
+- Active kill switch state maps into BrokerWriteCommandGuard and blocks broker write decisions.
+
+### Verification
+
+- Targeted Kill Switch Control Service tests passed with 5 tests.
 
 ## 0.4.31 - 2026-07-28
 

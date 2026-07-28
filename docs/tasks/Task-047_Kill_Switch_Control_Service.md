@@ -1,5 +1,9 @@
 # Task-047: Kill Switch Control Service
 
+Status: Complete
+Implemented In: 0.4.32
+Last Updated: 2026-07-28
+
 ## Objective
 
 Implement the kill switch state model and control service.
@@ -39,6 +43,15 @@ Required reading: `docs/07_Trading_System.md`, `docs/09_Operation_Deployment.md`
 ## Safety Requirements
 
 - Unknown kill switch state must fail closed.
+
+## Implementation Notes
+
+- Added `KillSwitchControlService` for kill switch state creation, activation, deactivation, and trading gate checks.
+- Added explicit `INACTIVE`, `ACTIVE`, and `UNKNOWN` kill switch states.
+- Activation creates audit metadata and a critical operational alert hook.
+- Deactivation requires explicit actor and reason metadata.
+- Missing or unknown kill switch state fails closed and blocks new orders.
+- Active kill switch state can be mapped into `BrokerWriteCommandGuard` input.
 
 ## Dependencies
 

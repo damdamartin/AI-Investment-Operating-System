@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.4.31
+Version: 0.4.32
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -382,6 +382,10 @@ Completed in 0.4.30:
 Completed in 0.4.31:
 
 - Task-046 Reconciliation Workflow
+
+Completed in 0.4.32:
+
+- Task-047 Kill Switch Control Service
 
 Partially completed in 0.4.0:
 
