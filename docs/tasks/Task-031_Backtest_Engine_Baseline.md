@@ -1,5 +1,8 @@
 # Task-031: Backtest Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.16
+
 ## Objective
 
 Create a baseline backtest engine that runs strategies against historical data with cost model references.

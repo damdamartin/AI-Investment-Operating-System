@@ -3,6 +3,7 @@ export * from "./adapters/claude/index.js";
 export * from "./adapters/naver/index.js";
 export * from "./application/ai/index.js";
 export * from "./application/audit/index.js";
+export * from "./application/backtest/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/fundamental/index.js";
 export * from "./application/market/index.js";

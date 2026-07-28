@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.15
+Version: 0.4.16
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.16 - 2026-07-28
+
+### Added
+
+- Added baseline BacktestEngine.
+- Added historical data loading boundary model, cost model version requirement, strategy evaluation loop, simulated trade records, and result metrics.
+- Added result evidence fields for data range and input references.
+- Added tests for cost model application, missing cost model refusal, missing corporate action warning/blocking, and max drawdown calculation.
+
+### Changed
+
+- Marked Task-031 as complete.
+- Updated repository and package version to `0.4.16`.
+
+### Safety
+
+- Backtest results are simulation-only and cannot promote a strategy.
+- Backtest requires an explicit cost model version.
+- Missing corporate action data can warn or block according to configuration.
+
+### Verification
+
+- `npm run check` passed with 131 tests.
 
 ## 0.4.15 - 2026-07-28
 
