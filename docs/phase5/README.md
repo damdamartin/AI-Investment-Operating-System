@@ -44,6 +44,10 @@ This helper writes only local, git-ignored files: `.env` and `tmp/phase5/*`. It 
 API, does not print secret values in its JSON report, and keeps `LIVE_TRADING_ENABLED=false` and
 `TOSS_READ_ONLY_MODE=true`.
 
+Official Toss API source notes for Phase 5:
+
+- `docs/phase5/toss-official-api-source-notes.md`
+
 ## Required Toss Evidence
 
 Minimum evidence before read-only integration work is considered ready:

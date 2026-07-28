@@ -44,7 +44,7 @@ describe("phase5-toss-doctor script", () => {
       "docs/phase5/toss-read-only-endpoints.example.json",
       "docs/phase5/evidence-manifest.example.json",
       "docs/phase5/evidence-intake.example.json",
-      { LIVE_TRADING_ENABLED: "false", TOSS_READ_ONLY_MODE: "true" }
+      missingCredentialEnv()
     );
     const report = JSON.parse(output);
 
@@ -171,7 +171,7 @@ describe("phase5-toss-doctor script", () => {
       "docs/phase5/toss-read-only-endpoints.example.json",
       "docs/phase5/evidence-manifest.example.json",
       "docs/phase5/evidence-intake.example.json",
-      { LIVE_TRADING_ENABLED: "false", TOSS_READ_ONLY_MODE: "true" }
+      missingCredentialEnv()
     );
 
     for (const output of [readyOutput, blockedOutput]) {
@@ -223,5 +223,16 @@ function completeEnv(): NodeJS.ProcessEnv {
     TOSS_CLIENT_ID: "client-id-value",
     TOSS_CLIENT_SECRET: "client-secret-value",
     TOSS_ACCOUNT_REF: "account-ref-value"
+  };
+}
+
+function missingCredentialEnv(): NodeJS.ProcessEnv {
+  return {
+    LIVE_TRADING_ENABLED: "false",
+    TOSS_READ_ONLY_MODE: "true",
+    TOSS_API_BASE_URL: "replace-with-local-secret",
+    TOSS_CLIENT_ID: "replace-with-local-secret",
+    TOSS_CLIENT_SECRET: "replace-with-local-secret",
+    TOSS_ACCOUNT_REF: "replace-with-local-secret"
   };
 }

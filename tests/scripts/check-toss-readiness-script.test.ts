@@ -32,7 +32,11 @@ describe("check-toss-readiness script", () => {
     try {
       output = runScript({
         LIVE_TRADING_ENABLED: "false",
-        TOSS_READ_ONLY_MODE: "true"
+        TOSS_READ_ONLY_MODE: "true",
+        TOSS_API_BASE_URL: "replace-with-local-secret",
+        TOSS_CLIENT_ID: "replace-with-local-secret",
+        TOSS_CLIENT_SECRET: "replace-with-local-secret",
+        TOSS_ACCOUNT_REF: "replace-with-local-secret"
       });
     } catch (error) {
       output = String((error as { stdout?: Buffer }).stdout);

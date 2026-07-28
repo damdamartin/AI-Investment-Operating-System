@@ -41,7 +41,11 @@ describe("plan-toss-read-only-verification script", () => {
     try {
       output = runScript(tempCatalog({ catalogVersion: "1", items: [] }), {
         LIVE_TRADING_ENABLED: "false",
-        TOSS_READ_ONLY_MODE: "true"
+        TOSS_READ_ONLY_MODE: "true",
+        TOSS_API_BASE_URL: "replace-with-local-secret",
+        TOSS_CLIENT_ID: "replace-with-local-secret",
+        TOSS_CLIENT_SECRET: "replace-with-local-secret",
+        TOSS_ACCOUNT_REF: "replace-with-local-secret"
       });
     } catch (error) {
       output = String((error as { stdout?: Buffer }).stdout);

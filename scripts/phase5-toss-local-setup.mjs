@@ -81,17 +81,11 @@ async function collectEnv() {
 
 function prepareTemplates() {
   const now = new Date().toISOString();
-  const endpoint = readJson("docs/phase5/toss-read-only-endpoints.example.json");
-  endpoint.updatedAt = now;
-  endpoint.items = endpoint.items.map((item) => ({
-    ...item,
-    id: item.id === "account-snapshot-example" ? "replace-with-verified-read-only-endpoint-id" : item.id,
-    path: item.path.startsWith("/pending-official-verification/")
-      ? "/replace-with-official-read-only-path"
-      : item.path,
-    verified: false,
-    notes: "Local working copy. Replace only after confirming the read-only endpoint in official Toss documentation or the developer console. Do not add write endpoints."
-  }));
+  const endpoint = {
+    catalogVersion: "1",
+    updatedAt: now,
+    items: officialReadOnlyEndpointCandidates()
+  };
 
   const intake = readJson("docs/phase5/evidence-intake.example.json");
   intake.preparedAt = now;
@@ -148,6 +142,55 @@ Expected default state:
 
 Never commit this directory, secrets, raw Toss payloads, raw request headers, account numbers, or screenshots containing secrets.
 `;
+}
+
+function officialReadOnlyEndpointCandidates() {
+  return [
+    {
+      id: "official-auth-token-read-candidate",
+      operation: "AUTHENTICATION_READ",
+      method: "POST",
+      path: "/oauth2/token",
+      evidenceKind: "AUTHENTICATION_READ",
+      relatedOpenQuestion: "OQ-001",
+      source: "TOSS_OFFICIAL_DOCS",
+      verified: false,
+      notes: "Official docs list POST /oauth2/token for OAuth2 Client Credentials token issuance. Keep verified=false until the operator confirms this exact operation for the scoped local read-only verification attempt. This is authentication only and does not authorize broker writes."
+    },
+    {
+      id: "official-market-prices-read-candidate",
+      operation: "MARKET_DATA_READ",
+      method: "GET",
+      path: "/api/v1/prices",
+      evidenceKind: "MARKET_DATA_READ",
+      relatedOpenQuestion: "OQ-004",
+      source: "TOSS_OFFICIAL_DOCS",
+      verified: false,
+      notes: "Official docs list GET /api/v1/prices for current price lookup. Keep verified=false until the operator confirms query parameters and scope from official docs or developer console evidence."
+    },
+    {
+      id: "official-accounts-read-candidate",
+      operation: "ACCOUNT_SNAPSHOT_READ",
+      method: "GET",
+      path: "/api/v1/accounts",
+      evidenceKind: "ACCOUNT_SNAPSHOT_READ",
+      relatedOpenQuestion: "OQ-002",
+      source: "TOSS_OFFICIAL_DOCS",
+      verified: false,
+      notes: "Official docs list GET /api/v1/accounts for account list lookup. Account and asset APIs require Authorization and X-Tossinvest-Account where applicable. Do not record raw account identifiers in evidence."
+    },
+    {
+      id: "official-holdings-read-candidate",
+      operation: "POSITION_QUERY_READ",
+      method: "GET",
+      path: "/api/v1/holdings",
+      evidenceKind: "POSITION_QUERY_READ",
+      relatedOpenQuestion: "OQ-002",
+      source: "TOSS_OFFICIAL_DOCS",
+      verified: false,
+      notes: "Official docs list GET /api/v1/holdings for holdings lookup. Keep verified=false until the operator confirms the endpoint and records sanitized account/position evidence."
+    }
+  ];
 }
 
 function readJson(path) {
