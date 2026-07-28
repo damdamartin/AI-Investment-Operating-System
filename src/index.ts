@@ -26,6 +26,7 @@ export * from "./application/kill-switch/index.js";
 export * from "./application/market/index.js";
 export * from "./application/money-management/index.js";
 export * from "./application/news-event-engine/index.js";
+export * from "./application/news-quality/index.js";
 export * from "./application/news/index.js";
 export * from "./application/observability/index.js";
 export * from "./application/order-approval/index.js";
