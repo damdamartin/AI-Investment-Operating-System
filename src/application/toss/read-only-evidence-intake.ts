@@ -1,5 +1,6 @@
 import type { TossEvidenceKind } from "./read-only-evidence-plan.js";
 import type { TossReadOnlyEvidenceManifest } from "./read-only-evidence-manifest.js";
+import type { TossReadOnlyOperation } from "../../adapters/toss/index.js";
 
 export interface TossReadOnlyEvidenceIntakeItem {
   id: string;
@@ -159,5 +160,166 @@ export class TossReadOnlyEvidenceManifestPromoter {
       liveBrokerWriteAllowed: false,
       safetyType: "TOSS_READ_ONLY_EVIDENCE_MANIFEST_PROMOTION_REVIEW_ONLY"
     };
+  }
+}
+
+/**
+ * Sanitized, public-safe approval artifact for exactly one future scoped
+ * read-only Toss verification call.
+ *
+ * This record never authorizes a network call by itself. It is a local,
+ * reviewable statement of intent that a human operator has approved a single
+ * read-only operation. `TossReadOnlyCallApprovalValidator` rejects records
+ * that look like they carry secrets, account identifiers, or write
+ * operations. `TossReadOnlyCallApprovalLedger` enforces that an approved
+ * record can be consumed at most once.
+ */
+export interface TossReadOnlyCallApprovalRecord {
+  approvalVersion: "1";
+  id: string;
+  /** The single read-only operation this approval authorizes. */
+  approvedOperation: TossReadOnlyOperation;
+  approvedAt: Date;
+  /** Human-readable rationale. Must never contain secrets or account identifiers. */
+  operatorNote: string;
+  /** Identifier of the endpoint catalog entry this approval is scoped to. */
+  endpointCatalogReference: string;
+  /** The evidence kind the resulting recorded evidence must match. */
+  expectedEvidenceKind: TossEvidenceKind;
+  /** Explicit operator acknowledgement that this approval is single-use. */
+  singleUseAcknowledged: true;
+  /** Explicit statement that this approval never unlocks live broker writes. */
+  liveBrokerWritesRemainBlocked: true;
+}
+
+export interface TossReadOnlyCallApprovalReview {
+  approved: boolean;
+  reasonCodes: string[];
+  warnings: string[];
+  liveBrokerWriteAllowed: false;
+  safetyType: "TOSS_READ_ONLY_CALL_APPROVAL_REVIEW_ONLY";
+}
+
+const allowedApprovableOperations: TossReadOnlyOperation[] = [
+  "AUTHENTICATION_READ",
+  "ACCOUNT_SNAPSHOT_READ",
+  "POSITION_QUERY_READ",
+  "MARKET_DATA_READ",
+  "ORDER_STATUS_QUERY_READ",
+  "FILL_QUERY_READ",
+  "CAPABILITY_METADATA_READ"
+];
+
+const writeOperationPattern =
+  /(submit|place|create|cancel|modify|replace)[_-]?order|order[_-]?(submit|place|create|cancel|modify|replace)|withdraw|transfer|exchange[_-]?money/i;
+
+const accountIdentifierLikePattern = /\b\d{6,}\b/;
+
+export class TossReadOnlyCallApprovalValidator {
+  review(record: TossReadOnlyCallApprovalRecord): TossReadOnlyCallApprovalReview {
+    const reasonCodes: string[] = [];
+    const warnings: string[] = [];
+
+    if (record.approvalVersion !== "1") {
+      reasonCodes.push("unsupported_approval_version");
+    }
+
+    if (!record.id || record.id.trim().length === 0) {
+      reasonCodes.push("approval_missing_id");
+    }
+
+    if (!allowedApprovableOperations.includes(record.approvedOperation)) {
+      reasonCodes.push("approval_operation_not_read_only");
+    }
+
+    if (writeOperationPattern.test(String(record.approvedOperation))) {
+      reasonCodes.push("approval_operation_looks_write_scoped");
+    }
+
+    if (!record.endpointCatalogReference || record.endpointCatalogReference.trim().length === 0) {
+      reasonCodes.push("approval_missing_endpoint_catalog_reference");
+    }
+
+    if (!record.expectedEvidenceKind) {
+      reasonCodes.push("approval_missing_expected_evidence_kind");
+    }
+
+    if (!record.operatorNote || record.operatorNote.trim().length === 0) {
+      reasonCodes.push("approval_missing_operator_note");
+    } else if (record.operatorNote.trim().length < 10) {
+      warnings.push("approval_operator_note_too_short");
+    }
+
+    const searchableText = `${record.operatorNote ?? ""}\n${record.endpointCatalogReference ?? ""}`;
+
+    if (blockedSecretPattern.test(searchableText)) {
+      reasonCodes.push("approval_may_contain_secret");
+    }
+
+    if (accountIdentifierLikePattern.test(searchableText)) {
+      reasonCodes.push("approval_may_contain_account_identifier");
+    }
+
+    if (record.singleUseAcknowledged !== true) {
+      reasonCodes.push("approval_single_use_not_acknowledged");
+    }
+
+    if (record.liveBrokerWritesRemainBlocked !== true) {
+      reasonCodes.push("approval_missing_live_write_block_statement");
+    }
+
+    return {
+      approved: reasonCodes.length === 0,
+      reasonCodes: [...new Set(reasonCodes)].sort(),
+      warnings: [...new Set(warnings)].sort(),
+      liveBrokerWriteAllowed: false,
+      safetyType: "TOSS_READ_ONLY_CALL_APPROVAL_REVIEW_ONLY"
+    };
+  }
+}
+
+export interface TossReadOnlyCallApprovalConsumption {
+  consumed: boolean;
+  reasonCodes: string[];
+  liveBrokerWriteAllowed: false;
+  safetyType: "TOSS_READ_ONLY_CALL_APPROVAL_CONSUMPTION_REVIEW_ONLY";
+}
+
+/**
+ * Tracks which approval records have already been consumed so a single
+ * approval can never be used to authorize more than one call.
+ *
+ * This ledger is in-memory only. It performs no persistence and no network
+ * calls. It exists to make single-use enforcement an explicit, testable
+ * behavior rather than a convention.
+ */
+export class TossReadOnlyCallApprovalLedger {
+  private readonly consumedApprovalIds = new Set<string>();
+
+  consume(record: TossReadOnlyCallApprovalRecord): TossReadOnlyCallApprovalConsumption {
+    const review = new TossReadOnlyCallApprovalValidator().review(record);
+    const reasonCodes = [...review.reasonCodes];
+    const alreadyConsumed = this.consumedApprovalIds.has(record.id);
+
+    if (alreadyConsumed) {
+      reasonCodes.push("approval_already_consumed");
+    }
+
+    const consumed = review.approved && !alreadyConsumed;
+
+    if (consumed) {
+      this.consumedApprovalIds.add(record.id);
+    }
+
+    return {
+      consumed,
+      reasonCodes: [...new Set(reasonCodes)].sort(),
+      liveBrokerWriteAllowed: false,
+      safetyType: "TOSS_READ_ONLY_CALL_APPROVAL_CONSUMPTION_REVIEW_ONLY"
+    };
+  }
+
+  isConsumed(id: string): boolean {
+    return this.consumedApprovalIds.has(id);
   }
 }

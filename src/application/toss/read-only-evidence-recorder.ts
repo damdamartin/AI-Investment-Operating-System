@@ -4,6 +4,10 @@ import type {
   TossEvidenceMode,
   TossReadOnlyEvidenceItem
 } from "./read-only-evidence-plan.js";
+import {
+  TossReadOnlyCallApprovalValidator,
+  type TossReadOnlyCallApprovalRecord
+} from "./read-only-evidence-intake.js";
 
 export interface TossReadOnlyEvidenceRecordInput {
   id: string;
@@ -14,11 +18,27 @@ export interface TossReadOnlyEvidenceRecordInput {
   payload: unknown;
   knownSecrets?: Array<string | undefined>;
   collectedAt?: Date | undefined;
+  /**
+   * Optional sanitized approval record scoping this evidence to exactly one
+   * previously approved read-only call. When provided, the recorded evidence
+   * kind must match `approval.expectedEvidenceKind` for the evidence to be
+   * considered ready for the manifest.
+   */
+  approval?: TossReadOnlyCallApprovalRecord;
+}
+
+export interface TossReadOnlyEvidenceApprovalScopeCheck {
+  approvalProvided: boolean;
+  approvalValid: boolean;
+  matchesApprovedScope: boolean;
+  reasonCodes: string[];
 }
 
 export interface TossReadOnlyEvidenceRecord {
   item: TossReadOnlyEvidenceItem;
   sanitizedPreview: unknown;
+  approvalScope: TossReadOnlyEvidenceApprovalScopeCheck;
+  readyForManifest: boolean;
   safetyType: "TOSS_READ_ONLY_EVIDENCE_RECORD_ONLY";
 }
 
@@ -37,6 +57,8 @@ export class TossReadOnlyEvidenceRecorder {
     const containsCredential = this.containsCredential(input.payload, payloadText);
     const liveWriteOperation = this.containsLiveWriteOperation(input.payload, payloadText);
     const hasUnmaskedAccountIdentifier = this.containsAccountIdentifier(input.payload);
+    const sanitized = !containsCredential && !hasUnmaskedAccountIdentifier;
+    const approvalScope = this.checkApprovalScope(input);
 
     return {
       item: {
@@ -46,12 +68,40 @@ export class TossReadOnlyEvidenceRecorder {
         collectedAt: input.collectedAt ?? new Date(),
         relatedOpenQuestion: input.relatedOpenQuestion,
         summary: sanitizedSummary,
-        sanitized: !containsCredential && !hasUnmaskedAccountIdentifier,
+        sanitized,
         containsCredential,
         liveWriteOperation
       },
       sanitizedPreview: sanitizedPayload,
+      approvalScope,
+      readyForManifest: sanitized && !liveWriteOperation && approvalScope.matchesApprovedScope,
       safetyType: "TOSS_READ_ONLY_EVIDENCE_RECORD_ONLY"
+    };
+  }
+
+  private checkApprovalScope(input: TossReadOnlyEvidenceRecordInput): TossReadOnlyEvidenceApprovalScopeCheck {
+    if (!input.approval) {
+      return {
+        approvalProvided: false,
+        approvalValid: false,
+        matchesApprovedScope: false,
+        reasonCodes: ["no_approval_provided"]
+      };
+    }
+
+    const review = new TossReadOnlyCallApprovalValidator().review(input.approval);
+    const reasonCodes = [...review.reasonCodes];
+    const evidenceKindMatches = input.approval.expectedEvidenceKind === input.kind;
+
+    if (review.approved && !evidenceKindMatches) {
+      reasonCodes.push("evidence_kind_does_not_match_approval");
+    }
+
+    return {
+      approvalProvided: true,
+      approvalValid: review.approved,
+      matchesApprovedScope: review.approved && evidenceKindMatches,
+      reasonCodes: [...new Set(reasonCodes)].sort()
     };
   }
 
