@@ -43,6 +43,10 @@ Forbidden in every task:
 | [P5-009](P5-009_read_only_one_call_harness.md) | Read-Only One-Call Harness | `phase5/p5-009-read-only-one-call-harness` |
 | [P5-010](P5-010_phase5_local_runbook_and_operator_checklist.md) | Phase 5 Local Runbook and Operator Checklist | `phase5/p5-010-local-runbook-operator-checklist` |
 | [P5-011](P5-011_phase5_readiness_review_and_cleanup.md) | Phase 5 Readiness Review and Cleanup | `phase5/p5-011-readiness-review-cleanup` |
+| [P5-012](P5-012_toss_read_only_http_client.md) | Toss Read-Only HTTP Client | `phase5/p5-012-toss-read-only-http-client` |
+| [P5-013](P5-013_first_read_only_verification_runner.md) | First Read-Only Verification Runner | `phase5/p5-013-first-read-only-verification-runner` |
+| [P5-014](P5-014_sanitized_evidence_pipeline.md) | Sanitized Evidence Pipeline | `phase5/p5-014-sanitized-evidence-pipeline` |
+| [P5-015](P5-015_phase5_read_only_integration_review.md) | Phase 5 Read-Only Integration Review | `phase5/p5-015-read-only-integration-review` |
 
 ## Merge Guidance
 
@@ -60,3 +64,8 @@ Tasks P5-008 (Engineer 1), P5-009 (Engineer 2), and P5-010 (Engineer 3) ran in p
 
 As of the P5-011 review, live trading remains blocked and OQ-001 through OQ-004 remain `OPEN` with `NO_EVIDENCE` — round 3 hardened policy, tooling, and documentation, but did not itself collect or record any real Toss evidence.
 
+## Round 4 (P5-012 through P5-015)
+
+Round 4 moves from read-only preparation into the first real read-only verification tooling. The work remains strictly Phase 5 scoped: no broker writes, no order create/cancel/modify, no transfer/withdrawal/currency-conversion flows, no raw payload commits, and no tests that call the real Toss API.
+
+Use `ROUND4_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md` to launch the four-engineer batch. P5-012 owns the read-only HTTP client, P5-014 owns sanitized evidence promotion, P5-013 owns the human-approved one-call runner, and P5-015 owns integration review and final operator handoff.
