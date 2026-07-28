@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.2.0
+Version: 0.3.1
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -213,6 +213,10 @@ Current task index:
 Initial task batch:
 
 - Task-001 through Task-020 cover project structure, config, value objects, domain models, broker account model, strategy/signal model, order state machines, risk and money model, database migrations, core schema, historical data schema, outbox schema, adapter contracts, read-only Toss capability discovery, Naver News adapter, Claude schema validation, compliance gate, audit logging, safety regression tests, and CI baseline.
+
+Second task batch:
+
+- Task-021 through Task-040 cover market data ingestion, news normalization, AI analysis persistence, baseline analysis engines, strategy scoring, risk, money management, order approval, backtest, walk-forward validation, Shadow Portfolio, Paper Trading, Strategy Diversity Engine, strategy promotion workflow, AI Health Check, read-only reconciliation, read-only dashboard status, and operational alerting.
 
 ## 7. Phase 4: Core Implementation Foundation
 

@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.3.0
+Version: 0.3.1
 Status: Draft
 Last Updated: 2026-07-28
 
@@ -34,6 +34,31 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-018](Task-018_Audit_Log_Service.md) | Audit Log Service | Audit | Draft |
 | [Task-019](Task-019_Safety_Regression_Test_Harness.md) | Safety Regression Test Harness | Testing | Draft |
 | [Task-020](Task-020_CI_Baseline.md) | CI Baseline | DevOps | Draft |
+
+## Phase 2: Engine and Validation Tasks
+
+| Task | Title | Primary Module | Status |
+|---|---|---|---|
+| [Task-021](Task-021_Market_Data_Ingestion_Read_Model.md) | Market Data Ingestion Read Model | Market Data | Draft |
+| [Task-022](Task-022_News_Event_Normalization.md) | News Event Normalization | News | Draft |
+| [Task-023](Task-023_AI_Analysis_Persistence.md) | AI Analysis Persistence | AI | Draft |
+| [Task-024](Task-024_Market_Engine_Baseline.md) | Market Engine Baseline | Strategy | Draft |
+| [Task-025](Task-025_Fundamental_Engine_Interface.md) | Fundamental Engine Interface | Strategy | Draft |
+| [Task-026](Task-026_News_Event_Engine_Baseline.md) | News Event Engine Baseline | Strategy | Draft |
+| [Task-027](Task-027_Strategy_Scoring_Service.md) | Strategy Scoring Service | Strategy | Draft |
+| [Task-028](Task-028_Risk_Engine_Baseline.md) | Risk Engine Baseline | Risk | Draft |
+| [Task-029](Task-029_Money_Management_Engine_Baseline.md) | Money Management Engine Baseline | Money | Draft |
+| [Task-030](Task-030_Order_Approval_Engine_Baseline.md) | Order Approval Engine Baseline | Trading | Draft |
+| [Task-031](Task-031_Backtest_Engine_Baseline.md) | Backtest Engine Baseline | Validation | Draft |
+| [Task-032](Task-032_Walk_Forward_Validation.md) | Walk-Forward Validation | Validation | Draft |
+| [Task-033](Task-033_Shadow_Portfolio_Engine.md) | Shadow Portfolio Engine | Validation | Draft |
+| [Task-034](Task-034_Paper_Trading_Engine.md) | Paper Trading Engine | Validation | Draft |
+| [Task-035](Task-035_Strategy_Diversity_Engine.md) | Strategy Diversity Engine | Strategy Research | Draft |
+| [Task-036](Task-036_Strategy_Promotion_Workflow.md) | Strategy Promotion Workflow | Governance | Draft |
+| [Task-037](Task-037_AI_Health_Check_Baseline.md) | AI Health Check Baseline | AI Operations | Draft |
+| [Task-038](Task-038_Reconciliation_Readonly_Baseline.md) | Reconciliation Read-Only Baseline | Trading Ops | Draft |
+| [Task-039](Task-039_Dashboard_Readonly_Status.md) | Dashboard Read-Only Status | Dashboard | Draft |
+| [Task-040](Task-040_Operational_Alerting_Baseline.md) | Operational Alerting Baseline | Operations | Draft |
 
 ## Execution Rule
 

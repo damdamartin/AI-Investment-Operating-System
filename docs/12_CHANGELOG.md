@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.3.0
+Version: 0.3.1
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,24 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.3.1 - 2026-07-28
+
+### Added
+
+- Added Phase 2 engine and validation implementation tasks `Task-021` through `Task-040`.
+- Added task specifications for market data ingestion, news event normalization, AI analysis persistence, market/fundamental/news engines, strategy scoring, risk engine, money management engine, order approval engine, backtest engine, walk-forward validation, Shadow Portfolio, Paper Trading, Strategy Diversity Engine, strategy promotion workflow, AI Health Check, read-only reconciliation, read-only dashboard status, and operational alerting.
+
+### Changed
+
+- Updated `docs/tasks/README.md` to include the Phase 2 task index.
+- Updated repository documentation version to `0.3.1`.
+
+### Safety
+
+- Kept broker execution write tasks out of this batch.
+- Required Order Approval Engine work to depend on risk, money, broker account, compliance, and capability checks.
+- Required Shadow Portfolio, Paper Trading, reconciliation, and dashboard tasks to avoid live Toss write methods.
 
 ## 0.3.0 - 2026-07-28
 
