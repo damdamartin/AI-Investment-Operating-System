@@ -4,6 +4,8 @@ import {
   AssetType,
   BrokerAccount,
   BrokerOrder,
+  BrokerWriteCommandGuard,
+  buildAIAnalysisRecord,
   Currency,
   DomainValidationError,
   EngineScoreSet,
@@ -16,7 +18,9 @@ import {
   Quantity,
   RiskCheck,
   Signal,
-  StrategyVersion
+  StrategyVersion,
+  validateClaudeAnalysis,
+  type ClaudeAnalysisRequest
 } from "../../src/index.js";
 
 function signal(): Signal {
@@ -143,5 +147,141 @@ describe("safety regression harness", () => {
     });
 
     expect(account.canWriteLive()).toBe(false);
+  });
+
+  it("blocks live writes for a suspended account even with full permission granted", () => {
+    const account = new BrokerAccount({
+      id: "broker-account-1",
+      broker: "TOSS_SECURITIES",
+      externalAccountRef: "account-1",
+      accountLabel: "Main",
+      liveTradingEnabled: true,
+      permissionStatus: "LIVE_TRADING_ALLOWED",
+      status: "SUSPENDED"
+    });
+
+    expect(account.canWriteLive()).toBe(false);
+  });
+
+  it("blocks live writes when liveTradingEnabled is false even with an active, permitted account", () => {
+    const account = new BrokerAccount({
+      id: "broker-account-1",
+      broker: "TOSS_SECURITIES",
+      externalAccountRef: "account-1",
+      accountLabel: "Main",
+      liveTradingEnabled: false,
+      permissionStatus: "LIVE_TRADING_ALLOWED",
+      status: "ACTIVE"
+    });
+
+    expect(account.canWriteLive()).toBe(false);
+  });
+
+  it("only allows live writes when status, liveTradingEnabled, and permissionStatus all agree", () => {
+    const account = new BrokerAccount({
+      id: "broker-account-1",
+      broker: "TOSS_SECURITIES",
+      externalAccountRef: "account-1",
+      accountLabel: "Main",
+      liveTradingEnabled: true,
+      permissionStatus: "LIVE_TRADING_ALLOWED",
+      status: "ACTIVE"
+    });
+
+    expect(account.canWriteLive()).toBe(true);
+  });
+
+  describe("AI output stays advisory-only and cannot approve or trigger a broker write", () => {
+    const aiRequest: ClaudeAnalysisRequest = {
+      promptTemplateId: "news-event-template",
+      promptTemplateVersion: "1.0.0",
+      inputReferences: ["news-event:apple|2026-01-01"],
+      variables: {}
+    };
+
+    const cleanRawAnalysis = {
+      analysisId: "analysis-1",
+      sentiment: "positive",
+      eventType: "earnings",
+      impactScore: 90,
+      confidence: 0.95,
+      timeHorizon: "short",
+      evidence: ["strong guidance beat"],
+      risks: [],
+      contradictions: [],
+      requiresReview: false,
+      schemaVersion: "ai-analysis-v1",
+      model: "claude-test"
+    };
+
+    it("rejects a broker write command whose AI context carries a nested executable broker command", () => {
+      const guard = new BrokerWriteCommandGuard();
+
+      const result = guard.evaluate({
+        commandType: "SUBMIT_ORDER",
+        approval: new OrderApproval({
+          id: "approval-1",
+          orderIntent: approvedIntent(),
+          riskCheck: passingRiskCheck(),
+          moneyCheck: passingMoneyCheck(),
+          status: "APPROVED",
+          reasons: []
+        }),
+        aiContext: {
+          ...cleanRawAnalysis,
+          followUp: { recommendedNextStep: { submitOrder: { assetId: "asset-1", side: "BUY" } } }
+        }
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reasonCodes).toContain("ai_context_contains_forbidden_broker_command");
+    });
+
+    it("never lets a high-confidence, review-clean AI analysis alone satisfy a broker write command", () => {
+      const validation = validateClaudeAnalysis(cleanRawAnalysis);
+      expect(validation.ok).toBe(true);
+
+      const record = buildAIAnalysisRecord({
+        request: aiRequest,
+        validation,
+        now: new Date("2026-01-01T00:00:00Z")
+      });
+
+      expect(record.safetyType).toBe("AI_ANALYSIS_ADVISORY_ONLY");
+
+      const guard = new BrokerWriteCommandGuard();
+      const result = guard.evaluate({
+        commandType: "SUBMIT_ORDER",
+        // Even a clean, non-forbidden AI analysis is supplied as context, but
+        // none of the deterministic gates (broker account, portfolio link,
+        // compliance, capability, environment, kill switch, reconciliation)
+        // are present. AI confidence must never substitute for them.
+        aiContext: record.normalizedOutput
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+      expect(result.reasonCodes).toContain("missing_broker_account");
+      expect(result.reasonCodes).toContain("missing_compliance_gate");
+      expect(result.reasonCodes).toContain("missing_environment_policy");
+      expect(result.reasonCodes).toContain("missing_kill_switch_state");
+      expect(result.reasonCodes).toContain("missing_reconciliation_state");
+    });
+
+    it("keeps invalid Claude output out of any broker write decision entirely", () => {
+      const validation = validateClaudeAnalysis({
+        ...cleanRawAnalysis,
+        cancelOrder: { orderId: "order-1" }
+      });
+
+      expect(validation.ok).toBe(false);
+      expect(() =>
+        buildAIAnalysisRecord({
+          request: aiRequest,
+          validation,
+          now: new Date("2026-01-01T00:00:00Z")
+        })
+      ).toThrow(DomainValidationError);
+    });
   });
 });

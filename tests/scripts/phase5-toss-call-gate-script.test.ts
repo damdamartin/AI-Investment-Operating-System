@@ -25,6 +25,37 @@ describe("phase5-toss-call-gate script", () => {
     expect(report.humanApprovalPresent).toBe(true);
     expect(report.reasonCodes).toContain("preflight_not_ready");
     expect(report.allowedNextAction).toBe("Do not call Toss API yet.");
+    // Explicit approval must never flip the live-write or network-call
+    // guarantees, even once preflight becomes ready in the future.
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+  });
+
+  it(
+    "does not accept loosely-typed approval values (only the exact string 'true')",
+    () => {
+      // Each invocation chains several "npm run" subprocesses (preflight ->
+      // readiness/endpoints/evidence/intake/open-questions/doctor), so this
+      // is deliberately kept to a small representative set of near-miss
+      // values rather than an exhaustive one, and given a longer timeout.
+      for (const looseValue of ["TRUE", "1", "yes"]) {
+        const output = runScript({ PHASE5_TOSS_READ_ONLY_CALL_APPROVED: looseValue }, false);
+        const report = JSON.parse(output);
+
+        expect(report.humanApprovalPresent, `value "${looseValue}" must not count as approval`).toBe(false);
+        expect(report.reasonCodes).toContain("human_read_only_call_approval_missing");
+        expect(report.liveBrokerWriteAllowed).toBe(false);
+        expect(report.networkCallsPerformed).toBe(false);
+      }
+    },
+    60000
+  );
+
+  it("always reports the PHASE5_TOSS_READ_ONLY_CALL_GATE_LOCAL_REPORT safety type", () => {
+    const output = runScript({}, false);
+    const report = JSON.parse(output);
+
+    expect(report.safetyType).toBe("PHASE5_TOSS_READ_ONLY_CALL_GATE_LOCAL_REPORT");
   });
 });
 
