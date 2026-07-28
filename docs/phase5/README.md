@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.12
+Version: 0.5.13
 Status: Active
 Last Updated: 2026-07-28
 
@@ -9,6 +9,10 @@ Last Updated: 2026-07-28
 Phase 5 collects evidence from real external systems without enabling live trading.
 
 The first target is Toss Securities Open API read-only validation.
+
+Primary local runbook:
+
+- `docs/phase5/local-toss-read-only-runbook.md`
 
 ## Non-Negotiable Boundary
 

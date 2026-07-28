@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.12
+Version: 0.5.13
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,18 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.13 - 2026-07-28
+
+### Added
+
+- Added the local Toss read-only verification runbook.
+- Linked the runbook from the Phase 5 documentation index.
+
+### Safety
+
+- The runbook requires `LIVE_TRADING_ENABLED=false` and `TOSS_READ_ONLY_MODE=true`.
+- The runbook explicitly blocks order creation, order cancellation, money movement, raw payload commits, and secret disclosure.
 
 ## 0.5.12 - 2026-07-28
 
