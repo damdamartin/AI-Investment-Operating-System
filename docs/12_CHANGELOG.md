@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.20
+Version: 0.4.21
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.21 - 2026-07-28
+
+### Added
+
+- Added StrategyPromotionWorkflow.
+- Added promotion evidence model with pass, warn, fail, and unverified states.
+- Added default promotion gate v0.2 requirements for validation stages.
+- Added rejection reason model for missing evidence, failed evidence, unverified evidence, compliance blocks, open questions, and human approval requirements.
+- Added rollback plan reference capture.
+- Added tests for staged promotion, skipped-stage rejection, backtest-only production rejection, compliance and open-question blocks, human approval requirement, and decision-only production approval.
+
+### Changed
+
+- Marked Task-036 as complete.
+- Updated repository and package version to `0.4.21`.
+
+### Safety
+
+- Strategies cannot skip validation stages.
+- Backtest-only promotion to production is rejected.
+- Production approval requires human approval during early operation.
+- Promotion decisions remain decision-only and do not activate production or allocate capital.
+
+### Verification
+
+- Targeted Strategy Promotion tests passed with 6 tests.
 
 ## 0.4.20 - 2026-07-28
 

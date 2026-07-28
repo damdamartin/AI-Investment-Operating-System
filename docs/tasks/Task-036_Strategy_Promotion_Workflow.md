@@ -1,5 +1,8 @@
 # Task-036: Strategy Promotion Workflow
 
+Status: Complete
+Implemented In: 0.4.21
+
 ## Objective
 
 Implement the workflow model for promoting strategies through validation stages.
@@ -31,6 +34,16 @@ Required reading: `docs/08_Testing_Validation.md`, `docs/06_AI_Architecture.md`,
 - Strategies cannot skip validation stages.
 - Missing evidence blocks promotion.
 - Compliance and open-question blocks are represented.
+
+## Implementation Notes
+
+- Added a `StrategyPromotionWorkflow` service.
+- Added promotion evidence model with pass, warn, fail, and unverified states.
+- Added default promotion gate v0.2 evidence requirements.
+- Added validation for StrategyVersion stage transitions.
+- Added missing evidence, failed evidence, unverified evidence, compliance, open-question, and human approval reason codes.
+- Added rollback plan reference capture.
+- Kept promotion output decision-only with no capital allocation or production activation command.
 
 ## Tests Required
 

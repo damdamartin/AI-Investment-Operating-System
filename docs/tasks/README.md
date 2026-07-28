@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.20
+Version: 0.4.21
 Status: Active
 Last Updated: 2026-07-28
 
@@ -54,7 +54,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-033](Task-033_Shadow_Portfolio_Engine.md) | Shadow Portfolio Engine | Validation | Complete |
 | [Task-034](Task-034_Paper_Trading_Engine.md) | Paper Trading Engine | Validation | Complete |
 | [Task-035](Task-035_Strategy_Diversity_Engine.md) | Strategy Diversity Engine | Strategy Research | Complete |
-| [Task-036](Task-036_Strategy_Promotion_Workflow.md) | Strategy Promotion Workflow | Governance | Draft |
+| [Task-036](Task-036_Strategy_Promotion_Workflow.md) | Strategy Promotion Workflow | Governance | Complete |
 | [Task-037](Task-037_AI_Health_Check_Baseline.md) | AI Health Check Baseline | AI Operations | Draft |
 | [Task-038](Task-038_Reconciliation_Readonly_Baseline.md) | Reconciliation Read-Only Baseline | Trading Ops | Draft |
 | [Task-039](Task-039_Dashboard_Readonly_Status.md) | Dashboard Read-Only Status | Dashboard | Draft |
