@@ -1,6 +1,6 @@
 # AI Investment Operating System Documentation
 
-Version: 0.3.1
+Version: 0.3.2
 Status: Development Task Draft
 Last Updated: 2026-07-28
 

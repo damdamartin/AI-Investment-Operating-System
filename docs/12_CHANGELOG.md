@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.3.1
+Version: 0.3.2
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,24 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.3.2 - 2026-07-28
+
+### Added
+
+- Added Phase 3 operations and controlled execution implementation tasks `Task-041` through `Task-060`.
+- Added task specifications for outbox workers, broker write command guard, order execution simulation, order cancel simulation, fill processing, reconciliation workflow, kill switch control, dashboard sensitive control gate, strategy promotion dashboard workflow, config versioning, scheduler and job runner, data quality monitoring, API usage and cost monitoring, backup and restore runbook, incident runbooks, deployment environment skeleton, observability metrics, security access control, Claude worktree orchestration, and Phase 4 readiness review.
+
+### Changed
+
+- Updated `docs/tasks/README.md` to include the Phase 3 task index.
+- Updated repository documentation version to `0.3.2`.
+
+### Safety
+
+- Added a dedicated Broker Write Command Guard task that defaults to blocking all broker write commands unless every live-trading gate passes.
+- Kept real Toss broker write implementation out of this batch.
+- Required simulation, cancellation, reconciliation, dashboard, scheduler, and deployment tasks to preserve live-trading disabled defaults.
 
 ## 0.3.1 - 2026-07-28
 
