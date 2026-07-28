@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.28
+Version: 0.4.29
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.29 - 2026-07-28
+
+### Added
+
+- Added OrderCancelSimulationService.
+- Added simulated cancel request, response, and result models.
+- Added accepted, rejected, too-late, and unknown simulated cancel states.
+- Added audit record hooks for simulated cancel results.
+- Added tests for cancellable states, non-cancellable states, cancel lifecycle states, and auditability.
+
+### Changed
+
+- Marked Task-044 as complete.
+- Updated repository and package version to `0.4.29`.
+
+### Safety
+
+- Filled, rejected, and unknown execution records cannot create cancel requests.
+- Unknown cancel state blocks dependent assumptions.
+- Simulated cancel results do not expose live Toss cancel commands.
+
+### Verification
+
+- Targeted Order Cancel Simulation tests passed with 4 tests.
 
 ## 0.4.28 - 2026-07-28
 
