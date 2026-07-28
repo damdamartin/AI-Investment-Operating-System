@@ -1,8 +1,8 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.6.0
+Version: 0.7.0
 Status: Active
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 
 ## Purpose
 
@@ -263,22 +263,42 @@ Full call gate and approval-artifact rules: `docs/phase5/toss-read-only-call-gat
 
 ## Step 9: Exactly One Future Read-Only Call
 
-This runbook does not perform the real Toss API call. That happens in a separate, later task, and only after Steps 1-8 pass.
+The codebase includes `scripts/phase5-toss-read-only-verify.mjs`, the first script capable of performing exactly one real, human-approved Toss read-only call. It supports only two targets, `accounts` and `holdings`, scoped to `ACCOUNT_SNAPSHOT_READ` and `POSITION_QUERY_READ`.
 
-When that later task runs, it may attempt exactly one documented read-only call, scoped to the Step 4 approval artifact, such as:
+By default - no approval flag set, an unknown or write-looking target, or preflight/the call gate not passing - this script performs no network call at all and exits non-zero. This is the expected, normal state on a fresh checkout and any time Steps 1-8 above have not fully passed. Do not treat that fail-closed result as something to fix by loosening a safety check.
 
-- authentication or token validation read
-- account snapshot read
-- position read
+Only once Steps 1-8 pass, run exactly one of:
+
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- accounts
+```
+
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- holdings
+```
+
+For local working files:
+
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- accounts tmp/phase5/toss-read-only-endpoints.local.json tmp/phase5/evidence-manifest.local.json tmp/phase5/evidence-intake.local.json
+```
+
+Before performing any network call, this script itself re-runs `phase5:toss:preflight` and `phase5:toss:call-gate` as local child processes and fails closed if either is not ready, even if the approval flag is set. It performs at most one target read (authenticate, then the single requested read) per invocation - never a loop, never a retry, never a second target. It writes only sanitized evidence under `tmp/phase5/` (git-ignored) - an item count and metadata, never raw account numbers, access tokens, client secrets, symbols, or quantities - and prints only a sanitized JSON report with `operation`, `evidenceKind`, `sanitizedEvidencePath`, `liveBrokerWriteAllowed: false`, `networkCallsPerformed`, and `rawPayloadStored: false`. `networkCallsPerformed` is `false` in every fail-closed case and only becomes `true` once a real call is actually attempted.
+
+Other documented read-only call shapes remain future work, not yet implemented by this script:
+
+- position read beyond `holdings`
 - market data read
 - order status read (query only, never create/modify/cancel)
 
-That task must not:
+Whichever read-only call is attempted, it must not:
 
 - retry the call blindly if the result is uncertain (see `docs/11_AI_RULES.md` Rule 15 and Rule 16)
 - attempt a second call under the same approval id (approvals are single-use; a repeat attempt is rejected as `approval_already_consumed`)
 - submit, cancel, or replace any order
 - transfer, withdraw, or convert currency in a way that moves money
+
+After the call, open the sanitized evidence file this script wrote under `tmp/phase5/` and confirm it looks safe before using it in Step 10 below. This script does not read that file back or promote it automatically - a human still does that review by hand.
 
 ## Step 10: Sanitized Evidence Intake
 

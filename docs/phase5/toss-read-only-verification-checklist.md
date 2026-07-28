@@ -1,8 +1,8 @@
 # Toss Read-Only Verification Checklist
 
-Version: 0.6.0
+Version: 0.7.0
 Status: Active
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 
 ## Purpose
 
@@ -97,15 +97,24 @@ npm run phase5:toss:completion
 
 ## 9. Exactly One Future Read-Only Call
 
-Not performed by this checklist. Performed in a separate later task, scoped to the Step 4 approval artifact, and limited to:
+`scripts/phase5-toss-read-only-verify.mjs` performs this step. It supports only `accounts` and `holdings`, fails closed with no network call by default, and re-checks preflight and the call gate itself before ever calling the network.
 
-- authentication or token validation read
-- account snapshot read
-- position read
-- balance read
-- market data read
-- capability or metadata read
-- order status read only if it does not create, modify, or cancel orders
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- accounts
+```
+
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- holdings
+```
+
+- [ ] Steps 1-8 above all pass first
+- [ ] The command above is run with exactly one target, scoped to the Step 4 approval artifact
+- [ ] The printed report shows `liveBrokerWriteAllowed: false` and `rawPayloadStored: false`
+- [ ] The sanitized evidence file it wrote under `tmp/phase5/` has been opened and manually reviewed before use in Step 10
+
+Full details: `docs/phase5/local-toss-read-only-runbook.md` (Step 9).
+
+Other documented read-only call shapes remain future work, not yet implemented by this script: position read beyond `holdings`, market data read, and order status read (query only, never create/modify/cancel).
 
 Blocked, always:
 
