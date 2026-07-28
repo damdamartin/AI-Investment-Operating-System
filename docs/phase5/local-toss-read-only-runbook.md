@@ -1,26 +1,26 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.18
+Version: 0.6.0
 Status: Active
 Last Updated: 2026-07-28
 
 ## Purpose
 
-This runbook describes the local sequence for preparing Toss Securities read-only verification.
+This runbook describes, in order, the local sequence a human operator follows to prepare for Toss Securities read-only verification.
 
-It does not authorize live trading, order creation, order cancellation, money transfer, withdrawal, or production capital use.
+It does not authorize live trading, order creation, order cancellation, order modification, money transfer, withdrawal, currency conversion, or production capital use.
 
-## 1. Prepare Local Environment
+Follow the steps in order. Do not skip ahead to step 9 (the real read-only call) until steps 1-8 pass.
 
-Create a local `.env` file from the example file.
+## Step 1: Local-Only Setup
+
+Create a local `.env` file from the example file. This file stays on your machine only.
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` locally.
-
-Required values:
+Edit `.env` locally. Required values:
 
 ```text
 LIVE_TRADING_ENABLED=false
@@ -31,11 +31,13 @@ TOSS_CLIENT_SECRET=<local secret>
 TOSS_ACCOUNT_REF=<safe local account reference>
 ```
 
-Never paste these values into chat, documentation, screenshots, commits, or logs.
+Confirm `.env` is ignored by Git before doing anything else:
 
-## 2. Check Local Readiness
+```bash
+git check-ignore -v .env
+```
 
-Run:
+Check local readiness:
 
 ```bash
 npm run phase5:toss:readiness
@@ -49,9 +51,20 @@ safeToAttemptReadOnlyCalls: true
 liveBrokerWriteAllowed: false
 ```
 
-If `ready` is false, fix only the missing local setup item. Do not loosen safety settings.
+**Expected fail-closed state:** on a fresh checkout, `.env` does not exist yet and `phase5:toss:readiness` fails closed (`ready: false`, non-zero exit) with `reasonCodes` naming each missing or placeholder field. This is normal, not a bug. If `ready` is false, fix only the missing local setup item. Do not loosen safety settings (`LIVE_TRADING_ENABLED` must stay `false`, `TOSS_READ_ONLY_MODE` must stay `true`) to force a passing result.
 
-## 3. Validate Endpoint Catalog
+## Step 2: Secret Handling Boundaries
+
+Before touching any other step, internalize these boundaries. They apply to every step below.
+
+- API keys, client secrets, access tokens, refresh tokens, and account numbers belong only in your local `.env` file or a local secret manager.
+- Never paste any of the values above into chat with an AI assistant, into a GitHub issue or pull request, into a commit message, into a screenshot, or into any file under `docs/`.
+- Never ask an AI assistant (Claude Code, Codex, or any other agent) to read, print, log, or transform your `.env` file contents. Local scripts read `.env` directly and print only sanitized reports.
+- If a command output ever contains something that looks like a real token, secret, or account number, treat that as a stop condition (see the Stop Conditions section below): stop, do not share the output, and sanitize or discard it before continuing.
+- Screenshots of real API responses must never be committed or pasted anywhere. If you need to record what happened, write a sanitized text summary instead (see Step 10, Sanitized Evidence Intake).
+- GitHub, chat transcripts, documentation files, and CI logs must never contain secrets or raw payloads. This rule has no exceptions, including for "just this once" debugging.
+
+## Step 3: Validate Endpoint Catalog
 
 Run:
 
@@ -59,13 +72,37 @@ Run:
 npm run phase5:toss:endpoints
 ```
 
-The example catalog is intentionally unverified.
+The example catalog (`docs/phase5/toss-read-only-endpoints.example.json`) is intentionally unverified.
 
-Only change endpoint entries after confirming them through official Toss documentation, Toss developer console evidence, or local read-only verification.
+Only change endpoint entries after confirming them through official Toss documentation, Toss developer console evidence, or local read-only verification. Do not guess endpoint paths.
 
-Do not guess endpoint paths.
+**Expected fail-closed state:** the example catalog produces `warnings` for unverified endpoints, and the doctor/preflight commands in later steps will report zero prepared requests until at least one endpoint is verified and mapped to an open question. This is normal.
 
-## 4. Generate Dry-Run Plan
+## Step 4: Prepare the Approval Artifact
+
+Before generating a dry-run plan or running preflight, prepare (but do not yet submit) a sanitized approval artifact. This is the operator's explicit, single-use authorization for exactly one future read-only call.
+
+Start from the template:
+
+```text
+docs/phase5/read-only-call-approval.example.json
+```
+
+Do not edit that template file in place. Copy it to a local, git-ignored working file (for example a path under a local `tmp/` directory that is not committed) and fill in:
+
+- `approvedOperation`: the single read-only operation this approval will authorize (for example `ACCOUNT_SNAPSHOT_READ`). Only read-only operations from the fixed allow-list are accepted.
+- `approvedAt`: the approval timestamp.
+- `operatorNote`: a short, public-safe rationale. Never include tokens, client secrets, or account identifiers.
+- `endpointCatalogReference`: the verified endpoint catalog item id this approval is scoped to.
+- `expectedEvidenceKind`: the evidence kind the resulting recorded evidence must match.
+- `singleUseAcknowledged: true`
+- `liveBrokerWritesRemainBlocked: true`
+
+`TossReadOnlyCallApprovalValidator` and `TossReadOnlyCallApprovalLedger` (`src/application/toss/read-only-evidence-intake.ts`) reject approvals that contain secret-like text, account-identifier-like content, or a write-scoped operation, and reject a second consumption of the same approval id. Full field and rejection rules are documented in `docs/phase5/toss-read-only-call-gate.md`.
+
+This artifact is preparation only. It does not itself trigger any network call.
+
+## Step 5: Generate Dry-Run Plan
 
 Run:
 
@@ -80,9 +117,11 @@ It should show:
 - whether local credentials are present
 - whether endpoint catalog entries are valid
 - how many verified read-only requests would be prepared
-- whether live broker write remains blocked
+- whether live broker write remains blocked (always `false`)
 
-## 5. Run Doctor
+**Expected fail-closed state:** until Step 1 credentials are real and Step 3's catalog has at least one verified, open-question-linked entry, `preparedRequestCount` will be `0` and the command will exit non-zero. This is normal and expected before real credentials and verified endpoints exist.
+
+## Step 6: Run Doctor
 
 Run:
 
@@ -90,20 +129,80 @@ Run:
 npm run phase5:toss:doctor
 ```
 
-The doctor command summarizes:
+The doctor command summarizes, in one report:
 
 - local credential readiness
 - endpoint catalog status
 - evidence manifest status
+- evidence intake status
 - dry-run request count
 - blocking reason codes
 - warnings
 
 The doctor command performs no network calls.
 
-## 6. Prepare Evidence Intake
+**Expected fail-closed state:** on a fresh checkout, `readyForReadOnlyVerification` is `false` because credentials, verified endpoints, and reviewed evidence intake do not exist yet. This is normal, not a bug.
 
-Before evidence is added to a manifest, prepare a sanitized intake worksheet.
+## Step 7: Run Preflight
+
+Run:
+
+```bash
+npm run phase5:toss:preflight
+```
+
+Preflight runs the readiness, endpoints, evidence, intake, open-questions, and doctor checks together and performs no network calls.
+
+**Expected fail-closed state:** preflight is expected to fail closed (`readyForReadOnlyCall: false`, non-zero exit) in the default local state, before real credentials are entered and before evidence intake has been human-reviewed. This is acceptable as long as `liveBrokerWriteAllowed: false` and `networkCallsPerformed: false` remain present in the output. Do not treat a fail-closed preflight result as something to "fix" by weakening a safety check.
+
+## Step 8: Run the Read-Only Call Gate
+
+Run:
+
+```bash
+npm run phase5:toss:call-gate
+```
+
+By default, this command fails closed even if preflight has passed, because it also requires an explicit operator approval flag.
+
+To allow a later task to attempt one real read-only verification call, run it only after preflight passes and set:
+
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:call-gate
+```
+
+The call gate performs no network calls. It only confirms whether the next task is allowed to attempt a real read-only call. Passing the call gate is necessary but not sufficient by itself: the Step 4 approval artifact must also exist and match the operation that will actually be called.
+
+Run the completion check to confirm overall readiness before moving to Step 9:
+
+```bash
+npm run phase5:toss:completion
+```
+
+Full call gate and approval-artifact rules: `docs/phase5/toss-read-only-call-gate.md`.
+
+## Step 9: Exactly One Future Read-Only Call
+
+This runbook does not perform the real Toss API call. That happens in a separate, later task, and only after Steps 1-8 pass.
+
+When that later task runs, it may attempt exactly one documented read-only call, scoped to the Step 4 approval artifact, such as:
+
+- authentication or token validation read
+- account snapshot read
+- position read
+- market data read
+- order status read (query only, never create/modify/cancel)
+
+That task must not:
+
+- retry the call blindly if the result is uncertain (see `docs/11_AI_RULES.md` Rule 15 and Rule 16)
+- attempt a second call under the same approval id (approvals are single-use; a repeat attempt is rejected as `approval_already_consumed`)
+- submit, cancel, or replace any order
+- transfer, withdraw, or convert currency in a way that moves money
+
+## Step 10: Sanitized Evidence Intake
+
+After the Step 9 call has been performed and its raw result reviewed locally (never shared), record only a sanitized summary.
 
 Start from:
 
@@ -117,11 +216,11 @@ Validate the intake worksheet:
 npm run phase5:toss:intake
 ```
 
-The example worksheet intentionally fails until each item is manually reviewed and marked as sanitized.
+**Expected fail-closed state:** the example worksheet intentionally fails until each item is manually reviewed (`reviewedByHuman: true`) and sanitized. This is normal, not a bug.
 
 The intake worksheet must contain only public-safe summaries. It must not contain raw API responses, account numbers, tokens, request headers, client secrets, or screenshots containing secrets.
 
-## 7. Promote Intake To Evidence Manifest
+## Step 11: Manifest Promotion
 
 After the intake worksheet is reviewed and passes validation, promote it to a sanitized evidence manifest:
 
@@ -131,15 +230,13 @@ npm run phase5:toss:promote-intake -- path/to/evidence-intake.json path/to/evide
 
 The promotion command performs no network calls and fails closed if the intake worksheet is unsafe.
 
-## 8. Record Evidence
-
-After a real read-only verification step is performed in a later task, record only sanitized summaries.
-
-Validate evidence:
+Validate the resulting manifest:
 
 ```bash
 npm run phase5:toss:evidence
 ```
+
+## Step 12: Open Question Review
 
 Review open question coverage:
 
@@ -147,37 +244,7 @@ Review open question coverage:
 npm run phase5:toss:open-questions
 ```
 
-Run the combined preflight before any real read-only call:
-
-```bash
-npm run phase5:toss:preflight
-```
-
-The preflight command runs the local safety checks together and performs no network calls.
-
-## 9. Run Final Read-Only Call Gate
-
-Before any real Toss read-only API call, run:
-
-```bash
-npm run phase5:toss:call-gate
-```
-
-The call gate fails closed unless preflight passes and the operator explicitly approves one scoped read-only verification attempt.
-
-Details:
-
-```text
-docs/phase5/toss-read-only-call-gate.md
-```
-
-Run the completion check:
-
-```bash
-npm run phase5:toss:completion
-```
-
-The completion check performs no network calls and confirms whether the next task may attempt one scoped read-only verification call.
+This reports whether OQ-001 through OQ-004 each have at least one valid, sanitized evidence item in the manifest. It does not resolve open questions automatically; a human still reviews and updates `docs/open_questions.md` separately.
 
 Evidence must not contain:
 
@@ -189,20 +256,24 @@ Evidence must not contain:
 - raw Toss API payloads
 - live write command shapes
 
-## 10. Stop Conditions
+## Stop Conditions
 
-Stop immediately if any of the following appears:
+Stop immediately if any of the following appears, at any step:
 
 - `LIVE_TRADING_ENABLED=true`
 - `TOSS_READ_ONLY_MODE=false`
-- a request path or body suggests order creation
-- a request path or body suggests order cancellation
+- a request path or body suggests order creation, cancellation, or modification
 - a response contains account numbers or tokens that are not masked
-- evidence validation fails
-- doctor reports live broker write as allowed
+- evidence validation fails after you believed it was sanitized
+- doctor, preflight, or the call gate reports live broker write as allowed
+- any command output looks like it contains a real secret, token, or account number
+
+If a stop condition triggers, do not proceed to the next step, do not paste the offending output anywhere, and sanitize or discard the local file before continuing.
 
 ## Final Rule
 
 Until later gates are explicitly approved, Phase 5 is read-only evidence work.
+
+Fail-closed results at Steps 1, 5, 6, 7, 8, and 10 are expected before real credentials and human-reviewed evidence exist. That is the system working correctly, not a defect to be worked around.
 
 When in doubt, do not call the API.
