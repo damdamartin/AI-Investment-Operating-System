@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.6
+Version: 0.4.7
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.7 - 2026-07-28
+
+### Added
+
+- Added NewsEventCandidate normalization service.
+- Added duplicate article grouping by duplicate key.
+- Added company reference extraction with resolved, ambiguous, and unresolved states.
+- Added keyword reference extraction for news event metadata.
+- Added stale news and invalid timestamp detection.
+- Added tests for duplicate grouping, stale news, ambiguous symbol handling, invalid timestamps, and signal/order separation.
+
+### Changed
+
+- Marked Task-022 as complete.
+- Updated repository and package version to `0.4.7`.
+
+### Safety
+
+- NewsEventCandidate is explicitly marked as candidate-only and does not include trading direction, signal, order, or broker command behavior.
+- Ambiguous company references remain ambiguous instead of being guessed.
+- Stale or invalid timestamp news can be flagged before later AI or strategy processing.
+
+### Verification
+
+- `npm run check` passed with 89 tests.
 
 ## 0.4.6 - 2026-07-28
 

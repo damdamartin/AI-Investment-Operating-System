@@ -1,5 +1,8 @@
 # Task-022: News Event Normalization
 
+Status: Complete
+Implemented In: 0.4.7
+
 ## Objective
 
 Normalize raw news articles into deduplicated news event candidates.
