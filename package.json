@@ -1,6 +1,6 @@
 {
   "name": "ai-investment-operating-system",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "private": true,
   "type": "module",
   "description": "Safety-first AI Investment Operating System foundation.",
@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:migrations": "vitest run tests/persistence/migrations.test.ts",
     "check": "npm run typecheck && npm test",
-    "phase5:toss:readiness": "node scripts/check-toss-readiness.mjs"
+    "phase5:toss:readiness": "node scripts/check-toss-readiness.mjs",
+    "phase5:toss:endpoints": "node scripts/validate-toss-endpoints.mjs"
   },
   "engines": {
     "node": ">=22"

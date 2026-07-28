@@ -48,6 +48,12 @@ npm run phase5:toss:readiness
 
 The command prints only a readiness report. It must not print API keys, client secrets, account references, tokens, or account numbers.
 
+Validate the read-only endpoint catalog before using endpoint paths:
+
+```bash
+npm run phase5:toss:endpoints
+```
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:

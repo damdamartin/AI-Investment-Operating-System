@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.6
+Version: 0.5.7
 Status: Active
 Last Updated: 2026-07-28
 
@@ -161,6 +161,18 @@ It validates a catalog of Toss read-only endpoints before those endpoints are us
 Template:
 
 - `docs/phase5/toss-read-only-endpoints.example.json`
+
+Local validation command:
+
+```bash
+npm run phase5:toss:endpoints
+```
+
+To validate another local catalog file:
+
+```bash
+npm run phase5:toss:endpoints -- path/to/catalog.json
+```
 
 Rules:
 

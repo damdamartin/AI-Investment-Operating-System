@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.6
+Version: 0.5.7
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.7 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:endpoints` for local Toss read-only endpoint catalog validation.
+- Added a sanitized endpoint catalog validation script.
+- Added script tests for valid example catalogs, invalid catalog failure, and missing file failure.
+
+### Safety
+
+- Endpoint catalog validation never enables live broker writes.
+- Endpoint catalog validation fails closed for malformed or unsafe endpoint entries.
 
 ## 0.5.6 - 2026-07-28
 
