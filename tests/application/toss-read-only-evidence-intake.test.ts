@@ -5,11 +5,15 @@ import {
   TossReadOnlyCallApprovalValidator,
   TossReadOnlyCallApprovalLedger,
   TossReadOnlyVerificationResultValidator,
+  TossReadOnlyEvidenceReceiptValidator,
+  TossReadOnlyEvidenceReceiptOperatorSummaryBuilder,
   openQuestionForEvidenceKind,
   type TossReadOnlyEvidenceIntake,
   type TossReadOnlyEvidenceIntakeItem,
   type TossReadOnlyCallApprovalRecord,
-  type TossReadOnlyVerificationResultSummary
+  type TossReadOnlyVerificationResultSummary,
+  type TossReadOnlyEvidenceReceipt,
+  type TossReadOnlyEvidenceReceiptRecord
 } from "../../src/index.js";
 
 describe("TossReadOnlyEvidenceIntakeValidator", () => {
@@ -142,8 +146,8 @@ describe("openQuestionForEvidenceKind", () => {
     expect(openQuestionForEvidenceKind("POSITION_QUERY_READ")).toBe("OQ-002");
   });
 
-  it("leaves MARKET_DATA_READ without a fixed open-question mapping", () => {
-    expect(openQuestionForEvidenceKind("MARKET_DATA_READ")).toBeUndefined();
+  it("maps MARKET_DATA_READ evidence to OQ-004, matching the endpoint catalog convention", () => {
+    expect(openQuestionForEvidenceKind("MARKET_DATA_READ")).toBe("OQ-004");
   });
 });
 
@@ -287,6 +291,295 @@ function verificationResult(
     networkCallsPerformed: true,
     rawPayloadStored: false,
     ...overrides
+  };
+}
+
+describe("TossReadOnlyEvidenceReceiptValidator", () => {
+  it("accepts a sanitized account snapshot receipt and maps it to OQ-002", () => {
+    const result = new TossReadOnlyEvidenceReceiptValidator().review(receiptRecord());
+
+    expect(result.accepted).toBe(true);
+    expect(result.reasonCodes).toEqual([]);
+    expect(result.relatedOpenQuestion).toBe("OQ-002");
+    expect(result.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("accepts a sanitized holdings receipt and maps it to OQ-002 as well", () => {
+    const result = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord(
+        { operation: "POSITION_QUERY_READ", evidenceKind: "POSITION_QUERY_READ" },
+        "tmp/phase5/read-only-verify-position-query-read-2026-07-28T00-05-00-000Z.json"
+      )
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.relatedOpenQuestion).toBe("OQ-002");
+  });
+
+  it("accepts a sanitized market data receipt and maps it to OQ-004", () => {
+    const result = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord(
+        { operation: "MARKET_DATA_READ", evidenceKind: "MARKET_DATA_READ" },
+        "tmp/phase5/read-only-verify-market-data-read-2026-07-28T00-10-00-000Z.json"
+      )
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.relatedOpenQuestion).toBe("OQ-004");
+  });
+
+  it("rejects a receipt for a write-scoped or unknown operation", () => {
+    const writeScoped = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ operation: "CANCEL_ORDER" as TossReadOnlyEvidenceReceipt["operation"] })
+    );
+    expect(writeScoped.accepted).toBe(false);
+    expect(writeScoped.reasonCodes).toContain("receipt_operation_not_read_only");
+    expect(writeScoped.reasonCodes).toContain("receipt_operation_looks_write_scoped");
+  });
+
+  it("rejects a receipt with an unrecognized evidence kind", () => {
+    const result = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ evidenceKind: "NOT_A_REAL_EVIDENCE_KIND" as TossReadOnlyEvidenceReceipt["evidenceKind"] })
+    );
+
+    expect(result.accepted).toBe(false);
+    expect(result.reasonCodes).toContain("receipt_unknown_evidence_kind");
+    expect(result.relatedOpenQuestion).toBeUndefined();
+  });
+
+  it("rejects a receipt claiming live broker writes are allowed or a raw payload was stored", () => {
+    const liveWrite = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ liveBrokerWriteAllowed: true as unknown as false })
+    );
+    expect(liveWrite.accepted).toBe(false);
+    expect(liveWrite.reasonCodes).toContain("receipt_live_broker_write_allowed_must_be_false");
+
+    const rawPayload = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ rawPayloadStored: true as unknown as false })
+    );
+    expect(rawPayload.accepted).toBe(false);
+    expect(rawPayload.reasonCodes).toContain("receipt_raw_payload_stored_must_be_false");
+  });
+
+  it("rejects a receipt with a negative, fractional, or non-numeric item count", () => {
+    for (const badItemCount of [-1, 1.5, Number.NaN, "3" as unknown as number]) {
+      const result = new TossReadOnlyEvidenceReceiptValidator().review(receiptRecord({ itemCount: badItemCount }));
+      expect(result.accepted).toBe(false);
+      expect(result.reasonCodes).toContain("receipt_item_count_invalid");
+    }
+  });
+
+  it("rejects a receipt with a missing or unparsable collectedAt timestamp", () => {
+    const missing = new TossReadOnlyEvidenceReceiptValidator().review(receiptRecord({ collectedAt: "" }));
+    expect(missing.accepted).toBe(false);
+    expect(missing.reasonCodes).toContain("receipt_missing_collected_at");
+
+    const invalid = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ collectedAt: "not-a-date" })
+    );
+    expect(invalid.accepted).toBe(false);
+    expect(invalid.reasonCodes).toContain("receipt_collected_at_invalid");
+  });
+
+  it("warns, without rejecting, when a receipt is older than 30 days", () => {
+    const result = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ collectedAt: "2026-01-01T00:00:00.000Z" }),
+      new Date("2026-07-28T00:00:00.000Z")
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.warnings.some((warning) => warning.startsWith("receipt_stale_"))).toBe(true);
+  });
+
+  it("rejects secret-like, account-identifier-like, raw-response-like, or header-like content hidden in receipt fields", () => {
+    const secret = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ safetyType: "leaked client_secret abc123 during capture" })
+    );
+    expect(secret.accepted).toBe(false);
+    expect(secret.reasonCodes).toContain("receipt_may_contain_secret");
+
+    const accountNumber = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ safetyType: "account 9876543210 snapshot receipt" })
+    );
+    expect(accountNumber.accepted).toBe(false);
+    expect(accountNumber.reasonCodes).toContain("receipt_may_contain_account_identifier");
+
+    const rawResponse = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ safetyType: '{"accountStatus":"ACTIVE"}' })
+    );
+    expect(rawResponse.accepted).toBe(false);
+    expect(rawResponse.reasonCodes).toContain("receipt_looks_like_raw_response");
+
+    const header = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({ safetyType: "X-Toss-Client-Id: abc123-client-id-value" })
+    );
+    expect(header.accepted).toBe(false);
+    expect(header.reasonCodes).toContain("receipt_may_contain_request_header");
+  });
+
+  it("rejects a source reference with path traversal, a remote URL, or a .env reference", () => {
+    const traversal = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({}, "tmp/phase5/../../etc/passwd")
+    );
+    expect(traversal.accepted).toBe(false);
+    expect(traversal.reasonCodes).toContain("receipt_source_reference_path_traversal_rejected");
+
+    const remote = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({}, "https://example.com/evidence.json")
+    );
+    expect(remote.accepted).toBe(false);
+    expect(remote.reasonCodes).toContain("receipt_source_reference_must_be_local");
+
+    const envFile = new TossReadOnlyEvidenceReceiptValidator().review(receiptRecord({}, "tmp/phase5/.env.copy.json"));
+    expect(envFile.accepted).toBe(false);
+    expect(envFile.reasonCodes).toContain("receipt_source_reference_must_not_reference_env_file");
+  });
+
+  it("rejects a source reference that looks like it contains a secret or account identifier", () => {
+    const secretRef = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({}, "tmp/phase5/access_token-dump.json")
+    );
+    expect(secretRef.accepted).toBe(false);
+    expect(secretRef.reasonCodes).toContain("receipt_source_reference_may_contain_secret");
+
+    const accountRef = new TossReadOnlyEvidenceReceiptValidator().review(
+      receiptRecord({}, "tmp/phase5/account-1234567890.json")
+    );
+    expect(accountRef.accepted).toBe(false);
+    expect(accountRef.reasonCodes).toContain("receipt_source_reference_may_contain_account_identifier");
+  });
+});
+
+describe("TossReadOnlyEvidenceReceiptOperatorSummaryBuilder", () => {
+  it("counts a distinct account-snapshot receipt and a holdings receipt toward OQ-002 without conflict", () => {
+    const summary = new TossReadOnlyEvidenceReceiptOperatorSummaryBuilder().summarize(
+      [
+        receiptRecord(
+          { operation: "ACCOUNT_SNAPSHOT_READ", evidenceKind: "ACCOUNT_SNAPSHOT_READ" },
+          "tmp/phase5/read-only-verify-account-snapshot-read-2026-07-28T00-00-00-000Z.json"
+        ),
+        receiptRecord(
+          { operation: "POSITION_QUERY_READ", evidenceKind: "POSITION_QUERY_READ" },
+          "tmp/phase5/read-only-verify-position-query-read-2026-07-28T00-05-00-000Z.json"
+        )
+      ],
+      new Date("2026-07-28T00:10:00.000Z")
+    );
+
+    const oq002 = summary.openQuestionSummaries.find((entry) => entry.openQuestionId === "OQ-002");
+    expect(oq002?.receiptCount).toBe(2);
+    expect(oq002?.validReceiptCount).toBe(2);
+    expect(oq002?.evidenceKinds).toEqual(["ACCOUNT_SNAPSHOT_READ", "POSITION_QUERY_READ"]);
+    expect(oq002?.readyForReview).toBe(true);
+    expect(summary.totalReceiptCount).toBe(2);
+    expect(summary.validReceiptCount).toBe(2);
+    expect(summary.rejectedReceiptCount).toBe(0);
+    expect(summary.liveBrokerWriteAllowed).toBe(false);
+    expect(summary.liveTradingAuthorized).toBe(false);
+  });
+
+  it("always lists all four open questions, in order, even with zero receipts", () => {
+    const summary = new TossReadOnlyEvidenceReceiptOperatorSummaryBuilder().summarize([]);
+
+    expect(summary.openQuestionSummaries.map((entry) => entry.openQuestionId)).toEqual([
+      "OQ-001",
+      "OQ-002",
+      "OQ-003",
+      "OQ-004"
+    ]);
+    expect(summary.openQuestionSummaries.every((entry) => entry.readyForReview === false)).toBe(true);
+  });
+
+  it("produces the same summary regardless of receipt input order", () => {
+    const accountReceipt = receiptRecord(
+      { operation: "ACCOUNT_SNAPSHOT_READ", evidenceKind: "ACCOUNT_SNAPSHOT_READ" },
+      "tmp/phase5/read-only-verify-account-snapshot-read-2026-07-28T00-00-00-000Z.json"
+    );
+    const holdingsReceipt = receiptRecord(
+      { operation: "POSITION_QUERY_READ", evidenceKind: "POSITION_QUERY_READ" },
+      "tmp/phase5/read-only-verify-position-query-read-2026-07-28T00-05-00-000Z.json"
+    );
+    const builder = new TossReadOnlyEvidenceReceiptOperatorSummaryBuilder();
+    const now = new Date("2026-07-28T00:10:00.000Z");
+
+    const forward = builder.summarize([accountReceipt, holdingsReceipt], now);
+    const reversed = builder.summarize([holdingsReceipt, accountReceipt], now);
+
+    expect(forward).toEqual(reversed);
+  });
+
+  it("does not double-count a receipt whose source reference is duplicated in the same batch", () => {
+    const duplicateReference = "tmp/phase5/read-only-verify-account-snapshot-read-2026-07-28T00-00-00-000Z.json";
+    const summary = new TossReadOnlyEvidenceReceiptOperatorSummaryBuilder().summarize([
+      receiptRecord({}, duplicateReference),
+      receiptRecord({}, duplicateReference)
+    ]);
+
+    const oq002 = summary.openQuestionSummaries.find((entry) => entry.openQuestionId === "OQ-002");
+    expect(oq002?.validReceiptCount).toBe(1);
+    expect(summary.validReceiptCount).toBe(1);
+    expect(summary.reasonCodes.some((code) => code.startsWith("receipt_duplicate_source_reference_"))).toBe(true);
+  });
+
+  it("keeps an unsafe receipt out of the valid count without throwing, and never implies live trading authorization", () => {
+    const summary = new TossReadOnlyEvidenceReceiptOperatorSummaryBuilder().summarize([
+      receiptRecord(
+        { operation: "ACCOUNT_SNAPSHOT_READ", evidenceKind: "ACCOUNT_SNAPSHOT_READ" },
+        "tmp/phase5/read-only-verify-account-snapshot-read-2026-07-28T00-00-00-000Z.json"
+      ),
+      receiptRecord(
+        { operation: "POSITION_QUERY_READ", evidenceKind: "POSITION_QUERY_READ" },
+        "tmp/phase5/read-only-verify-position-query-read-2026-07-28T00-05-00-000Z.json"
+      ),
+      receiptRecord(
+        {
+          operation: "MARKET_DATA_READ",
+          evidenceKind: "MARKET_DATA_READ",
+          rawPayloadStored: true as unknown as false
+        },
+        "tmp/phase5/read-only-verify-market-data-read-2026-07-28T00-10-00-000Z.json"
+      )
+    ]);
+
+    expect(summary.totalReceiptCount).toBe(3);
+    expect(summary.rejectedReceiptCount).toBe(1);
+    expect(summary.reasonCodes).toContain("receipt_raw_payload_stored_must_be_false");
+
+    const oq004 = summary.openQuestionSummaries.find((entry) => entry.openQuestionId === "OQ-004");
+    expect(oq004?.receiptCount).toBe(1);
+    expect(oq004?.validReceiptCount).toBe(0);
+    expect(oq004?.readyForReview).toBe(false);
+
+    // Even though OQ-002 is fully ready for review, the summary never
+    // implies live trading is authorized or that any open question has
+    // moved past sanitized-evidence-collected. No `reviewedByHuman` concept
+    // exists on this receipt-level summary at all.
+    const oq002 = summary.openQuestionSummaries.find((entry) => entry.openQuestionId === "OQ-002");
+    expect(oq002?.readyForReview).toBe(true);
+    expect(summary.liveBrokerWriteAllowed).toBe(false);
+    expect(summary.liveTradingAuthorized).toBe(false);
+    expect(summary).not.toHaveProperty("reviewedByHuman");
+    expect(summary).not.toHaveProperty("resolved");
+  });
+});
+
+function receiptRecord(
+  overrides: Partial<TossReadOnlyEvidenceReceipt> = {},
+  sourceReference = "tmp/phase5/read-only-verify-account-snapshot-read-2026-07-28T00-00-00-000Z.json"
+): TossReadOnlyEvidenceReceiptRecord {
+  return {
+    receipt: {
+      operation: "ACCOUNT_SNAPSHOT_READ",
+      evidenceKind: "ACCOUNT_SNAPSHOT_READ",
+      collectedAt: "2026-07-28T00:00:00.000Z",
+      itemCount: 2,
+      liveBrokerWriteAllowed: false,
+      networkCallsPerformed: true,
+      rawPayloadStored: false,
+      safetyType: "PHASE5_TOSS_READ_ONLY_VERIFY_EVIDENCE",
+      ...overrides
+    },
+    sourceReference
   };
 }
 
