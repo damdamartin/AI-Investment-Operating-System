@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.7.0
+Version: 0.8.0
 Status: Active
 Last Updated: 2026-07-29
 
@@ -11,6 +11,18 @@ This runbook describes, in order, the local sequence a human operator follows to
 It does not authorize live trading, order creation, order cancellation, order modification, money transfer, withdrawal, currency conversion, or production capital use.
 
 Follow the steps in order. Do not skip ahead to step 9 (the real read-only call) until steps 1-8 pass.
+
+## Current Verification Status
+
+Status of each read-only target this script supports or is expected to support:
+
+- `accounts` (`ACCOUNT_SNAPSHOT_READ`) — **COMPLETED**. The human operator has run Step 9 for this target at least once, reviewed the sanitized evidence file it wrote locally, and carried it through Step 10 intake.
+- `holdings` (`POSITION_QUERY_READ`) — **COMPLETED**. Same as above.
+- `market-prices` (`MARKET_DATA_READ`) — **PENDING**. This is the next target. Support for it is being added as a separate, parallel effort and is not yet available as a real call target from this branch. Treat any reference to `market-prices` elsewhere in this runbook as forward-looking until that work lands and this status line is updated.
+
+"Completed" here means only that one scoped read-only call was made and reviewed for that target — it does not resolve the target's related open question (see `docs/phase5/open-question-evidence-policy.md`, human-only states) and it does not authorize any live trading action. `liveBrokerWriteAllowed` stays `false` regardless of how many targets are completed.
+
+Real receipts from any completed check exist only as local, git-ignored files under `tmp/phase5/`, alongside the local `.env`. Neither is committed to this repository. This runbook intentionally contains no real timestamp, item count, account reference, token, symbol, quantity, or other value read from either location — use only generic placeholder language (for example `e.g. 2026-XX-XXTXX:XX:XXZ`, `N items`) when describing what a receipt looks like.
 
 ## Step 1: Local-Only Setup
 
@@ -285,10 +297,10 @@ PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only --
 
 Before performing any network call, this script itself re-runs `phase5:toss:preflight` and `phase5:toss:call-gate` as local child processes and fails closed if either is not ready, even if the approval flag is set. It performs at most one target read (authenticate, then the single requested read) per invocation - never a loop, never a retry, never a second target. It writes only sanitized evidence under `tmp/phase5/` (git-ignored) - an item count and metadata, never raw account numbers, access tokens, client secrets, symbols, or quantities - and prints only a sanitized JSON report with `operation`, `evidenceKind`, `sanitizedEvidencePath`, `liveBrokerWriteAllowed: false`, `networkCallsPerformed`, and `rawPayloadStored: false`. `networkCallsPerformed` is `false` in every fail-closed case and only becomes `true` once a real call is actually attempted.
 
-Other documented read-only call shapes remain future work, not yet implemented by this script:
+Both currently implemented targets (`accounts`, `holdings`) have now been completed at least once by the human operator — see Current Verification Status above. Other documented read-only call shapes remain future work, not yet implemented by this script:
 
+- market data read (`market-prices`) — the next pending target; being added as a separate, parallel effort, not yet available on this branch
 - position read beyond `holdings`
-- market data read
 - order status read (query only, never create/modify/cancel)
 
 Whichever read-only call is attempted, it must not:
@@ -355,6 +367,23 @@ Evidence must not contain:
 - raw request headers
 - raw Toss API payloads
 - live write command shapes
+
+## Expected Fail-Closed States After `npm run check`
+
+`npm run check` (the TypeScript build plus the full test suite) passing confirms the codebase itself is sound. It does not, by itself, mean any Phase 5 Toss command is ready to attempt a real call. Immediately after `npm run check` passes, on a checkout without a completed local setup (no real `.env`, no verified endpoint, no reviewed evidence intake), expect:
+
+- `npm run phase5:toss:readiness` — fails closed (`ready: false`) until every required `.env` field holds a real, non-placeholder value.
+- `npm run phase5:toss:endpoints` — structurally valid but reports `verifiedEndpointCount: 0` and warnings until at least one endpoint is manually verified against official documentation.
+- `npm run phase5:toss:plan` — reports `preparedRequestCount: 0` until credentials are real and at least one endpoint is verified.
+- `npm run phase5:toss:doctor` — reports `readyForReadOnlyVerification: false` until credentials, a verified endpoint, and reviewed evidence intake all exist.
+- `npm run phase5:toss:preflight` — fails closed (`readyForReadOnlyCall: false`) until all of the above are true.
+- `npm run phase5:toss:call-gate` — fails closed by default; requires both a passing preflight and the explicit `PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true` operator flag.
+- `npm run phase5:toss:completion` — fails closed (`phase5TossPreparationComplete: false`) until the call gate reports ready.
+- `npm run phase5:toss:verify-read-only -- <target>` — performs no network call and exits non-zero unless preflight, the call gate, and the approval flag are all satisfied for that specific target.
+
+In every state above, `liveBrokerWriteAllowed: false` and `networkCallsPerformed: false` are expected to remain present in the command's report. This matches the fail-closed design in `docs/11_AI_RULES.md` Rule 22 — it is not a sign that `npm run check` or the underlying command is broken.
+
+Completing a target once (see Current Verification Status above) does not change these defaults on a fresh checkout: the real receipts that make a target "completed" live only in local, git-ignored files (`.env`, `tmp/phase5/`), never in the committed repository state. A fresh clone, a fresh worktree, or a teammate's machine will still show every fail-closed state listed above until that machine's own local setup is completed independently.
 
 ## Stop Conditions
 
