@@ -1,6 +1,6 @@
 # AI Investment Operating System Documentation
 
-Version: 0.5.13
+Version: 0.5.14
 Status: Phase 5 Read-Only Evidence Started
 Last Updated: 2026-07-28
 

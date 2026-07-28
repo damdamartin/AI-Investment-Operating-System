@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.13
+Version: 0.5.14
 Status: Active
 Last Updated: 2026-07-28
 
@@ -135,6 +135,16 @@ npm run phase5:toss:doctor
 ```
 
 It performs no network calls and never prints secret values.
+
+## Preflight Command
+
+Run all local Phase 5 Toss safety checks together:
+
+```bash
+npm run phase5:toss:preflight
+```
+
+The preflight command performs no network calls. It should pass before any later task attempts a real read-only Toss API call.
 
 ## Toss Open Question Evidence
 

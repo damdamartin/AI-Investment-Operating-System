@@ -82,6 +82,12 @@ Review open question evidence coverage:
 npm run phase5:toss:open-questions
 ```
 
+Run preflight:
+
+```bash
+npm run phase5:toss:preflight
+```
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:

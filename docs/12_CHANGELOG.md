@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.13
+Version: 0.5.14
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,18 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.14 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:preflight` to run Phase 5 Toss local safety checks together.
+- Added a preflight script test for sanitized fail-closed default behavior.
+
+### Safety
+
+- The preflight command performs no network calls.
+- The preflight command fails closed until readiness, endpoint validation, evidence validation, open-question coverage, and doctor checks are satisfactory.
 
 ## 0.5.13 - 2026-07-28
 

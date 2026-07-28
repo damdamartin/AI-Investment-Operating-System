@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.13
+Version: 0.5.14
 Status: Active
 Last Updated: 2026-07-28
 
@@ -116,6 +116,14 @@ Review open question coverage:
 ```bash
 npm run phase5:toss:open-questions
 ```
+
+Run the combined preflight before any real read-only call:
+
+```bash
+npm run phase5:toss:preflight
+```
+
+The preflight command runs the local safety checks together and performs no network calls.
 
 Evidence must not contain:
 
