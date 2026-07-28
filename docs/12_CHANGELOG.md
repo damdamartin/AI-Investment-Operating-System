@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.9
+Version: 0.4.10
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.10 - 2026-07-28
+
+### Added
+
+- Added FundamentalEngine interface and placeholder implementation.
+- Added FundamentalSnapshot and FundamentalMetric input models for future provider integration.
+- Added versioned fundamental score output for growth, quality, and balance sheet analysis.
+- Added refusal path for missing, incomplete, or invalid fundamental data.
+- Added tests for complete data, partial data, required-complete-data refusal, missing snapshots, and invalid metrics.
+
+### Changed
+
+- Marked Task-025 as complete.
+- Updated repository and package version to `0.4.10`.
+
+### Safety
+
+- FundamentalEngine does not invent missing financial values.
+- Missing data lowers confidence when allowed and blocks scoring when complete data is required.
+- FundamentalEngine produces analysis only and does not create orders.
+
+### Verification
+
+- `npm run check` passed with 103 tests.
+- The first check run hit an existing migration test timeout, and the immediate rerun passed.
 
 ## 0.4.9 - 2026-07-28
 

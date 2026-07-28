@@ -1,5 +1,8 @@
 # Task-025: Fundamental Engine Interface
 
+Status: Complete
+Implemented In: 0.4.10
+
 ## Objective
 
 Define the Fundamental Engine interface and placeholder implementation.
