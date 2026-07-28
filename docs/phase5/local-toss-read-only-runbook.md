@@ -18,7 +18,7 @@ Status of each read-only target this script supports or is expected to support:
 
 - `accounts` (`ACCOUNT_SNAPSHOT_READ`) — **COMPLETED**. The human operator has run Step 9 for this target at least once, reviewed the sanitized evidence file it wrote locally, and carried it through Step 10 intake.
 - `holdings` (`POSITION_QUERY_READ`) — **COMPLETED**. Same as above.
-- `market-prices` (`MARKET_DATA_READ`) — **PENDING**. This is the next target. Support for it is being added as a separate, parallel effort and is not yet available as a real call target from this branch. Treat any reference to `market-prices` elsewhere in this runbook as forward-looking until that work lands and this status line is updated.
+- `market-prices` (`MARKET_DATA_READ`) — **IMPLEMENTED, MOCK-TESTED, AWAITING HUMAN ATTEMPT**. The `market-prices` target is now available as a real call target from this branch (`TossReadOnlyHttpClient.getMarketPrices()` and this script's `market-prices` target were added and merged), proven end-to-end only against a local mock server. No human operator has attempted a real `market-prices` call yet, so no real sanitized evidence file exists for it. This target also carries one additional fail-closed check beyond `accounts`/`holdings`: even after preflight and the call gate pass, it independently requires an explicitly `verified: true` `MARKET_DATA_READ` entry for `GET /api/v1/prices` in the endpoint catalog before it will proceed.
 
 "Completed" here means only that one scoped read-only call was made and reviewed for that target — it does not resolve the target's related open question (see `docs/phase5/open-question-evidence-policy.md`, human-only states) and it does not authorize any live trading action. `liveBrokerWriteAllowed` stays `false` regardless of how many targets are completed.
 
@@ -275,7 +275,7 @@ Full call gate and approval-artifact rules: `docs/phase5/toss-read-only-call-gat
 
 ## Step 9: Exactly One Future Read-Only Call
 
-The codebase includes `scripts/phase5-toss-read-only-verify.mjs`, the first script capable of performing exactly one real, human-approved Toss read-only call. It supports only two targets, `accounts` and `holdings`, scoped to `ACCOUNT_SNAPSHOT_READ` and `POSITION_QUERY_READ`.
+The codebase includes `scripts/phase5-toss-read-only-verify.mjs`, the first script capable of performing exactly one real, human-approved Toss read-only call. It supports exactly three targets, `accounts`, `holdings`, and `market-prices`, scoped to `ACCOUNT_SNAPSHOT_READ`, `POSITION_QUERY_READ`, and `MARKET_DATA_READ` respectively. The `market-prices` target carries one additional fail-closed check the other two do not: even after preflight and the call gate pass, it independently requires an explicitly `verified: true` `MARKET_DATA_READ` catalog entry for `GET /api/v1/prices` before it will proceed.
 
 By default - no approval flag set, an unknown or write-looking target, or preflight/the call gate not passing - this script performs no network call at all and exits non-zero. This is the expected, normal state on a fresh checkout and any time Steps 1-8 above have not fully passed. Do not treat that fail-closed result as something to fix by loosening a safety check.
 
@@ -289,6 +289,10 @@ PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only --
 PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- holdings
 ```
 
+```bash
+PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- market-prices
+```
+
 For local working files:
 
 ```bash
@@ -297,9 +301,8 @@ PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only --
 
 Before performing any network call, this script itself re-runs `phase5:toss:preflight` and `phase5:toss:call-gate` as local child processes and fails closed if either is not ready, even if the approval flag is set. It performs at most one target read (authenticate, then the single requested read) per invocation - never a loop, never a retry, never a second target. It writes only sanitized evidence under `tmp/phase5/` (git-ignored) - an item count and metadata, never raw account numbers, access tokens, client secrets, symbols, or quantities - and prints only a sanitized JSON report with `operation`, `evidenceKind`, `sanitizedEvidencePath`, `liveBrokerWriteAllowed: false`, `networkCallsPerformed`, and `rawPayloadStored: false`. `networkCallsPerformed` is `false` in every fail-closed case and only becomes `true` once a real call is actually attempted.
 
-Both currently implemented targets (`accounts`, `holdings`) have now been completed at least once by the human operator — see Current Verification Status above. Other documented read-only call shapes remain future work, not yet implemented by this script:
+This script now implements three targets: `accounts` and `holdings` (each completed at least once by the human operator) and `market-prices` (implemented and mock-tested, but not yet attempted for real by the human operator) — see Current Verification Status above. Other documented read-only call shapes remain future work, not yet implemented by this script:
 
-- market data read (`market-prices`) — the next pending target; being added as a separate, parallel effort, not yet available on this branch
 - position read beyond `holdings`
 - order status read (query only, never create/modify/cancel)
 
