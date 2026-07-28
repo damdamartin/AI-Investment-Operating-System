@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.5
+Version: 0.5.6
 Status: Active
 Last Updated: 2026-07-28
 
@@ -151,6 +151,24 @@ It rejects:
 - order creation or cancellation command shapes
 
 Prepared requests mask client ID, client secret, and account reference headers.
+
+## Read-Only Endpoint Catalog
+
+The codebase includes `TossReadOnlyEndpointCatalogValidator`.
+
+It validates a catalog of Toss read-only endpoints before those endpoints are used in dry-run or real read-only verification.
+
+Template:
+
+- `docs/phase5/toss-read-only-endpoints.example.json`
+
+Rules:
+
+- do not guess endpoint paths
+- use only official Toss documentation, Toss developer console evidence, or local read-only verification
+- every endpoint must map to an open question
+- non-authentication `POST` endpoints are rejected
+- live broker write operations remain blocked
 
 ## Phase 5 Exit Direction
 

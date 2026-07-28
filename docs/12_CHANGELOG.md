@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.5
+Version: 0.5.6
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.6 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyEndpointCatalogValidator` for reviewing Toss read-only endpoint catalogs.
+- Added a sanitized endpoint catalog template for Phase 5 verification.
+- Added tests for valid catalogs, duplicate endpoint IDs, path normalization, open-question mapping, POST restriction, and unverified endpoint warnings.
+
+### Safety
+
+- Endpoint paths must not be guessed.
+- Non-authentication `POST` endpoint entries are rejected.
+- Endpoint catalogs never enable live broker write operations.
 
 ## 0.5.5 - 2026-07-28
 

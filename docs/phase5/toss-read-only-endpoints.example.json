@@ -1,0 +1,17 @@
+{
+  "catalogVersion": "1",
+  "updatedAt": "2026-07-28T00:00:00.000Z",
+  "items": [
+    {
+      "id": "account-snapshot-example",
+      "operation": "ACCOUNT_SNAPSHOT_READ",
+      "method": "GET",
+      "path": "/replace-with-official-read-only-account-path",
+      "evidenceKind": "ACCOUNT_SNAPSHOT_READ",
+      "relatedOpenQuestion": "OQ-002",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "verified": false,
+      "notes": "Replace only after confirming the path in Toss official documentation or developer console."
+    }
+  ]
+}
