@@ -1,5 +1,9 @@
 # Task-020: CI Baseline
 
+Status: Partial
+Implemented In: 0.4.0
+Remaining: Include the dedicated safety regression suite after Task-019 is implemented.
+
 ## Objective
 
 Create the initial continuous integration baseline for documentation and code quality checks.

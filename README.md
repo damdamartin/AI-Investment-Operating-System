@@ -1,7 +1,7 @@
 # AI Investment Operating System
 
-Version: 0.3.3
-Status: Ready for Safe Foundation Implementation
+Version: 0.4.0
+Status: Safe Foundation Implementation Started
 Last Updated: 2026-07-28
 
 ## Overview
@@ -26,6 +26,8 @@ Live broker write operations are blocked until compliance, broker terms, data li
 
 The official project documentation lives in [docs](docs/README.md).
 
+Local development commands are documented in [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ## Repository Status
 
-This repository currently contains the architecture documentation foundation, architecture review revisions, and implementation task batches for Claude Code parallel development.
+This repository currently contains the architecture documentation foundation, implementation task batches, and the first safe foundation TypeScript implementation.

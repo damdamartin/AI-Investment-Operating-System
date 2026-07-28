@@ -1,5 +1,8 @@
 # Task-001: Project Structure
 
+Status: Complete
+Implemented In: 0.4.0
+
 ## Objective
 
 Create the initial application folder structure and development workspace layout.

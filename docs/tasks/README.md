@@ -1,7 +1,7 @@
 # Implementation Task Index
 
-Version: 0.3.3
-Status: Draft
+Version: 0.4.0
+Status: Active
 Last Updated: 2026-07-28
 
 ## Purpose
@@ -14,9 +14,9 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 
 | Task | Title | Primary Module | Status |
 |---|---|---|---|
-| [Task-001](Task-001_Project_Structure.md) | Project Structure | Foundation | Draft |
-| [Task-002](Task-002_Runtime_Config_and_Secrets.md) | Runtime Config and Secrets | Foundation | Draft |
-| [Task-003](Task-003_Core_Value_Objects.md) | Core Value Objects | Domain | Draft |
+| [Task-001](Task-001_Project_Structure.md) | Project Structure | Foundation | Complete |
+| [Task-002](Task-002_Runtime_Config_and_Secrets.md) | Runtime Config and Secrets | Foundation | Complete |
+| [Task-003](Task-003_Core_Value_Objects.md) | Core Value Objects | Domain | Complete |
 | [Task-004](Task-004_Market_and_Asset_Model.md) | Market and Asset Model | Domain | Draft |
 | [Task-005](Task-005_Broker_Account_Model.md) | Broker Account Model | Domain | Draft |
 | [Task-006](Task-006_Strategy_Signal_Model.md) | Strategy and Signal Model | Domain | Draft |
@@ -33,7 +33,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-017](Task-017_Compliance_Gate_Service.md) | Compliance Gate Service | Safety | Draft |
 | [Task-018](Task-018_Audit_Log_Service.md) | Audit Log Service | Audit | Draft |
 | [Task-019](Task-019_Safety_Regression_Test_Harness.md) | Safety Regression Test Harness | Testing | Draft |
-| [Task-020](Task-020_CI_Baseline.md) | CI Baseline | DevOps | Draft |
+| [Task-020](Task-020_CI_Baseline.md) | CI Baseline | DevOps | Partial |
 
 ## Phase 2: Engine and Validation Tasks
 

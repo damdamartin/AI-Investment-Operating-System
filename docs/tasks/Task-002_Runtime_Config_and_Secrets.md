@@ -1,5 +1,8 @@
 # Task-002: Runtime Config and Secrets
 
+Status: Complete
+Implemented In: 0.4.0
+
 ## Objective
 
 Create a configuration loading pattern that separates ordinary config from secrets.

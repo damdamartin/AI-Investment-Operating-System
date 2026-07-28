@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.3.3
+Version: 0.4.0
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,35 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.0 - 2026-07-28
+
+### Added
+
+- Added TypeScript project foundation with strict type checking and Vitest.
+- Added local development guide in `DEVELOPMENT.md`.
+- Added CI workflow for type checks and tests.
+- Added safe runtime configuration loader with live trading disabled by default.
+- Added secret redaction helpers for text and objects.
+- Added core value objects for currency, money, quantity, price, percent, market, asset type, and time range.
+- Added tests for configuration, redaction, and core value objects.
+
+### Changed
+
+- Updated repository status to `Safe Foundation Implementation Started`.
+- Marked Task-001, Task-002, and Task-003 as complete.
+- Marked Task-020 as partial because the safety regression suite remains pending until Task-019.
+
+### Safety
+
+- No live broker write code was added.
+- `LIVE_TRADING_ENABLED=true` is rejected outside production.
+- Production config requires Toss, Naver, and Claude secret names to be present when secret enforcement is enabled.
+- Secret-like object fields are redacted before safe diagnostic use.
+
+### Verification
+
+- `npm run check` passed.
 
 ## 0.3.3 - 2026-07-28
 

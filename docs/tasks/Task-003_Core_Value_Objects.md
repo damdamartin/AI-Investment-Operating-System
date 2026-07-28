@@ -1,5 +1,8 @@
 # Task-003: Core Value Objects
 
+Status: Complete
+Implemented In: 0.4.0
+
 ## Objective
 
 Implement core value objects used across the domain.
