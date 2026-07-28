@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.17
+Version: 0.5.18
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.18 - 2026-07-28
+
+### Added
+
+- Added `docs/phase5/phase5-toss-completion-checklist.md` to define when Phase 5 Toss preparation is complete.
+- Added `npm run phase5:toss:completion` for a local no-network completion report.
+- Added a test confirming Phase 5 completion fails closed until the read-only call gate is ready.
+
+### Safety
+
+- Phase 5 completion does not enable live trading.
+- Phase 5 completion only allows one scoped read-only verification attempt in a later task.
+- The completion command performs no network calls.
 
 ## 0.5.17 - 2026-07-28
 

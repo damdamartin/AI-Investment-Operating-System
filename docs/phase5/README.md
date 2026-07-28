@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.17
+Version: 0.5.18
 Status: Active
 Last Updated: 2026-07-28
 
@@ -14,6 +14,7 @@ Primary local runbook:
 
 - `docs/phase5/local-toss-read-only-runbook.md`
 - `docs/phase5/toss-read-only-call-gate.md`
+- `docs/phase5/phase5-toss-completion-checklist.md`
 
 ## Non-Negotiable Boundary
 
@@ -192,6 +193,16 @@ The gate performs no network calls and fails closed by default. Even if an opera
 Gate details:
 
 - `docs/phase5/toss-read-only-call-gate.md`
+
+## Completion Check
+
+Run the Phase 5 Toss completion check:
+
+```bash
+npm run phase5:toss:completion
+```
+
+This command performs no network calls. It reports whether the project is ready for one scoped real read-only Toss verification call in a later task.
 
 ## Toss Open Question Evidence
 

@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.17
+Version: 0.5.18
 Status: Active
 Last Updated: 2026-07-28
 
@@ -170,6 +170,14 @@ Details:
 ```text
 docs/phase5/toss-read-only-call-gate.md
 ```
+
+Run the completion check:
+
+```bash
+npm run phase5:toss:completion
+```
+
+The completion check performs no network calls and confirms whether the next task may attempt one scoped read-only verification call.
 
 Evidence must not contain:
 

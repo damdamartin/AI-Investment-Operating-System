@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.5.17
+Version: 0.5.18
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -533,6 +533,7 @@ Exit criteria:
 - Toss read-only capability is verified where possible
 - unverified capabilities remain blocked
 - the final Toss read-only call gate passes before any real read-only API attempt
+- Phase 5 completion command reports readiness before the first real read-only call
 
 ## 9. Phase 6: Trading Controls and Approval Pipeline
 
