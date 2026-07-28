@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.0
+Version: 0.5.1
 Status: Active
 Last Updated: 2026-07-28
 
@@ -64,6 +64,29 @@ The codebase includes `TossReadOnlyEvidencePlan`.
 It checks whether the minimum evidence set exists, whether any evidence contains credentials, whether any live write operation appears, and whether evidence is stale.
 
 This model is review-only. It does not call Toss API and does not enable live trading.
+
+## Evidence Recording
+
+The codebase includes `TossReadOnlyEvidenceRecorder`.
+
+It creates a sanitized evidence item from a read-only result summary and payload preview.
+
+Rules:
+
+- raw Toss API responses must not be committed
+- raw request headers must not be committed
+- access tokens must not be committed
+- account numbers must not be committed
+- client secrets must not be committed
+- evidence containing live write command shapes must be rejected
+
+The recorder produces:
+
+- a review item for `TossReadOnlyEvidencePlan`
+- a sanitized preview for local inspection
+- safety flags for credentials, account identifiers, and live write operation shapes
+
+If the recorder marks an item as not sanitized, that item must not be used as readiness evidence until the payload is manually cleaned.
 
 ## Phase 5 Exit Direction
 

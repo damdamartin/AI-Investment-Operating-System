@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.0
+Version: 0.5.1
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.1 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyEvidenceRecorder` for creating sanitized read-only Toss evidence records.
+- Added tests for sanitized records, sensitive-key redaction, known-secret redaction, account identifier detection, and live write command-shape detection.
+- Expanded Phase 5 documentation with evidence recording rules.
+
+### Safety
+
+- Raw Toss API responses, request headers, access tokens, account numbers, and client secrets must not be committed as evidence.
+- Evidence containing live write command shapes is flagged before it can be used for readiness review.
 
 ## 0.5.0 - 2026-07-28
 
