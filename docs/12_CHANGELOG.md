@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.34
+Version: 0.4.35
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.35 - 2026-07-28
+
+### Added
+
+- Added ConfigVersioningService.
+- Added config categories for risk, strategy, market, and runtime settings.
+- Added config version states for `DRAFT`, `APPROVED`, `ACTIVE`, and `RETIRED`.
+- Added creation, approval, activation, and active-version lookup workflows.
+- Added audit metadata for config creation, approval, and activation.
+- Added tests for immutable versions, approval-before-activation, active version replacement, historical immutability, and required change metadata.
+
+### Changed
+
+- Marked Task-050 as complete.
+- Updated repository and package version to `0.4.35`.
+
+### Safety
+
+- Active config versions are traceable.
+- Approved historical versions are not mutated in place.
+- Production-impacting config changes require actor and reason metadata.
+
+### Verification
+
+- Targeted Config Versioning Service tests passed with 5 tests.
 
 ## 0.4.34 - 2026-07-28
 
