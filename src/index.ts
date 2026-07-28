@@ -8,6 +8,7 @@ export * from "./config/index.js";
 export * from "./domain/assets/index.js";
 export * from "./domain/broker/index.js";
 export * from "./domain/common/index.js";
+export * from "./domain/market-data/index.js";
 export * from "./domain/orders/index.js";
 export * from "./domain/portfolio/index.js";
 export * from "./domain/risk/index.js";

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.5
+Version: 0.4.6
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,29 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.6 - 2026-07-28
+
+### Added
+
+- Added MarketDataSnapshot read model for normalized market data ingestion.
+- Added freshness assessment for fresh, stale, missing, and suspect market data.
+- Added persistence-ready MarketDataSnapshotRecord and repository boundary.
+- Added tests for fresh data, stale data, missing data, suspect data, and source traceability.
+
+### Changed
+
+- Marked Task-021 as complete.
+- Updated repository and package version to `0.4.6`.
+
+### Safety
+
+- Missing, stale, suspect, unknown-source, zero-price, or zero-volume market data blocks downstream trading decisions.
+- Market data remains a read-side model and does not create signals, orders, or broker commands.
+
+### Verification
+
+- `npm run check` passed with 84 tests.
 
 ## 0.4.5 - 2026-07-28
 

@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.4.5
+Version: 0.4.6
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -278,6 +278,10 @@ Completed in 0.4.5:
 
 - Task-015 Naver News Adapter
 - Task-016 Claude Adapter Schema Validation
+
+Completed in 0.4.6:
+
+- Task-021 Market Data Ingestion Read Model
 
 Partially completed in 0.4.0:
 

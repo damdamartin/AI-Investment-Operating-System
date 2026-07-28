@@ -1,5 +1,8 @@
 # Task-021: Market Data Ingestion Read Model
 
+Status: Complete
+Implemented In: 0.4.6
+
 ## Objective
 
 Create the read-side model for normalized market data ingestion without live trading behavior.
