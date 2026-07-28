@@ -103,7 +103,24 @@ describe("Phase 5 Toss scripts hardcode fail-safe defaults (static source scan)"
     // `scriptsWithNetworkCallsFlag` below, because for this script
     // `networkCallsPerformed` is genuinely computed (true once a call is
     // attempted), not a hardcoded false.
-    "phase5-toss-account-ref-setup.mjs"
+    "phase5-toss-account-ref-setup.mjs",
+    // phase5-toss-read-only-verify.mjs (P5-013) is the same pattern: it is
+    // intentionally NOT in `allPhase5TossScripts` above because, once a
+    // human sets PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true and preflight and
+    // the call gate both pass, it legitimately performs exactly one real
+    // network call (POST /oauth2/token, then GET /api/v1/accounts or GET
+    // /api/v1/holdings — see docs/phase5/local-toss-read-only-runbook.md
+    // Step 9). Its own dedicated behavioral test file
+    // (tests/scripts/phase5-toss-read-only-verify-script.test.ts) proves
+    // that against a mock HTTP server, including that no call happens
+    // without approval or with an unsupported target. It still hardcodes
+    // `liveBrokerWriteAllowed: false` as a literal, so that claim belongs
+    // in this static lock. It must NOT be added to
+    // `scriptsWithNetworkCallsFlag` below: `networkCallsPerformed` starts
+    // `false` in this script but is genuinely computed to `true` once the
+    // approved call is attempted, so hardcoded-false is not a true claim
+    // about its full behavior.
+    "phase5-toss-read-only-verify.mjs"
   ];
 
   it.each(scriptsWithLiveBrokerWriteFlag)(
