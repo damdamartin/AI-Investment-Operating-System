@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.4.42
+Version: 0.4.43
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -426,6 +426,10 @@ Completed in 0.4.41:
 Completed in 0.4.42:
 
 - Task-057 Observability Metrics Baseline
+
+Completed in 0.4.43:
+
+- Task-058 Security Access Control Baseline
 
 Partially completed in 0.4.0:
 

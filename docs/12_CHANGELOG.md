@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.42
+Version: 0.4.43
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.43 - 2026-07-28
+
+### Added
+
+- Added AccessControlService.
+- Added actor, role, and permission model.
+- Added roles for owner, operator, auditor, viewer, and system.
+- Added sensitive production surface authorization checks.
+- Added account identifier masking helper.
+- Added tests for read-only/sensitive separation, production access, fail-closed actors, account masking, and command-surface separation.
+
+### Changed
+
+- Marked Task-058 as complete.
+- Updated repository and package version to `0.4.43`.
+
+### Safety
+
+- Unknown, missing, or unauthenticated actors fail closed.
+- Production control surfaces require explicit production access.
+- Account identifiers are masked before display.
+
+### Verification
+
+- Targeted Security Access Control tests passed with 5 tests.
 
 ## 0.4.42 - 2026-07-28
 

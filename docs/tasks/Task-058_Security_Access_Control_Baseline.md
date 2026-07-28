@@ -1,5 +1,9 @@
 # Task-058: Security Access Control Baseline
 
+Status: Complete
+Implemented In: 0.4.43
+Last Updated: 2026-07-28
+
 ## Objective
 
 Create the baseline access control model for operators, read-only views, and sensitive actions.
@@ -39,6 +43,16 @@ Required reading: `docs/09_Operation_Deployment.md`, `docs/11_AI_RULES.md`, `doc
 ## Safety Requirements
 
 - No public or unauthenticated access to production control surfaces.
+
+## Implementation Notes
+
+- Added `AccessControlService`.
+- Added actor, role, and permission model.
+- Added baseline roles for owner, operator, auditor, viewer, and system.
+- Added authorization checks for read-only and sensitive permissions.
+- Unknown or missing actors fail closed.
+- Production control surfaces require explicit production access.
+- Added account identifier masking helper.
 
 ## Dependencies
 
