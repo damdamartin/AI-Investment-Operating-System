@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.32
+Version: 0.4.33
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.33 - 2026-07-28
+
+### Added
+
+- Added DashboardSensitiveControlGate.
+- Added dashboard action classification for read-only and critical controls.
+- Added placeholder dashboard actor permission model.
+- Added step-up confirmation and reason requirements for critical dashboard actions.
+- Added audit record output for allowed and blocked dashboard control decisions.
+- Added tests for read-only actions, permission failures, confirmed critical actions, unknown auth state, and command-surface separation.
+
+### Changed
+
+- Marked Task-048 as complete.
+- Updated repository and package version to `0.4.33`.
+
+### Safety
+
+- Sensitive dashboard actions fail closed when auth state is missing or unknown.
+- Critical actions require elevated permission, reason, and confirmation.
+- Dashboard gate decisions do not execute state mutation or broker write commands directly.
+
+### Verification
+
+- Targeted Dashboard Sensitive Control Gate tests passed with 5 tests.
 
 ## 0.4.32 - 2026-07-28
 
