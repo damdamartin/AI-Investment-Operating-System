@@ -6,12 +6,12 @@
       "id": "account-snapshot-example",
       "operation": "ACCOUNT_SNAPSHOT_READ",
       "method": "GET",
-      "path": "/replace-with-official-read-only-account-path",
+      "path": "/pending-official-verification/account-snapshot",
       "evidenceKind": "ACCOUNT_SNAPSHOT_READ",
       "relatedOpenQuestion": "OQ-002",
       "source": "TOSS_OFFICIAL_DOCS",
       "verified": false,
-      "notes": "Replace only after confirming the path in Toss official documentation or developer console."
+      "notes": "Placeholder path. Do not treat as a real Toss endpoint. Confirm the actual path in official Toss documentation or the developer console, then set verified to true, before this entry is used to prepare a real read-only request."
     }
   ]
 }
