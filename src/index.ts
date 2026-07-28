@@ -13,6 +13,7 @@ export * from "./application/news-event-engine/index.js";
 export * from "./application/news/index.js";
 export * from "./application/order-approval/index.js";
 export * from "./application/paper-trading/index.js";
+export * from "./application/reconciliation/index.js";
 export * from "./application/risk-engine/index.js";
 export * from "./application/shadow-portfolio/index.js";
 export * from "./application/strategy-diversity/index.js";

@@ -1,5 +1,8 @@
 # Task-038: Reconciliation Read-Only Baseline
 
+Status: Complete
+Implemented In: 0.4.23
+
 ## Objective
 
 Create the read-only reconciliation baseline for comparing internal state with broker-reported state.
@@ -30,6 +33,17 @@ Required reading: `docs/07_Trading_System.md`, `docs/05_API_Architecture.md`, `d
 - Mismatches are detected and classified.
 - Unknown broker state blocks dependent trading in later flows.
 - Reconciliation uses read-only adapter methods.
+
+## Implementation Notes
+
+- Added a `ReconciliationService`.
+- Added reconciliation status model: `CLEAN`, `MISMATCH`, and `UNKNOWN`.
+- Added internal vs broker position comparison.
+- Added internal vs broker cash comparison.
+- Added missing internal and missing broker record classifications.
+- Added read-only adapter reconciliation path using account snapshot and positions reads.
+- Unknown broker read state blocks dependent trading.
+- Reconciliation reports are read-only and do not contain corrective order commands.
 
 ## Tests Required
 

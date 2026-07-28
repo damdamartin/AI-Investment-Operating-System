@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.22
+Version: 0.4.23
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.23 - 2026-07-28
+
+### Added
+
+- Added ReconciliationService.
+- Added reconciliation status model for `CLEAN`, `MISMATCH`, and `UNKNOWN`.
+- Added internal vs broker position comparison.
+- Added internal vs broker cash comparison.
+- Added issue classifications for mismatched, missing internal, missing broker, and unknown broker states.
+- Added read-only adapter reconciliation path using account snapshot and position reads.
+- Added tests for match, mismatch, missing, unknown, and read-only adapter behavior.
+
+### Changed
+
+- Marked Task-038 as complete.
+- Updated repository and package version to `0.4.23`.
+
+### Safety
+
+- Reconciliation is read-only and does not place corrective trades.
+- Unknown broker read state blocks dependent trading.
+- Reconciliation reports do not include submit, cancel, or allocation commands.
+
+### Verification
+
+- Targeted Reconciliation tests passed with 5 tests.
 
 ## 0.4.22 - 2026-07-28
 
