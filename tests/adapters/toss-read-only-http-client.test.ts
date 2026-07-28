@@ -31,7 +31,12 @@ describe("TossReadOnlyHttpClient", () => {
     });
 
     expect(client.liveBrokerWriteAllowed).toBe(false);
-    expect(client.allowedOperations).toEqual(["AUTHENTICATION_READ", "ACCOUNT_SNAPSHOT_READ", "POSITION_QUERY_READ"]);
+    expect(client.allowedOperations).toEqual([
+      "AUTHENTICATION_READ",
+      "ACCOUNT_SNAPSHOT_READ",
+      "POSITION_QUERY_READ",
+      "MARKET_DATA_READ"
+    ]);
     expect(client.getSafetyReport()).toEqual({
       liveBrokerWriteAllowed: false,
       allowedOperations: TOSS_READ_ONLY_HTTP_CLIENT_ALLOWED_OPERATIONS,
@@ -56,7 +61,13 @@ describe("TossReadOnlyHttpClient", () => {
     const publicMethodNames = Object.getOwnPropertyNames(Object.getPrototypeOf(client)).filter(
       (name) => name !== "constructor"
     );
-    expect(publicMethodNames.sort()).toEqual(["authenticate", "getAccounts", "getHoldings", "getSafetyReport"]);
+    expect(publicMethodNames.sort()).toEqual([
+      "authenticate",
+      "getAccounts",
+      "getHoldings",
+      "getMarketPrices",
+      "getSafetyReport"
+    ]);
     expect(publicMethodNames).not.toContain("request");
     expect(publicMethodNames).not.toContain("submitOrder");
     expect(publicMethodNames).not.toContain("cancelOrder");
@@ -149,7 +160,7 @@ describe("TossReadOnlyHttpClient", () => {
     expect(result.metadata.liveBrokerWriteAllowed).toBe(false);
   });
 
-  it("reuses a cached token across getAccounts and getHoldings instead of re-authenticating", async () => {
+  it("reuses a cached token across getAccounts, getHoldings, and getMarketPrices instead of re-authenticating", async () => {
     let tokenRequestCount = 0;
     const server = await startMockTossServer({
       tokenStatus: 200,
@@ -158,6 +169,8 @@ describe("TossReadOnlyHttpClient", () => {
       accountsBody: { result: [] },
       holdingsStatus: 200,
       holdingsBody: { result: [] },
+      pricesStatus: 200,
+      pricesBody: { result: [] },
       onTokenRequest: () => {
         tokenRequestCount += 1;
       }
@@ -166,8 +179,110 @@ describe("TossReadOnlyHttpClient", () => {
 
     await client.getAccounts();
     await client.getHoldings();
+    await client.getMarketPrices();
 
     expect(tokenRequestCount).toBe(1);
+  });
+
+  it("fetches market prices and returns only a sanitized item count, never raw prices or symbols", async () => {
+    const server = await startMockTossServer({
+      tokenStatus: 200,
+      tokenBody: { access_token: "mock-access-token", token_type: "Bearer" },
+      accountsStatus: 200,
+      accountsBody: { result: [] },
+      holdingsStatus: 200,
+      holdingsBody: { result: [] },
+      pricesStatus: 200,
+      pricesBody: {
+        result: [
+          { symbol: "005930", price: "71000" },
+          { symbol: "AAPL", price: "150.25" }
+        ]
+      }
+    });
+    const client = clientFor(server.url);
+
+    const result = await client.getMarketPrices();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok result");
+    expect(result.data).toEqual({ itemCount: 2 });
+    expect(result.metadata.liveBrokerWriteAllowed).toBe(false);
+    expect(result.metadata.allowedOperations).toEqual(TOSS_READ_ONLY_HTTP_CLIENT_ALLOWED_OPERATIONS);
+
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("005930");
+    expect(serialized).not.toContain("AAPL");
+    expect(serialized).not.toContain("71000");
+    expect(serialized).not.toContain("150.25");
+    expect(serialized).not.toContain("mock-access-token");
+  });
+
+  it("fails closed with a sanitized reason code when the market-prices endpoint returns non-2xx", async () => {
+    const server = await startMockTossServer({
+      tokenStatus: 200,
+      tokenBody: { access_token: "mock-access-token", token_type: "Bearer" },
+      accountsStatus: 200,
+      accountsBody: { result: [] },
+      holdingsStatus: 200,
+      holdingsBody: { result: [] },
+      pricesStatus: 503,
+      pricesBody: { error: "service_unavailable" }
+    });
+    const client = clientFor(server.url);
+
+    const result = await client.getMarketPrices();
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure result");
+    expect(result.error.code).toBe("TOSS_HTTP_MARKET_PRICES_REQUEST_FAILED_STATUS_503");
+    expect(result.error.retryable).toBe(true);
+    expect(result.error.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("fails closed with a sanitized reason code when the market-prices response is not a list shape", async () => {
+    const server = await startMockTossServer({
+      tokenStatus: 200,
+      tokenBody: { access_token: "mock-access-token", token_type: "Bearer" },
+      accountsStatus: 200,
+      accountsBody: { result: [] },
+      holdingsStatus: 200,
+      holdingsBody: { result: [] },
+      pricesStatus: 200,
+      pricesBody: { unexpected: "shape" }
+    });
+    const client = clientFor(server.url);
+
+    const result = await client.getMarketPrices();
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure result");
+    expect(result.error.code).toBe("TOSS_HTTP_MARKET_PRICES_RESPONSE_INVALID_SHAPE");
+    expect(result.error.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("sends only the bearer token to market prices, with no account-scoped header", async () => {
+    const receivedHeaders: IncomingMessage["headers"][] = [];
+    const server = await startMockTossServer({
+      tokenStatus: 200,
+      tokenBody: { access_token: "mock-access-token", token_type: "Bearer" },
+      accountsStatus: 200,
+      accountsBody: { result: [] },
+      holdingsStatus: 200,
+      holdingsBody: { result: [] },
+      pricesStatus: 200,
+      pricesBody: { result: [] },
+      onPricesRequest: (headers) => {
+        receivedHeaders.push(headers);
+      }
+    });
+    const client = clientFor(server.url);
+
+    await client.getMarketPrices();
+
+    expect(receivedHeaders).toHaveLength(1);
+    expect(receivedHeaders[0]?.authorization).toBe("Bearer mock-access-token");
+    expect(receivedHeaders[0]?.["x-tossinvest-account"]).toBeUndefined();
   });
 
   it("fails closed with a sanitized reason code when the token endpoint returns non-2xx", async () => {
@@ -322,9 +437,12 @@ function startMockTossServer(config: {
   accountsBody: unknown;
   holdingsStatus: number;
   holdingsBody: unknown;
+  pricesStatus?: number;
+  pricesBody?: unknown;
   onTokenRequest?: () => void;
   onAccountsRequest?: (headers: IncomingMessage["headers"]) => void;
   onHoldingsRequest?: (headers: IncomingMessage["headers"]) => void;
+  onPricesRequest?: (headers: IncomingMessage["headers"]) => void;
 }): Promise<{ url: string }> {
   return new Promise((resolve) => {
     const server = createServer((request: IncomingMessage, response: ServerResponse) => {
@@ -356,6 +474,16 @@ function startMockTossServer(config: {
         request.on("end", () => {
           response.writeHead(config.holdingsStatus, { "content-type": "application/json" });
           response.end(JSON.stringify(config.holdingsBody));
+        });
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/v1/prices") {
+        config.onPricesRequest?.(request.headers);
+        request.on("data", () => {});
+        request.on("end", () => {
+          response.writeHead(config.pricesStatus ?? 200, { "content-type": "application/json" });
+          response.end(JSON.stringify(config.pricesBody ?? { result: [] }));
         });
         return;
       }

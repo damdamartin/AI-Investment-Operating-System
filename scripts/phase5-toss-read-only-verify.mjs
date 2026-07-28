@@ -1,15 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * Phase 5 first read-only verification runner (P5-013).
+ * Phase 5 first read-only verification runner (P5-013), extended in P5-016
+ * with a narrowly scoped `market-prices` target.
  *
  * This script CAN perform exactly one real, human-approved Toss Securities
- * read-only API call (authentication + one of `accounts` / `holdings`). By
- * default - no approval flag, an unknown or write-looking target, or a
- * failed preflight/call-gate check - it performs no network call at all and
- * exits non-zero. See docs/phase5/local-toss-read-only-runbook.md (Step 9)
- * and docs/phase5/toss-read-only-call-gate.md for the full safety model this
+ * read-only API call (authentication + one of `accounts` / `holdings` /
+ * `market-prices`). By default - no approval flag, an unknown or
+ * write-looking target, or a failed preflight/call-gate check - it performs
+ * no network call at all and exits non-zero. See
+ * docs/phase5/local-toss-read-only-runbook.md (Step 9) and
+ * docs/phase5/toss-read-only-call-gate.md for the full safety model this
  * script sits inside.
+ *
+ * `market-prices` carries one additional, target-specific gate beyond what
+ * `accounts`/`holdings` require: even after approval, preflight, and the
+ * call gate all pass, this script independently re-reads the endpoint
+ * catalog file and refuses to proceed unless it contains an explicitly
+ * `verified: true` `MARKET_DATA_READ` entry for `GET /api/v1/prices`. This
+ * is deliberately stricter than the generic preflight/doctor checks (which
+ * only require *some* verified endpoint to exist anywhere in the catalog) -
+ * see `isMarketDataEndpointVerified()` below. `accounts` and `holdings`
+ * behavior is unchanged by this addition.
  *
  * ARCHITECTURAL NOTE: like scripts/phase5-toss-account-ref-setup.mjs, this
  * plain .mjs script does not import compiled/stripped TypeScript - there is
@@ -26,6 +38,7 @@
  * Usage:
  *   PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- accounts
  *   PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- holdings
+ *   PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- market-prices
  *
  * Optional trailing args (forwarded to preflight/call-gate, same convention
  * as phase5-toss-doctor.mjs / phase5-toss-preflight.mjs / phase5-toss-call-gate.mjs):
@@ -39,9 +52,9 @@ import { resolve } from "node:path";
 /**
  * The fixed, hardcoded set of targets this runner can attempt. There is no
  * generic "operation" argument and no way to reach an order, cancel, modify,
- * transfer, or withdrawal path through this script - only these two entries
- * exist, and each maps to exactly one read-only Toss operation and evidence
- * kind.
+ * transfer, or withdrawal path through this script - only these three
+ * entries exist, and each maps to exactly one read-only Toss operation and
+ * evidence kind.
  */
 const ALLOWED_TARGETS = {
   accounts: {
@@ -53,11 +66,21 @@ const ALLOWED_TARGETS = {
     operation: "POSITION_QUERY_READ",
     evidenceKind: "POSITION_QUERY_READ",
     path: "/api/v1/holdings"
+  },
+  "market-prices": {
+    operation: "MARKET_DATA_READ",
+    evidenceKind: "MARKET_DATA_READ",
+    path: "/api/v1/prices",
+    // Only this target carries this extra flag. See
+    // isMarketDataEndpointVerified() and the check in main() below - it is
+    // gated on this flag alone, so accounts/holdings behavior is unchanged.
+    requiresVerifiedEndpointCatalogEntry: true
   }
 };
 
 const placeholderPrefix = "replace-with-";
 const requiredEnvFields = ["TOSS_API_BASE_URL", "TOSS_CLIENT_ID", "TOSS_CLIENT_SECRET", "TOSS_ACCOUNT_REF"];
+const defaultEndpointCatalogPath = "docs/phase5/toss-read-only-endpoints.example.json";
 
 const [, , rawTarget, ...customPaths] = process.argv;
 const forwardedPaths = customPaths.filter(Boolean);
@@ -121,6 +144,17 @@ async function main() {
   };
   if (callGate.report.readyToAttemptRealReadOnlyCall !== true) {
     report.reasonCodes.push("call_gate_not_ready");
+    return finish(1);
+  }
+
+  // 4b. Target-specific fail-closed check: market-prices additionally
+  // requires an explicitly verified MARKET_DATA_READ endpoint catalog entry
+  // for GET /api/v1/prices, even though generic preflight/doctor readiness
+  // above only requires *some* verified endpoint to exist in the catalog.
+  // No network call has happened yet. accounts/holdings do not set
+  // requiresVerifiedEndpointCatalogEntry, so this check never runs for them.
+  if (targetConfig.requiresVerifiedEndpointCatalogEntry && !isMarketDataEndpointVerified(forwardedPaths[0])) {
+    report.reasonCodes.push("market_data_endpoint_not_verified_in_catalog");
     return finish(1);
   }
 
@@ -262,6 +296,38 @@ function writeSanitizedEvidence(config, itemCount) {
 
   writeFileSync(absolutePath, JSON.stringify(evidence, null, 2), { encoding: "utf8", mode: 0o600 });
   report.sanitizedEvidencePath = relativePath;
+}
+
+/**
+ * Reads the endpoint catalog file (same default path used by
+ * scripts/validate-toss-endpoints.mjs and scripts/phase5-toss-doctor.mjs
+ * when no explicit path is forwarded) and reports whether it contains an
+ * item that is explicitly `operation: "MARKET_DATA_READ"`,
+ * `path: "/api/v1/prices"`, and `verified: true`. This performs no network
+ * call - it only reads a local JSON file. Any failure to read or parse the
+ * file, or the absence of a matching verified entry, is treated as "not
+ * verified" (fail closed), never as "verified".
+ */
+function isMarketDataEndpointVerified(catalogPathArg) {
+  const catalogPath = resolve(process.cwd(), catalogPathArg || defaultEndpointCatalogPath);
+
+  if (!existsSync(catalogPath)) return false;
+
+  let catalog;
+  try {
+    catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
+  } catch {
+    return false;
+  }
+
+  const items = Array.isArray(catalog.items) ? catalog.items : [];
+  return items.some(
+    (item) =>
+      item &&
+      item.operation === "MARKET_DATA_READ" &&
+      item.path === "/api/v1/prices" &&
+      item.verified === true
+  );
 }
 
 function reviewLocalReadiness(env) {
