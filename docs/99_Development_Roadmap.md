@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.3.2
+Version: 0.3.3
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -221,6 +221,19 @@ Second task batch:
 Third task batch:
 
 - Task-041 through Task-060 cover outbox worker processing, broker write command guarding, execution simulation, cancel simulation, fill processing, reconciliation workflow, kill switch controls, dashboard sensitive controls, promotion dashboard workflow, config versioning, scheduler and job runner, data quality monitor, API usage and cost monitor, backup and restore runbooks, incident runbooks, deployment skeleton, observability metrics, access control, Claude worktree orchestration, and Phase 4 readiness review.
+
+Implementation planning documents:
+
+- `docs/tasks/Claude_Worktree_Orchestration.md`
+- `docs/tasks/Phase_4_Readiness_Review.md`
+
+Phase 4 readiness decision:
+
+```text
+Approved for safe foundation implementation
+```
+
+Live broker write implementation remains blocked.
 
 ## 7. Phase 4: Core Implementation Foundation
 

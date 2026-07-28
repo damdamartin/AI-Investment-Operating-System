@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.3.2
+Version: 0.3.3
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,23 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.3.3 - 2026-07-28
+
+### Added
+
+- Added `docs/tasks/Claude_Worktree_Orchestration.md` with recommended Claude Code parallel sessions, branch names, task groupings, merge order, and blocked live-trading work.
+- Added `docs/tasks/Phase_4_Readiness_Review.md` with implementation readiness status, safe implementation scope, blocked scope, open question impact, and recommended implementation waves.
+
+### Changed
+
+- Updated repository status to `Ready for Safe Foundation Implementation`.
+- Updated task index to reference orchestration and readiness planning documents.
+
+### Safety
+
+- Confirmed the project is ready only for safe foundation implementation, not live trading.
+- Reconfirmed that real Toss order creation, real Toss cancellation, automatic production strategy promotion, and production capital expansion remain blocked.
 
 ## 0.3.2 - 2026-07-28
 

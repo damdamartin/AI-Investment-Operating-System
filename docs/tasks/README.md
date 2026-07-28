@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.3.2
+Version: 0.3.3
 Status: Draft
 Last Updated: 2026-07-28
 
@@ -88,3 +88,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 ## Execution Rule
 
 Tasks that touch live broker write operations remain blocked until the related open questions in `docs/open_questions.md` are resolved and the compliance gate in `docs/13_Compliance_and_Legal_Review.md` is satisfied.
+
+## Implementation Planning
+
+- [Claude_Worktree_Orchestration.md](Claude_Worktree_Orchestration.md) defines recommended parallel Claude Code worktree sessions.
+- [Phase_4_Readiness_Review.md](Phase_4_Readiness_Review.md) defines the implementation readiness decision and recommended implementation waves.
