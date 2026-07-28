@@ -26,12 +26,14 @@ describe("phase5-toss-doctor script", () => {
         ]
       }),
       tempJson({ manifestVersion: "1", evidence: [] }),
+      tempJson({ intakeVersion: "1", items: [intakeItem()] }),
       completeEnv()
     );
     const report = JSON.parse(output);
 
     expect(report.readyForReadOnlyVerification).toBe(true);
     expect(report.preparedRequestCount).toBe(1);
+    expect(report.intake.readyForEvidenceManifest).toBe(true);
     expect(report.liveBrokerWriteAllowed).toBe(false);
     expect(report.networkCallsPerformed).toBe(false);
     expect(output).not.toContain("client-secret-value");
@@ -41,6 +43,7 @@ describe("phase5-toss-doctor script", () => {
     const output = runDoctor(
       "docs/phase5/toss-read-only-endpoints.example.json",
       "docs/phase5/evidence-manifest.example.json",
+      "docs/phase5/evidence-intake.example.json",
       { LIVE_TRADING_ENABLED: "false", TOSS_READ_ONLY_MODE: "true" }
     );
     const report = JSON.parse(output);
@@ -64,6 +67,7 @@ describe("phase5-toss-doctor script", () => {
           }
         ]
       }),
+      tempJson({ intakeVersion: "1", items: [intakeItem()] }),
       completeEnv()
     );
     const report = JSON.parse(output);
@@ -74,14 +78,29 @@ describe("phase5-toss-doctor script", () => {
   });
 });
 
-function runDoctor(endpointPath: string, evidencePath: string, env: NodeJS.ProcessEnv): string {
-  return execFileSync(process.execPath, [scriptPath, endpointPath, evidencePath], {
+function runDoctor(endpointPath: string, evidencePath: string, intakePath: string, env: NodeJS.ProcessEnv): string {
+  return execFileSync(process.execPath, [scriptPath, endpointPath, evidencePath, intakePath], {
     cwd: repoRoot,
     env: {
       PATH: process.env.PATH,
       ...env
     }
   }).toString();
+}
+
+function intakeItem(): Record<string, unknown> {
+  return {
+    id: "terms",
+    kind: "API_TERMS_REVIEW",
+    relatedOpenQuestion: "OQ-001",
+    source: "TOSS_OFFICIAL_DOCS",
+    sourceReference: "Official Toss terms page.",
+    sanitizedSummary: "Sanitized evidence summary for official Toss API terms review.",
+    reviewedByHuman: true,
+    rawPayloadIncluded: false,
+    screenshotContainsSecrets: false,
+    liveWriteOperation: false
+  };
 }
 
 function tempJson(value: unknown): string {

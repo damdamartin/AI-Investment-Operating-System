@@ -1,6 +1,6 @@
 # Local Toss Read-Only Verification Runbook
 
-Version: 0.5.14
+Version: 0.5.15
 Status: Active
 Last Updated: 2026-07-28
 
@@ -101,7 +101,27 @@ The doctor command summarizes:
 
 The doctor command performs no network calls.
 
-## 6. Record Evidence
+## 6. Prepare Evidence Intake
+
+Before evidence is added to a manifest, prepare a sanitized intake worksheet.
+
+Start from:
+
+```text
+docs/phase5/evidence-intake.example.json
+```
+
+Validate the intake worksheet:
+
+```bash
+npm run phase5:toss:intake
+```
+
+The example worksheet intentionally fails until each item is manually reviewed and marked as sanitized.
+
+The intake worksheet must contain only public-safe summaries. It must not contain raw API responses, account numbers, tokens, request headers, client secrets, or screenshots containing secrets.
+
+## 7. Record Evidence
 
 After a real read-only verification step is performed in a later task, record only sanitized summaries.
 
@@ -135,7 +155,7 @@ Evidence must not contain:
 - raw Toss API payloads
 - live write command shapes
 
-## 7. Stop Conditions
+## 8. Stop Conditions
 
 Stop immediately if any of the following appears:
 

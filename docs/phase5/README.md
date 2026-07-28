@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.14
+Version: 0.5.15
 Status: Active
 Last Updated: 2026-07-28
 
@@ -113,6 +113,30 @@ Rules:
 - manifests must not contain raw Toss payloads
 
 The codebase includes `TossReadOnlyEvidenceManifestValidator` to review these constraints.
+
+## Evidence Intake Worksheet
+
+Before sanitized evidence is promoted into a manifest, collect public-safe review notes in an intake worksheet.
+
+Template:
+
+- `docs/phase5/evidence-intake.example.json`
+
+Local validation command:
+
+```bash
+npm run phase5:toss:intake
+```
+
+To validate another local intake file:
+
+```bash
+npm run phase5:toss:intake -- path/to/evidence-intake.json
+```
+
+The intake validator rejects unreviewed entries, raw payloads, screenshots with secrets, secret-like text, and live write operation evidence.
+
+The example worksheet intentionally fails until each item is manually reviewed and sanitized.
 
 Local validation command:
 

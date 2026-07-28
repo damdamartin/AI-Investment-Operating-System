@@ -1,6 +1,6 @@
 # Toss Read-Only Verification Checklist
 
-Version: 0.5.3
+Version: 0.5.15
 Status: Active
 Last Updated: 2026-07-28
 
@@ -68,6 +68,12 @@ Validate sanitized evidence before committing or using it in readiness decisions
 npm run phase5:toss:evidence
 ```
 
+Validate public-safe evidence intake before promoting evidence to a manifest:
+
+```bash
+npm run phase5:toss:intake
+```
+
 Run the combined Phase 5 Toss doctor:
 
 ```bash
@@ -124,6 +130,7 @@ Evidence must include:
 - sanitized summary
 - collection time
 - credential-free preview
+- evidence intake review status
 
 Evidence must not include:
 

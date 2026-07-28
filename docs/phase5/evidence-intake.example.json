@@ -1,0 +1,60 @@
+{
+  "intakeVersion": "1",
+  "preparedAt": "2026-07-28T00:00:00.000Z",
+  "preparedBy": "local-operator",
+  "items": [
+    {
+      "id": "api-terms-review-example",
+      "kind": "API_TERMS_REVIEW",
+      "relatedOpenQuestion": "OQ-001",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "sourceReference": "Replace with official Toss documentation page title or developer console section name. Do not paste credentials.",
+      "sanitizedSummary": "Replace with a sanitized summary confirming whether automated trading and read-only verification are permitted.",
+      "reviewedByHuman": false,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "account-permission-example",
+      "kind": "ACCOUNT_SNAPSHOT_READ",
+      "relatedOpenQuestion": "OQ-002",
+      "source": "TOSS_DEVELOPER_CONSOLE",
+      "sourceReference": "Replace with the relevant Toss developer console capability section. Do not paste account numbers.",
+      "sanitizedSummary": "Replace with a sanitized summary of account identifier and permission model evidence.",
+      "reviewedByHuman": false,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "order-fill-identifiers-example",
+      "kind": "ORDER_STATUS_QUERY_READ",
+      "relatedOpenQuestion": "OQ-003",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "sourceReference": "Replace with the official read-only order status or fill query documentation reference.",
+      "sanitizedSummary": "Replace with a sanitized summary of stable order and fill identifier support.",
+      "reviewedByHuman": false,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "etf-capability-example",
+      "kind": "ETF_SUPPORT_DOCUMENTATION",
+      "relatedOpenQuestion": "OQ-004",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "sourceReference": "Replace with the official ETF, fractional, or extended-hours capability reference.",
+      "sanitizedSummary": "Replace with a sanitized summary of supported Korean ETF, U.S. ETF, fractional, or extended-hours trading capability.",
+      "reviewedByHuman": false,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    }
+  ],
+  "notes": [
+    "This file is an example intake worksheet.",
+    "Do not commit real credentials, raw API responses, account numbers, access tokens, or screenshots containing secrets.",
+    "Set reviewedByHuman to true only after the entry has been checked and sanitized."
+  ]
+}

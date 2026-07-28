@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.14
+Version: 0.5.15
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,22 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.15 - 2026-07-28
+
+### Added
+
+- Added `TossReadOnlyEvidenceIntakeValidator` for reviewing human-prepared Toss read-only evidence intake before manifest promotion.
+- Added `docs/phase5/evidence-intake.example.json` as a safe worksheet for official documentation and developer console evidence.
+- Added `npm run phase5:toss:intake` for local evidence intake validation.
+- Added intake checks to the Phase 5 Toss doctor and preflight reports.
+- Added tests for sanitized intake acceptance, secret-like text rejection, live write rejection, missing source references, and script fail-closed behavior.
+
+### Safety
+
+- Evidence intake validation performs no network calls.
+- Evidence intake validation fails closed for raw payloads, unreviewed entries, screenshots with secrets, secret-like text, and live write operations.
+- The example intake worksheet is intentionally not ready until entries are manually reviewed and sanitized.
 
 ## 0.5.14 - 2026-07-28
 

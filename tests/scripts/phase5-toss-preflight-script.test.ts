@@ -25,8 +25,9 @@ describe("phase5-toss-preflight script", () => {
     expect(report.readyForReadOnlyCall).toBe(false);
     expect(report.liveBrokerWriteAllowed).toBe(false);
     expect(report.networkCallsPerformed).toBe(false);
-    expect(report.commandCount).toBe(5);
+    expect(report.commandCount).toBe(6);
     expect(report.reasonCodes).toContain("readiness_command_failed");
+    expect(report.reasonCodes).toContain("intake_command_failed");
     expect(output).not.toContain("client-secret");
   });
 });

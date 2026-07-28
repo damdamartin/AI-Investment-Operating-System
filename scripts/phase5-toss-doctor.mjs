@@ -11,12 +11,17 @@ const evidenceManifestPath = resolve(
   process.cwd(),
   process.argv[3] ?? "docs/phase5/evidence-manifest.example.json"
 );
+const evidenceIntakePath = resolve(
+  process.cwd(),
+  process.argv[4] ?? "docs/phase5/evidence-intake.example.json"
+);
 
 loadDotEnvIfPresent(resolve(process.cwd(), ".env"));
 
 const readiness = reviewReadiness();
 const endpoints = reviewEndpointCatalog(endpointCatalogPath);
 const evidence = reviewEvidenceManifest(evidenceManifestPath);
+const intake = reviewEvidenceIntake(evidenceIntakePath);
 const preparedRequestCount =
   readiness.ready && endpoints.valid
     ? endpoints.items.filter((item) => item.verified === true).length
@@ -24,9 +29,10 @@ const preparedRequestCount =
 const blockingReasonCodes = [
   ...readiness.reasonCodes,
   ...endpoints.reasonCodes,
-  ...evidence.reasonCodes
+  ...evidence.reasonCodes,
+  ...intake.reasonCodes
 ];
-const warnings = [...endpoints.warnings];
+const warnings = [...endpoints.warnings, ...intake.warnings];
 
 const report = {
   readyForReadOnlyVerification:
@@ -43,6 +49,13 @@ const report = {
     valid: evidence.valid,
     evidenceCount: evidence.evidenceCount,
     reasonCodes: evidence.reasonCodes
+  },
+  intake: {
+    readyForEvidenceManifest: intake.readyForEvidenceManifest,
+    itemCount: intake.items.length,
+    reviewedItemCount: intake.items.filter((item) => item.reviewedByHuman === true).length,
+    reasonCodes: intake.reasonCodes,
+    warnings: intake.warnings
   },
   preparedRequestCount,
   blockingReasonCodes: [...new Set(blockingReasonCodes)].sort(),
@@ -123,6 +136,58 @@ function reviewEndpointCatalog(path) {
 
   return {
     valid: reasonCodes.length === 0,
+    items,
+    reasonCodes: [...new Set(reasonCodes)].sort(),
+    warnings: [...new Set(warnings)].sort()
+  };
+}
+
+function reviewEvidenceIntake(path) {
+  const reasonCodes = [];
+  const warnings = [];
+  const intake = readJson(path, "evidence_intake", reasonCodes);
+  const items = intake && Array.isArray(intake.items) ? intake.items : [];
+  const seenIds = new Set();
+
+  if (intake && intake.intakeVersion !== "1") {
+    reasonCodes.push("unsupported_intake_version");
+  }
+
+  if (items.length === 0) {
+    reasonCodes.push("intake_has_no_items");
+  }
+
+  for (const item of items) {
+    const id = typeof item.id === "string" ? item.id : "unknown";
+
+    if (seenIds.has(id)) reasonCodes.push(`duplicate_intake_id_${id}`);
+    seenIds.add(id);
+
+    if (typeof item.relatedOpenQuestion !== "string" || !item.relatedOpenQuestion.startsWith("OQ-")) {
+      reasonCodes.push(`intake_missing_open_question_${id}`);
+    }
+
+    if (item.reviewedByHuman !== true) reasonCodes.push(`intake_not_human_reviewed_${id}`);
+    if (item.rawPayloadIncluded === true) reasonCodes.push(`intake_contains_raw_payload_${id}`);
+    if (item.screenshotContainsSecrets === true) reasonCodes.push(`intake_screenshot_contains_secrets_${id}`);
+    if (item.liveWriteOperation === true) reasonCodes.push(`intake_contains_live_write_${id}`);
+
+    if (typeof item.sourceReference !== "string" || item.sourceReference.trim().length === 0) {
+      reasonCodes.push(`intake_missing_source_reference_${id}`);
+    }
+
+    if (typeof item.sanitizedSummary !== "string" || item.sanitizedSummary.trim().length < 20) {
+      warnings.push(`intake_summary_too_short_${id}`);
+    }
+
+    const searchableText = `${item.sourceReference ?? ""}\n${item.sanitizedSummary ?? ""}`;
+    if (/(access[_-]?token|refresh[_-]?token|client[_-]?secret|app[_-]?secret|authorization|bearer\s+[a-z0-9._-]+|계좌번호|account[_-]?number)/i.test(searchableText)) {
+      reasonCodes.push(`intake_may_contain_secret_${id}`);
+    }
+  }
+
+  return {
+    readyForEvidenceManifest: reasonCodes.length === 0,
     items,
     reasonCodes: [...new Set(reasonCodes)].sort(),
     warnings: [...new Set(warnings)].sort()

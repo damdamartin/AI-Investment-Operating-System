@@ -6,6 +6,7 @@ const commands = [
   ["readiness", ["npm", ["run", "phase5:toss:readiness", "--silent"]]],
   ["endpoints", ["npm", ["run", "phase5:toss:endpoints", "--silent"]]],
   ["evidence", ["npm", ["run", "phase5:toss:evidence", "--silent"]]],
+  ["intake", ["npm", ["run", "phase5:toss:intake", "--silent"]]],
   ["openQuestions", ["npm", ["run", "phase5:toss:open-questions", "--silent"]]],
   ["doctor", ["npm", ["run", "phase5:toss:doctor", "--silent"]]]
 ];
