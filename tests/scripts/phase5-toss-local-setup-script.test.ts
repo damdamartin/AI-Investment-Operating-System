@@ -53,4 +53,28 @@ describe("phase5-toss-local-setup script", () => {
     expect(output).not.toContain(secret);
     expect(output).not.toContain("account-ref-from-paste");
   });
+
+  it("rejects piped input with missing client credentials without writing env", () => {
+    const result = spawnSync(process.execPath, [scriptPath, "--force"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: { PATH: process.env.PATH },
+      input: [
+        "https://openapi.tossinvest.com",
+        "",
+        "",
+        "replace-with-local-secret",
+        ""
+      ].join("\n")
+    });
+
+    expect(result.status).toBe(1);
+    const report = JSON.parse(result.stdout);
+
+    expect(report.envWritten).toBe(false);
+    expect(report.reasonCodes).toContain("missing_or_placeholder_toss_client_id");
+    expect(report.reasonCodes).toContain("missing_or_placeholder_toss_client_secret");
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+  });
 });

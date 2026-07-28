@@ -29,6 +29,7 @@ const report = {
   networkCallsPerformed: false,
   safetyType: "PHASE5_TOSS_LOCAL_SETUP_REPORT"
 };
+const placeholderPrefix = "replace-with-";
 
 if (!dryRun) {
   mkdirSync(localDir, { recursive: true });
@@ -39,25 +40,31 @@ if (!templatesOnly) {
     report.reasonCodes.push("env_file_already_exists_use_force_to_overwrite");
   } else {
     const env = await collectEnv();
-    const envContent = [
-      "APP_ENV=development",
-      "LOG_LEVEL=info",
-      "LIVE_TRADING_ENABLED=false",
-      "TOSS_READ_ONLY_MODE=true",
-      `TOSS_API_BASE_URL=${escapeEnvValue(env.tossApiBaseUrl)}`,
-      `TOSS_CLIENT_ID=${escapeEnvValue(env.tossClientId)}`,
-      `TOSS_CLIENT_SECRET=${escapeEnvValue(env.tossClientSecret)}`,
-      `TOSS_ACCOUNT_REF=${escapeEnvValue(env.tossAccountRef)}`,
-      "",
-      "# Optional provider credentials. Leave placeholders unless verifying these providers locally.",
-      "NAVER_CLIENT_ID=replace-with-local-secret",
-      "NAVER_CLIENT_SECRET=replace-with-local-secret",
-      "CLAUDE_API_KEY=replace-with-local-secret",
-      ""
-    ].join("\n");
+    const validationReasonCodes = validateEnv(env);
 
-    writeLocalFile(envPath, envContent);
-    report.envWritten = !dryRun;
+    if (validationReasonCodes.length > 0) {
+      report.reasonCodes.push(...validationReasonCodes);
+    } else {
+      const envContent = [
+        "APP_ENV=development",
+        "LOG_LEVEL=info",
+        "LIVE_TRADING_ENABLED=false",
+        "TOSS_READ_ONLY_MODE=true",
+        `TOSS_API_BASE_URL=${escapeEnvValue(env.tossApiBaseUrl)}`,
+        `TOSS_CLIENT_ID=${escapeEnvValue(env.tossClientId)}`,
+        `TOSS_CLIENT_SECRET=${escapeEnvValue(env.tossClientSecret)}`,
+        `TOSS_ACCOUNT_REF=${escapeEnvValue(env.tossAccountRef)}`,
+        "",
+        "# Optional provider credentials. Leave placeholders unless verifying these providers locally.",
+        "NAVER_CLIENT_ID=replace-with-local-secret",
+        "NAVER_CLIENT_SECRET=replace-with-local-secret",
+        "CLAUDE_API_KEY=replace-with-local-secret",
+        ""
+      ].join("\n");
+
+      writeLocalFile(envPath, envContent);
+      report.envWritten = !dryRun;
+    }
   }
 }
 
@@ -76,10 +83,13 @@ async function collectEnv() {
   }
 
   return {
-    tossApiBaseUrl: await promptText("Official Toss API base URL: "),
-    tossClientId: await promptSecret("Toss client ID: "),
-    tossClientSecret: await promptSecret("Toss client secret: "),
-    tossAccountRef: await promptSecret("Toss account reference: ")
+    tossApiBaseUrl: await promptRequiredText("Official Toss API base URL: "),
+    tossClientId: await promptRequiredSecret("Toss client ID: "),
+    tossClientSecret: await promptRequiredSecret("Toss client secret: "),
+    tossAccountRef: await promptOptionalSecret(
+      "Toss account reference [press Enter to use replace-with-local-secret]: ",
+      "replace-with-local-secret"
+    )
   };
 }
 
@@ -96,8 +106,23 @@ async function collectEnvFromPipedInput() {
     tossApiBaseUrl: (lines[0] ?? "").trim(),
     tossClientId: (lines[1] ?? "").trim(),
     tossClientSecret: (lines[2] ?? "").trim(),
-    tossAccountRef: (lines[3] ?? "").trim()
+    tossAccountRef: (lines[3] ?? "").trim() || "replace-with-local-secret"
   };
+}
+
+function validateEnv(env) {
+  const reasonCodes = [];
+
+  if (!env.tossApiBaseUrl) reasonCodes.push("missing_toss_api_base_url");
+  if (!env.tossClientId || env.tossClientId.startsWith(placeholderPrefix)) {
+    reasonCodes.push("missing_or_placeholder_toss_client_id");
+  }
+  if (!env.tossClientSecret || env.tossClientSecret.startsWith(placeholderPrefix)) {
+    reasonCodes.push("missing_or_placeholder_toss_client_secret");
+  }
+  if (!env.tossAccountRef) reasonCodes.push("missing_toss_account_ref");
+
+  return reasonCodes;
 }
 
 function prepareTemplates() {
@@ -238,6 +263,27 @@ function promptText(question) {
       resolvePrompt(answer.trim());
     });
   });
+}
+
+async function promptRequiredText(question) {
+  return promptRequired(question, promptText);
+}
+
+async function promptRequiredSecret(question) {
+  return promptRequired(question, promptSecret);
+}
+
+async function promptRequired(question, promptFn) {
+  for (;;) {
+    const answer = await promptFn(question);
+    if (answer) return answer;
+    console.error("Required value was empty. Please paste the value and press Enter.");
+  }
+}
+
+async function promptOptionalSecret(question, fallback) {
+  const answer = await promptSecret(question);
+  return answer || fallback;
 }
 
 function promptSecret(question) {
