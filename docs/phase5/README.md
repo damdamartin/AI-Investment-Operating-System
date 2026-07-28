@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.1
+Version: 0.5.2
 Status: Active
 Last Updated: 2026-07-28
 
@@ -87,6 +87,24 @@ The recorder produces:
 - safety flags for credentials, account identifiers, and live write operation shapes
 
 If the recorder marks an item as not sanitized, that item must not be used as readiness evidence until the payload is manually cleaned.
+
+## Evidence Manifest
+
+Sanitized evidence summaries may be grouped into a manifest.
+
+Template:
+
+- `docs/phase5/evidence-manifest.example.json`
+
+Rules:
+
+- manifests must contain sanitized summaries only
+- every evidence item must map to an open question such as `OQ-001`
+- manifests must not contain credentials
+- manifests must not contain live write operation evidence
+- manifests must not contain raw Toss payloads
+
+The codebase includes `TossReadOnlyEvidenceManifestValidator` to review these constraints.
 
 ## Phase 5 Exit Direction
 

@@ -1,0 +1,21 @@
+{
+  "manifestVersion": "1",
+  "generatedAt": "2026-07-28T00:00:00.000Z",
+  "environment": "local",
+  "evidence": [
+    {
+      "id": "terms-review-example",
+      "kind": "API_TERMS_REVIEW",
+      "mode": "DOCUMENTATION_REVIEW",
+      "collectedAt": "2026-07-28T00:00:00.000Z",
+      "relatedOpenQuestion": "OQ-001",
+      "summary": "Sanitized summary only. Do not include API keys, account numbers, tokens, headers, or raw Toss payloads.",
+      "sanitized": true,
+      "containsCredential": false,
+      "liveWriteOperation": false
+    }
+  ],
+  "notes": [
+    "This is a template. Replace with sanitized summaries only."
+  ]
+}

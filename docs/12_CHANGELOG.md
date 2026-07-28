@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.1
+Version: 0.5.2
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.2 - 2026-07-28
+
+### Added
+
+- Added a Toss read-only evidence manifest model and validator.
+- Added an evidence manifest template for sanitized Phase 5 evidence summaries.
+- Added tests for sanitized manifest acceptance, unsanitized evidence rejection, credential rejection, live write evidence rejection, and open-question mapping.
+
+### Safety
+
+- Evidence manifests never enable live broker writes.
+- Every manifest evidence item must map to an open question and remain sanitized.
 
 ## 0.5.1 - 2026-07-28
 
