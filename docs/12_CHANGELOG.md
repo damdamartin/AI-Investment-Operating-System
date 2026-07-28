@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.0
+Version: 0.4.1
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,34 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.1 - 2026-07-28
+
+### Added
+
+- Added internal asset, broker asset mapping, and market session domain models.
+- Added first-class BrokerAccount and PortfolioBrokerAccountLink domain models.
+- Added strategy, strategy version, engine score set, and signal domain models.
+- Added order intent, order approval, broker order, and fill state models.
+- Added domain tests for asset tradability, broker account permissions, strategy transitions, signal/order separation, and order state rules.
+
+### Changed
+
+- Marked Task-004, Task-005, Task-006, and Task-007 as complete.
+- Updated repository and package version to `0.4.1`.
+
+### Safety
+
+- Unknown or unverified assets default to not tradable.
+- Broker accounts default to `UNVERIFIED` and live-write blocked.
+- Portfolio-account links default to disabled.
+- Signal remains separate from OrderIntent.
+- BrokerOrder cannot be created from a rejected approval.
+- Unknown broker order state is represented as blocking dependent trading.
+
+### Verification
+
+- `npm run check` passed with 35 tests.
 
 ## 0.4.0 - 2026-07-28
 

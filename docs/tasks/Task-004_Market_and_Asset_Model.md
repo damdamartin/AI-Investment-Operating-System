@@ -1,5 +1,8 @@
 # Task-004: Market and Asset Model
 
+Status: Complete
+Implemented In: 0.4.1
+
 ## Objective
 
 Implement internal models for markets, sessions, assets, symbols, and broker asset mappings.

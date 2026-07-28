@@ -1,5 +1,8 @@
 # Task-005: Broker Account Model
 
+Status: Complete
+Implemented In: 0.4.1
+
 ## Objective
 
 Implement the first-class BrokerAccount and PortfolioBrokerAccountLink domain models.

@@ -1,5 +1,8 @@
 # Task-006: Strategy and Signal Model
 
+Status: Complete
+Implemented In: 0.4.1
+
 ## Objective
 
 Implement strategy, strategy version, score set, and signal domain models.

@@ -1,5 +1,8 @@
 # Task-007: Order State Machines
 
+Status: Complete
+Implemented In: 0.4.1
+
 ## Objective
 
 Implement internal order state machines for OrderIntent, OrderApproval, BrokerOrder, and Fill.

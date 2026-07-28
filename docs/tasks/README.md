@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.0
+Version: 0.4.1
 Status: Active
 Last Updated: 2026-07-28
 
@@ -17,10 +17,10 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-001](Task-001_Project_Structure.md) | Project Structure | Foundation | Complete |
 | [Task-002](Task-002_Runtime_Config_and_Secrets.md) | Runtime Config and Secrets | Foundation | Complete |
 | [Task-003](Task-003_Core_Value_Objects.md) | Core Value Objects | Domain | Complete |
-| [Task-004](Task-004_Market_and_Asset_Model.md) | Market and Asset Model | Domain | Draft |
-| [Task-005](Task-005_Broker_Account_Model.md) | Broker Account Model | Domain | Draft |
-| [Task-006](Task-006_Strategy_Signal_Model.md) | Strategy and Signal Model | Domain | Draft |
-| [Task-007](Task-007_Order_State_Machines.md) | Order State Machines | Trading | Draft |
+| [Task-004](Task-004_Market_and_Asset_Model.md) | Market and Asset Model | Domain | Complete |
+| [Task-005](Task-005_Broker_Account_Model.md) | Broker Account Model | Domain | Complete |
+| [Task-006](Task-006_Strategy_Signal_Model.md) | Strategy and Signal Model | Domain | Complete |
+| [Task-007](Task-007_Order_State_Machines.md) | Order State Machines | Trading | Complete |
 | [Task-008](Task-008_Risk_and_Money_Model.md) | Risk and Money Model | Trading | Draft |
 | [Task-009](Task-009_Database_Migration_Framework.md) | Database Migration Framework | Database | Draft |
 | [Task-010](Task-010_Core_Database_Schema.md) | Core Database Schema | Database | Draft |

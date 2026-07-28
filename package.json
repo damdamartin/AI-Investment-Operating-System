@@ -1,6 +1,6 @@
 {
   "name": "ai-investment-operating-system",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "type": "module",
   "description": "Safety-first AI Investment Operating System foundation.",
