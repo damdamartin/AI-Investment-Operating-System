@@ -1,14 +1,18 @@
 # Toss Read-Only Call Gate
 
-Version: 0.5.18
+Version: 0.6.0
 Status: Active
 Last Updated: 2026-07-28
 
 ## Purpose
 
-This document defines the final local gate before any real Toss Securities read-only API call is attempted.
+This document defines the final local gate before any real Toss Securities read-only API call is attempted. It corresponds to steps 4 and 8 of `docs/phase5/local-toss-read-only-runbook.md`.
 
 It does not authorize live trading, order creation, order cancellation, money movement, currency conversion, or production capital use.
+
+## Expected Fail-Closed State
+
+On a fresh checkout, `npm run phase5:toss:call-gate` fails closed by default (`readyToAttemptRealReadOnlyCall: false`, non-zero exit) for two independent reasons: preflight has not yet passed, and no explicit operator approval flag has been set. Seeing this fail-closed result before local credentials, verified endpoints, and reviewed evidence exist is normal, not a bug. Do not set `PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true` just to make the command exit `0` — set it only once you, the human operator, have actually decided to approve one specific, scoped read-only call and have prepared the matching approval artifact below.
 
 ## Gate Principle
 
@@ -52,6 +56,8 @@ The codebase includes `TossReadOnlyCallApprovalValidator` and `TossReadOnlyCallA
 Template:
 
 - `docs/phase5/read-only-call-approval.example.json`
+
+Copy the template to a local, git-ignored working file before filling in real values. Do not edit the committed example file with real values, and never paste a filled-in approval record into chat, a commit, a pull request, or a screenshot — the `operatorNote` and `endpointCatalogReference` fields are the only free-text fields here, and secret handling boundaries (see `docs/phase5/local-toss-read-only-runbook.md`, step 2) apply to them too.
 
 ### Approval Artifact Shape
 
@@ -118,6 +124,7 @@ Stop immediately if:
 - any value looks like a token, secret, account number, or raw credential-bearing response
 - the endpoint path or body suggests broker state mutation
 - an API response cannot be safely summarized
+- a secret, token, account number, or raw payload has already been pasted into GitHub, chat, a screenshot, or any doc — if this happens, stop, do not add more of the same, and treat the exposed value as compromised (rotate it) rather than trying to edit history
 
 ## Final Rule
 
