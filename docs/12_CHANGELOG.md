@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.41
+Version: 0.4.42
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.42 - 2026-07-28
+
+### Added
+
+- Added ObservabilityMetricsService.
+- Added baseline metric definitions for system, scheduler, API, trading safety, order, and validation categories.
+- Added safe metric event emission with category, kind, value, labels, and payload.
+- Added dashboard snapshot aggregation by category.
+- Added tests for baseline coverage, metric emission, redaction, dashboard snapshots, and command-surface separation.
+
+### Changed
+
+- Marked Task-057 as complete.
+- Updated repository and package version to `0.4.42`.
+
+### Safety
+
+- Metric labels and payloads are redacted before emission.
+- Observability events do not expose account or credential data.
+- Metrics do not expose broker order action commands.
+
+### Verification
+
+- Targeted Observability Metrics tests passed with 5 tests.
 
 ## 0.4.41 - 2026-07-28
 
