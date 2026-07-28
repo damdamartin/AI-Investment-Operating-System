@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.1
+Version: 0.4.2
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,34 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.2 - 2026-07-28
+
+### Added
+
+- Added RiskLimit, RiskCheck, and KillSwitchState domain models.
+- Added CashBalance and MoneyCheck domain models with cash reservation validation.
+- Added safety regression test suite under `tests/safety`.
+- Added tests proving failed risk checks and failed money checks cannot create approved OrderApproval records.
+
+### Changed
+
+- OrderApproval now requires RiskCheck and MoneyCheck references.
+- Approved OrderApproval now requires both RiskCheck and MoneyCheck to allow approval.
+- Marked Task-008, Task-019, and Task-020 as complete.
+- Updated repository and package version to `0.4.2`.
+
+### Safety
+
+- Failed or blocked risk checks prevent order approval.
+- Failed or blocked money checks prevent order approval.
+- Active kill switch state is represented as blocking orders.
+- Cash reservation cannot use unsettled or unavailable cash.
+- Safety regression tests now cover signal/order separation, risk failure, money failure, and unverified broker account live-write blocking.
+
+### Verification
+
+- `npm run check` passed with 48 tests.
 
 ## 0.4.1 - 2026-07-28
 

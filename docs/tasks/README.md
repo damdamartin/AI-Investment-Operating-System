@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.1
+Version: 0.4.2
 Status: Active
 Last Updated: 2026-07-28
 
@@ -21,7 +21,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-005](Task-005_Broker_Account_Model.md) | Broker Account Model | Domain | Complete |
 | [Task-006](Task-006_Strategy_Signal_Model.md) | Strategy and Signal Model | Domain | Complete |
 | [Task-007](Task-007_Order_State_Machines.md) | Order State Machines | Trading | Complete |
-| [Task-008](Task-008_Risk_and_Money_Model.md) | Risk and Money Model | Trading | Draft |
+| [Task-008](Task-008_Risk_and_Money_Model.md) | Risk and Money Model | Trading | Complete |
 | [Task-009](Task-009_Database_Migration_Framework.md) | Database Migration Framework | Database | Draft |
 | [Task-010](Task-010_Core_Database_Schema.md) | Core Database Schema | Database | Draft |
 | [Task-011](Task-011_Historical_Data_Schema.md) | Historical Data Schema | Database | Draft |
@@ -32,8 +32,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-016](Task-016_Claude_Adapter_Schema_Validation.md) | Claude Adapter Schema Validation | AI API | Draft |
 | [Task-017](Task-017_Compliance_Gate_Service.md) | Compliance Gate Service | Safety | Draft |
 | [Task-018](Task-018_Audit_Log_Service.md) | Audit Log Service | Audit | Draft |
-| [Task-019](Task-019_Safety_Regression_Test_Harness.md) | Safety Regression Test Harness | Testing | Draft |
-| [Task-020](Task-020_CI_Baseline.md) | CI Baseline | DevOps | Partial |
+| [Task-019](Task-019_Safety_Regression_Test_Harness.md) | Safety Regression Test Harness | Testing | Complete |
+| [Task-020](Task-020_CI_Baseline.md) | CI Baseline | DevOps | Complete |
 
 ## Phase 2: Engine and Validation Tasks
 

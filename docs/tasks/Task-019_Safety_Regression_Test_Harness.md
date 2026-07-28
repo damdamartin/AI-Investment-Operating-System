@@ -1,5 +1,8 @@
 # Task-019: Safety Regression Test Harness
 
+Status: Complete
+Implemented In: 0.4.2
+
 ## Objective
 
 Create a dedicated safety regression test harness for non-negotiable AI and trading rules.

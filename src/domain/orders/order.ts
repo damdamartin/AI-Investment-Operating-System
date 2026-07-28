@@ -2,6 +2,8 @@ import { DomainValidationError } from "../../shared/errors.js";
 import { requireEntityId, type EntityId } from "../common/index.js";
 import { Price, Quantity } from "../value-objects/index.js";
 import type { BrokerAccount } from "../broker/index.js";
+import type { MoneyCheck } from "../portfolio/index.js";
+import type { RiskCheck } from "../risk/index.js";
 import type { Signal } from "../strategy/index.js";
 
 export type OrderSide = "BUY" | "SELL";
@@ -66,6 +68,8 @@ const allowedOrderIntentTransitions: Record<OrderIntentStatus, OrderIntentStatus
 export interface OrderApprovalProps {
   id: string;
   orderIntent: OrderIntent;
+  riskCheck: RiskCheck;
+  moneyCheck: MoneyCheck;
   status: OrderApprovalStatus;
   reasons: string[];
 }
@@ -73,12 +77,16 @@ export interface OrderApprovalProps {
 export class OrderApproval {
   readonly id: EntityId;
   readonly orderIntent: OrderIntent;
+  readonly riskCheck: RiskCheck;
+  readonly moneyCheck: MoneyCheck;
   readonly status: OrderApprovalStatus;
   readonly reasons: string[];
 
   constructor(props: OrderApprovalProps) {
     this.id = requireEntityId(props.id, "Order approval id");
     this.orderIntent = props.orderIntent;
+    this.riskCheck = props.riskCheck;
+    this.moneyCheck = props.moneyCheck;
     this.status = props.status;
     this.reasons = [...props.reasons];
 
@@ -88,6 +96,14 @@ export class OrderApproval {
 
     if (this.status === "APPROVED" && this.orderIntent.status !== "APPROVED") {
       throw new DomainValidationError("OrderIntent must be approved before creating an approved OrderApproval.");
+    }
+
+    if (this.status === "APPROVED" && !this.riskCheck.allowsApproval()) {
+      throw new DomainValidationError("Approved OrderApproval requires passing RiskCheck.");
+    }
+
+    if (this.status === "APPROVED" && !this.moneyCheck.allowsApproval()) {
+      throw new DomainValidationError("Approved OrderApproval requires passing MoneyCheck.");
     }
   }
 

@@ -1,8 +1,7 @@
 # Task-020: CI Baseline
 
-Status: Partial
-Implemented In: 0.4.0
-Remaining: Include the dedicated safety regression suite after Task-019 is implemented.
+Status: Complete
+Implemented In: 0.4.2
 
 ## Objective
 

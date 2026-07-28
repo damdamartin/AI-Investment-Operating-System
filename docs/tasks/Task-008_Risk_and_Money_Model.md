@@ -1,5 +1,8 @@
 # Task-008: Risk and Money Model
 
+Status: Complete
+Implemented In: 0.4.2
+
 ## Objective
 
 Implement domain models for risk limits, risk checks, money checks, and cash reservation rules.

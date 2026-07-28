@@ -27,6 +27,21 @@ export class Money {
     return new Money(this.minorUnits - other.minorUnits, this.currency);
   }
 
+  compare(other: Money): number {
+    this.assertSameCurrency(other);
+    if (this.minorUnits < other.minorUnits) return -1;
+    if (this.minorUnits > other.minorUnits) return 1;
+    return 0;
+  }
+
+  isLessThan(other: Money): boolean {
+    return this.compare(other) < 0;
+  }
+
+  isGreaterThan(other: Money): boolean {
+    return this.compare(other) > 0;
+  }
+
   isNegative(): boolean {
     return this.minorUnits < 0n;
   }

@@ -9,10 +9,12 @@ import {
   EngineScoreSet,
   Market,
   Money,
+  MoneyCheck,
   OrderApproval,
   OrderIntent,
   Price,
   Quantity,
+  RiskCheck,
   Signal,
   Strategy,
   StrategyVersion
@@ -58,6 +60,30 @@ function approvedOrderIntent(): OrderIntent {
     limitPrice: Price.from("100.00", usd),
     status: "MONEY_CHECKED"
   }).transitionTo("APPROVED");
+}
+
+function passingRiskCheck(subjectId = "intent-1"): RiskCheck {
+  return new RiskCheck({
+    id: "risk-check-1",
+    subjectType: "ORDER_INTENT",
+    subjectId,
+    result: "PASS",
+    riskLevel: "LOW",
+    checkedAt: new Date("2026-01-01T00:00:00Z")
+  });
+}
+
+function passingMoneyCheck(orderIntentId = "intent-1"): MoneyCheck {
+  const usd = Currency.from("USD");
+  return new MoneyCheck({
+    id: "money-check-1",
+    orderIntentId,
+    result: "PASS",
+    approvedQuantity: Quantity.from("1"),
+    approvedAmount: Money.fromMajor("100.00", usd),
+    cashAfterOrder: Money.fromMajor("900.00", usd),
+    checkedAt: new Date("2026-01-01T00:00:00Z")
+  });
 }
 
 describe("strategy and signal domain model", () => {
@@ -135,6 +161,8 @@ describe("order state machines", () => {
         new OrderApproval({
           id: "approval-1",
           orderIntent: intent,
+          riskCheck: passingRiskCheck(),
+          moneyCheck: passingMoneyCheck(),
           status: "APPROVED",
           reasons: []
         })
@@ -145,6 +173,16 @@ describe("order state machines", () => {
     const rejectedApproval = new OrderApproval({
       id: "approval-1",
       orderIntent: approvedOrderIntent(),
+      riskCheck: new RiskCheck({
+        id: "risk-check-1",
+        subjectType: "ORDER_INTENT",
+        subjectId: "intent-1",
+        result: "FAIL",
+        riskLevel: "HIGH",
+        failedLimitIds: ["limit-1"],
+        checkedAt: new Date("2026-01-01T00:00:00Z")
+      }),
+      moneyCheck: passingMoneyCheck(),
       status: "REJECTED",
       reasons: ["risk_failed"]
     });
@@ -168,6 +206,8 @@ describe("order state machines", () => {
     const approval = new OrderApproval({
       id: "approval-1",
       orderIntent: approvedOrderIntent(),
+      riskCheck: passingRiskCheck(),
+      moneyCheck: passingMoneyCheck(),
       status: "APPROVED",
       reasons: []
     });
@@ -190,5 +230,48 @@ describe("order state machines", () => {
     const usd = Currency.from("USD");
 
     expect(Money.fromMajor("1.00", usd).add(Money.fromMajor("2.00", usd)).toMajorString()).toBe("3.00");
+  });
+
+  it("does not allow approved OrderApproval with failed risk or money checks", () => {
+    const failedRisk = new RiskCheck({
+      id: "risk-check-1",
+      subjectType: "ORDER_INTENT",
+      subjectId: "intent-1",
+      result: "FAIL",
+      riskLevel: "HIGH",
+      failedLimitIds: ["limit-1"],
+      checkedAt: new Date("2026-01-01T00:00:00Z")
+    });
+    const failedMoney = new MoneyCheck({
+      id: "money-check-1",
+      orderIntentId: "intent-1",
+      result: "FAIL",
+      reasons: ["insufficient_cash"],
+      checkedAt: new Date("2026-01-01T00:00:00Z")
+    });
+
+    expect(
+      () =>
+        new OrderApproval({
+          id: "approval-1",
+          orderIntent: approvedOrderIntent(),
+          riskCheck: failedRisk,
+          moneyCheck: passingMoneyCheck(),
+          status: "APPROVED",
+          reasons: []
+        })
+    ).toThrow(DomainValidationError);
+
+    expect(
+      () =>
+        new OrderApproval({
+          id: "approval-2",
+          orderIntent: approvedOrderIntent(),
+          riskCheck: passingRiskCheck(),
+          moneyCheck: failedMoney,
+          status: "APPROVED",
+          reasons: []
+        })
+    ).toThrow(DomainValidationError);
   });
 });
