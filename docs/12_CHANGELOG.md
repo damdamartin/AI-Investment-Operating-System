@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.37
+Version: 0.4.38
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.38 - 2026-07-28
+
+### Added
+
+- Added ApiUsageMonitor.
+- Added safe API usage record model for Toss Securities, Naver News, and Claude.
+- Added provider and time-period usage aggregation.
+- Added success, failure, retry, latency, and rate limit counters.
+- Added Claude input token, output token, and estimated cost aggregation.
+- Added tests for safe logging, provider aggregation, rate limit observability, Claude cost aggregation, and period filtering.
+
+### Changed
+
+- Marked Task-053 as complete.
+- Updated repository and package version to `0.4.38`.
+
+### Safety
+
+- API usage metadata is redacted before storage.
+- Usage logs and summaries do not expose credentials.
+- Rate limit events are observable without triggering automatic trading behavior.
+
+### Verification
+
+- Targeted API Usage and Cost Monitor tests passed with 5 tests.
 
 ## 0.4.37 - 2026-07-28
 
