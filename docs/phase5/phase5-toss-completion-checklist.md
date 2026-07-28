@@ -14,9 +14,9 @@ Completion does not mean live trading is allowed.
 
 ## Current Status
 
-- `accounts` and `holdings` read-only verification calls have each been completed at least once by the human operator.
-- `market-prices` read-only verification is implemented and mock-tested (the `market-prices` target and its supporting `TossReadOnlyHttpClient.getMarketPrices()` method are merged) but has not yet been attempted for real by the human operator. This checklist and `npm run phase5:toss:completion` apply to it the same way they applied to `accounts` and `holdings`: local setup, endpoint verification, approval artifact, evidence intake, preflight, and call gate all have to pass for this specific target before it can be attempted — plus one additional, target-specific check: the endpoint catalog must contain an explicitly `verified: true` `MARKET_DATA_READ` entry for `GET /api/v1/prices`, independent of the generic "at least one verified endpoint" check the other targets rely on.
-- Completing `accounts` and `holdings` does not, by itself, satisfy `npm run phase5:toss:completion` for a future `market-prices` attempt, and it does not resolve any open question. Full status detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
+- `accounts`, `holdings`, and `market-prices` read-only verification calls have each been completed at least once by the human operator.
+- `market-prices` used the merged `market-prices` target and `TossReadOnlyHttpClient.getMarketPrices()` path. Official `GET /api/v1/prices` with required `symbols` query was confirmed before the local verification, and the resulting receipt stored only sanitized item-count evidence.
+- Completing these read-only checks does not authorize live trading and does not automatically resolve any open question. Full status detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 
 ## Completion Command
 
@@ -30,7 +30,7 @@ The command performs no network calls.
 
 It fails closed until the read-only call gate is ready. On a fresh checkout, before local credentials are entered and before evidence intake is human-reviewed, this command is expected to fail closed (`phase5TossPreparationComplete: false`). That is normal, not a bug — it means steps 1-8 of the runbook are not finished yet, not that the command is broken.
 
-This remains true immediately after `npm run check` passes: a passing build and test suite says nothing about local `.env`, verified endpoints, or reviewed evidence, so `npm run phase5:toss:completion` still fails closed on a fresh checkout right after `npm run check` succeeds. It is a readiness gate you re-run per target — a passing completion result for `accounts` or `holdings` earlier does not carry forward to a future `market-prices` attempt; the call gate and preflight have to pass again for that target specifically.
+This remains true immediately after `npm run check` passes: a passing build and test suite says nothing about local `.env`, verified endpoints, or reviewed evidence, so `npm run phase5:toss:completion` still fails closed on a fresh checkout right after `npm run check` succeeds. It is a readiness gate you re-run before any future scoped read-only verification attempt.
 
 ## Required Before Completion
 

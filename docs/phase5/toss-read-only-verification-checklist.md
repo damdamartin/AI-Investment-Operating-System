@@ -16,7 +16,7 @@ It mirrors the step order in `docs/phase5/local-toss-read-only-runbook.md`. Use 
 
 - `accounts` — completed at least once (checklist item 9 has been carried through Step 10 for this target).
 - `holdings` — completed at least once.
-- `market-prices` — implemented and mock-tested; official `GET /api/v1/prices` endpoint and required `symbols` query parameter have been confirmed. Real human-operated verification is still pending. Full runbook detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
+- `market-prices` — completed at least once. Official `GET /api/v1/prices` endpoint and required `symbols` query parameter were confirmed, and the verification stored only sanitized item-count evidence. Full runbook detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 
 This status describes which targets have been exercised, not whether their related open question is resolved. Real receipts for any completed target live only in local, git-ignored `tmp/phase5/` files and local `.env` — never in this checklist or any other committed file.
 
@@ -122,7 +122,7 @@ PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only --
 
 Full details: `docs/phase5/local-toss-read-only-runbook.md` (Step 9).
 
-The currently implemented targets are `accounts`, `holdings`, and `market-prices`. `accounts` and `holdings` have been completed at least once; `market-prices` is implemented, mock-tested, and awaiting its first real human-operated read-only attempt. Other documented read-only call shapes remain future work: position read beyond `holdings` and order status read (query only, never create/modify/cancel).
+The currently implemented targets are `accounts`, `holdings`, and `market-prices`; all three have been completed at least once by the human operator. Other documented read-only call shapes remain future work: position read beyond `holdings` and order status read (query only, never create/modify/cancel).
 
 Blocked, always:
 

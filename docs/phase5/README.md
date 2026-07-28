@@ -16,11 +16,15 @@ Primary local runbook:
 - `docs/phase5/toss-read-only-call-gate.md`
 - `docs/phase5/phase5-toss-completion-checklist.md`
 
+Final closure review:
+
+- `docs/reviews/Codex_Phase5_Final_Closure_Review.md`
+
 ## Current Read-Only Target Status
 
 - `accounts` (account snapshot read) — completed at least once by the human operator.
 - `holdings` (position query read) — completed at least once by the human operator.
-- `market-prices` (market data read) — implemented and mock-tested. Official `GET /api/v1/prices` with required `symbols` query has been confirmed; the first real human-operated read-only attempt is still pending.
+- `market-prices` (market data read) — completed at least once by the human operator. Official `GET /api/v1/prices` with required `symbols` query was confirmed, and the local verification stored only sanitized item-count evidence.
 
 Real receipts for any completed target exist only as local, git-ignored files under `tmp/phase5/`, alongside a local `.env`. Neither is part of this repository. Full detail and per-step instructions: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 
