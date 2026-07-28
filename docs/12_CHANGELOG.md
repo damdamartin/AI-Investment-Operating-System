@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.33
+Version: 0.4.34
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.34 - 2026-07-28
+
+### Added
+
+- Added StrategyPromotionDashboardWorkflow.
+- Added read-only promotion evidence view for dashboard review.
+- Added dashboard promotion decision boundary integrated with DashboardSensitiveControlGate.
+- Added audit record output for dashboard promotion decisions.
+- Added tests for evidence visibility, sensitive control gating, missing evidence blocking, accepted promotion, and command-surface separation.
+
+### Changed
+
+- Marked Task-049 as complete.
+- Updated repository and package version to `0.4.34`.
+
+### Safety
+
+- Dashboard promotion requests cannot bypass StrategyPromotionWorkflow.
+- Missing promotion evidence blocks the dashboard decision.
+- Dashboard promotion decisions do not activate production or allocate capital directly.
+
+### Verification
+
+- Targeted Strategy Promotion Dashboard Workflow tests passed with 5 tests.
 
 ## 0.4.33 - 2026-07-28
 
