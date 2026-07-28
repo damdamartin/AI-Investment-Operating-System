@@ -1,4 +1,5 @@
 import type { TossReadOnlyEvidenceItem } from "./read-only-evidence-plan.js";
+import { openQuestionForEvidenceKind } from "./read-only-evidence-intake.js";
 
 /**
  * Phase 5 open-question evidence status policy.
@@ -74,8 +75,26 @@ const requiredTossOpenQuestions = ["OQ-001", "OQ-002", "OQ-003", "OQ-004"];
 
 export class TossOpenQuestionEvidenceTracker {
   review(evidence: TossReadOnlyEvidenceItem[]): TossOpenQuestionEvidenceReview {
+    // An evidence item only counts toward the open question it declares
+    // (`relatedOpenQuestion`) when its `kind` either has no fixed canonical
+    // open-question mapping (e.g. `MARKET_DATA_READ`) or agrees with that
+    // mapping. This stops mislabeled evidence (for example an
+    // `ACCOUNT_SNAPSHOT_READ` item incorrectly tagged `OQ-001`) from
+    // silently padding the wrong open question's evidence count. See
+    // `openQuestionForEvidenceKind` in `read-only-evidence-intake.ts`,
+    // which is also where `ACCOUNT_SNAPSHOT_READ` and `POSITION_QUERY_READ`
+    // are canonically mapped to `OQ-002`.
+    const mismatchedEvidenceIds = evidence
+      .filter((item) => {
+        const canonicalOpenQuestion = openQuestionForEvidenceKind(item.kind);
+        return canonicalOpenQuestion !== undefined && canonicalOpenQuestion !== item.relatedOpenQuestion;
+      })
+      .map((item) => item.id);
+
     const statuses = requiredTossOpenQuestions.map((openQuestionId) => {
-      const matchingEvidence = evidence.filter((item) => item.relatedOpenQuestion === openQuestionId);
+      const matchingEvidence = evidence.filter(
+        (item) => item.relatedOpenQuestion === openQuestionId && !mismatchedEvidenceIds.includes(item.id)
+      );
       const validEvidence = matchingEvidence.filter((item) =>
         item.sanitized && !item.containsCredential && !item.liveWriteOperation
       );
@@ -97,9 +116,10 @@ export class TossOpenQuestionEvidenceTracker {
     const missingOpenQuestions = statuses
       .filter((status) => !status.readyForReview)
       .map((status) => status.openQuestionId);
-    const reasonCodes = missingOpenQuestions.map((openQuestionId) =>
-      `missing_valid_evidence_${openQuestionId.toLowerCase()}`
-    );
+    const reasonCodes = [
+      ...missingOpenQuestions.map((openQuestionId) => `missing_valid_evidence_${openQuestionId.toLowerCase()}`),
+      ...mismatchedEvidenceIds.map((id) => `evidence_open_question_mismatch_${id}`)
+    ];
 
     return {
       readyForOpenQuestionReview: missingOpenQuestions.length === 0,

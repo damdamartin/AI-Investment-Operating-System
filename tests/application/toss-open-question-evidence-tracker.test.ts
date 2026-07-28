@@ -18,10 +18,10 @@ describe("TossOpenQuestionEvidenceTracker", () => {
 
   it("marks open questions ready when sanitized evidence exists", () => {
     const result = new TossOpenQuestionEvidenceTracker().review([
-      evidence("terms", "OQ-001"),
-      evidence("account", "OQ-002"),
-      evidence("orders", "OQ-003"),
-      evidence("etf", "OQ-004")
+      evidence("terms", "OQ-001", { kind: "API_TERMS_REVIEW" }),
+      evidence("account", "OQ-002", { kind: "ACCOUNT_SNAPSHOT_READ" }),
+      evidence("orders", "OQ-003", { kind: "ORDER_STATUS_QUERY_READ" }),
+      evidence("etf", "OQ-004", { kind: "ETF_SUPPORT_DOCUMENTATION" })
     ]);
 
     expect(result.readyForOpenQuestionReview).toBe(true);
@@ -32,6 +32,38 @@ describe("TossOpenQuestionEvidenceTracker", () => {
     // every open question is ready for human review.
     expect(result.liveBrokerWriteAllowed).toBe(false);
     expect(result.liveTradingAuthorized).toBe(false);
+  });
+
+  it("maps ACCOUNT_SNAPSHOT_READ and POSITION_QUERY_READ evidence to OQ-002", () => {
+    const result = new TossOpenQuestionEvidenceTracker().review([
+      evidence("account-snapshot", "OQ-002", { kind: "ACCOUNT_SNAPSHOT_READ" }),
+      evidence("position-query", "OQ-002", { kind: "POSITION_QUERY_READ" })
+    ]);
+
+    const status = result.statuses.find((item) => item.openQuestionId === "OQ-002");
+
+    expect(status?.evidenceCount).toBe(2);
+    expect(status?.validEvidenceCount).toBe(2);
+    expect(status?.readyForReview).toBe(true);
+    expect(status?.evidenceStatus).toBe("EVIDENCE_SANITIZED");
+  });
+
+  it("does not count evidence whose kind's canonical open question disagrees with the declared one", () => {
+    const result = new TossOpenQuestionEvidenceTracker().review([
+      // Mislabeled: an ACCOUNT_SNAPSHOT_READ item canonically belongs to
+      // OQ-002, not OQ-001. It must not count toward either question.
+      evidence("mislabeled-account", "OQ-001", { kind: "ACCOUNT_SNAPSHOT_READ" })
+    ]);
+
+    const oq001 = result.statuses.find((item) => item.openQuestionId === "OQ-001");
+    const oq002 = result.statuses.find((item) => item.openQuestionId === "OQ-002");
+
+    expect(oq001?.evidenceCount).toBe(0);
+    expect(oq001?.readyForReview).toBe(false);
+    expect(oq002?.evidenceCount).toBe(0);
+    expect(oq002?.readyForReview).toBe(false);
+    expect(result.reasonCodes).toContain("evidence_open_question_mismatch_mislabeled-account");
+    expect(result.readyForOpenQuestionReview).toBe(false);
   });
 
   it("does not count evidence that contains credentials", () => {
@@ -47,7 +79,7 @@ describe("TossOpenQuestionEvidenceTracker", () => {
 
   it("does not count evidence that contains live write operations", () => {
     const result = new TossOpenQuestionEvidenceTracker().review([
-      evidence("write", "OQ-003", { liveWriteOperation: true })
+      evidence("write", "OQ-003", { kind: "ORDER_STATUS_QUERY_READ", liveWriteOperation: true })
     ]);
 
     const status = result.statuses.find((item) => item.openQuestionId === "OQ-003");
@@ -59,7 +91,7 @@ describe("TossOpenQuestionEvidenceTracker", () => {
 
   it("treats unsanitized evidence as collected-but-not-sanitized", () => {
     const result = new TossOpenQuestionEvidenceTracker().review([
-      evidence("draft", "OQ-002", { sanitized: false })
+      evidence("draft", "OQ-002", { kind: "ACCOUNT_SNAPSHOT_READ", sanitized: false })
     ]);
 
     const status = result.statuses.find((item) => item.openQuestionId === "OQ-002");

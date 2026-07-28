@@ -64,6 +64,63 @@ describe("TossReadOnlyEvidenceManifestValidator", () => {
     expect(result.valid).toBe(false);
     expect(result.reasonCodes).toContain("manifest_evidence_missing_open_question_unmapped");
   });
+
+  it("rejects a summary that looks like a raw API response payload even when marked sanitized", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([
+        evidence("account", "ACCOUNT_SNAPSHOT_READ", "OQ-002", {
+          summary: 'Read returned {"accountStatus":"ACTIVE"} verbatim.'
+        })
+      ])
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.reasonCodes).toContain("manifest_evidence_looks_like_raw_response_account");
+  });
+
+  it("rejects account-number-like digit runs in the summary text", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([
+        evidence("account", "ACCOUNT_SNAPSHOT_READ", "OQ-002", {
+          summary: "Account snapshot for account 9876543210 confirmed read-only access."
+        })
+      ])
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.reasonCodes).toContain("manifest_evidence_may_contain_account_identifier_account");
+  });
+
+  it("rejects a summary containing a bearer token or a vendor request header", () => {
+    const bearerResult = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([
+        evidence("auth", "AUTHENTICATION_READ", "OQ-001", {
+          summary: "Response used Authorization: Bearer abc123token during the check."
+        })
+      ])
+    );
+    expect(bearerResult.valid).toBe(false);
+    expect(bearerResult.reasonCodes).toContain("manifest_evidence_may_contain_secret_auth");
+
+    const headerResult = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([
+        evidence("auth", "AUTHENTICATION_READ", "OQ-001", {
+          summary: "Request carried header X-Toss-Client-Id: abc123-client-id-value."
+        })
+      ])
+    );
+    expect(headerResult.valid).toBe(false);
+    expect(headerResult.reasonCodes).toContain("manifest_evidence_may_contain_request_header_auth");
+  });
+
+  it("rejects evidence whose kind disagrees with its declared open question", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([evidence("mismatch", "ACCOUNT_SNAPSHOT_READ", "OQ-001")])
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.reasonCodes).toContain("manifest_evidence_open_question_mismatch_mismatch");
+  });
 });
 
 function manifest(evidenceItems: TossReadOnlyEvidenceItem[]): TossReadOnlyEvidenceManifest {

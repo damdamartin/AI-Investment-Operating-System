@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   TossReadOnlyEvidenceIntakeValidator,
+  TossReadOnlyEvidenceManifestPromoter,
   TossReadOnlyCallApprovalValidator,
   TossReadOnlyCallApprovalLedger,
+  TossReadOnlyVerificationResultValidator,
+  openQuestionForEvidenceKind,
   type TossReadOnlyEvidenceIntake,
   type TossReadOnlyEvidenceIntakeItem,
-  type TossReadOnlyCallApprovalRecord
+  type TossReadOnlyCallApprovalRecord,
+  type TossReadOnlyVerificationResultSummary
 } from "../../src/index.js";
 
 describe("TossReadOnlyEvidenceIntakeValidator", () => {
@@ -66,7 +70,225 @@ describe("TossReadOnlyEvidenceIntakeValidator", () => {
     expect(result.readyForEvidenceManifest).toBe(true);
     expect(result.warnings).toContain("intake_summary_too_short_short");
   });
+
+  it("rejects sanitized summaries that look like a raw API response payload", () => {
+    const result = new TossReadOnlyEvidenceIntakeValidator().review(
+      intake([
+        item({
+          id: "raw-response",
+          sanitizedSummary:
+            'Account read returned {"accountStatus":"ACTIVE","balanceCurrency":"KRW"} and nothing else.'
+        })
+      ])
+    );
+
+    expect(result.readyForEvidenceManifest).toBe(false);
+    expect(result.reasonCodes).toContain("intake_looks_like_raw_response_raw-response");
+  });
+
+  it("rejects account-number-like digit runs in the sanitized summary", () => {
+    const result = new TossReadOnlyEvidenceIntakeValidator().review(
+      intake([
+        item({
+          id: "account-number",
+          sanitizedSummary: "Account snapshot referenced account 1234567890 during the read-only check."
+        })
+      ])
+    );
+
+    expect(result.readyForEvidenceManifest).toBe(false);
+    expect(result.reasonCodes).toContain("intake_may_contain_account_identifier_account-number");
+  });
+
+  it("rejects source references containing a bearer token or a request header line", () => {
+    const bearerResult = new TossReadOnlyEvidenceIntakeValidator().review(
+      intake([
+        item({
+          id: "bearer",
+          sourceReference: "Captured from request header Authorization: Bearer abcDEF123.token-value"
+        })
+      ])
+    );
+
+    expect(bearerResult.readyForEvidenceManifest).toBe(false);
+    expect(bearerResult.reasonCodes).toContain("intake_may_contain_secret_bearer");
+
+    const headerResult = new TossReadOnlyEvidenceIntakeValidator().review(
+      intake([
+        item({
+          id: "header",
+          sourceReference: "Request included header X-Toss-Client-Id: abc123-client-id-value"
+        })
+      ])
+    );
+
+    expect(headerResult.readyForEvidenceManifest).toBe(false);
+    expect(headerResult.reasonCodes).toContain("intake_may_contain_request_header_header");
+  });
+
+  it("rejects an intake item whose kind disagrees with its declared open question", () => {
+    const result = new TossReadOnlyEvidenceIntakeValidator().review(
+      intake([item({ id: "mismatch", kind: "ACCOUNT_SNAPSHOT_READ", relatedOpenQuestion: "OQ-001" })])
+    );
+
+    expect(result.readyForEvidenceManifest).toBe(false);
+    expect(result.reasonCodes).toContain("intake_open_question_mismatch_mismatch");
+  });
 });
+
+describe("openQuestionForEvidenceKind", () => {
+  it("maps ACCOUNT_SNAPSHOT_READ and POSITION_QUERY_READ evidence to OQ-002", () => {
+    expect(openQuestionForEvidenceKind("ACCOUNT_SNAPSHOT_READ")).toBe("OQ-002");
+    expect(openQuestionForEvidenceKind("POSITION_QUERY_READ")).toBe("OQ-002");
+  });
+
+  it("leaves MARKET_DATA_READ without a fixed open-question mapping", () => {
+    expect(openQuestionForEvidenceKind("MARKET_DATA_READ")).toBeUndefined();
+  });
+});
+
+describe("TossReadOnlyEvidenceManifestPromoter", () => {
+  it("promotes sanitized, human-reviewed account snapshot evidence into a manifest mapped to OQ-002", () => {
+    const promotion = new TossReadOnlyEvidenceManifestPromoter().promote(
+      intake([item({ id: "account", kind: "ACCOUNT_SNAPSHOT_READ", relatedOpenQuestion: "OQ-002" })]),
+      { generatedAt: new Date("2026-07-28T00:00:00Z"), environment: "local" }
+    );
+
+    expect(promotion.promoted).toBe(true);
+    expect(promotion.manifest?.evidence).toHaveLength(1);
+    expect(promotion.manifest?.evidence[0]?.relatedOpenQuestion).toBe("OQ-002");
+    expect(promotion.manifest?.evidence[0]?.kind).toBe("ACCOUNT_SNAPSHOT_READ");
+    expect(promotion.manifest?.evidence[0]?.sanitized).toBe(true);
+    expect(promotion.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("refuses to promote intake that is not yet human-reviewed", () => {
+    const promotion = new TossReadOnlyEvidenceManifestPromoter().promote(
+      intake([item({ id: "account", reviewedByHuman: false })]),
+      { generatedAt: new Date("2026-07-28T00:00:00Z"), environment: "local" }
+    );
+
+    expect(promotion.promoted).toBe(false);
+    expect(promotion.manifest).toBeUndefined();
+    expect(promotion.reasonCodes).toContain("intake_not_human_reviewed_account");
+  });
+});
+
+describe("TossReadOnlyVerificationResultValidator", () => {
+  it("accepts a sanitized verification result receipt and suggests OQ-002 for ACCOUNT_SNAPSHOT_READ", () => {
+    const result = new TossReadOnlyVerificationResultValidator().review(verificationResult());
+
+    expect(result.acceptedForIntakeDraft).toBe(true);
+    expect(result.reasonCodes).toEqual([]);
+    expect(result.suggestedRelatedOpenQuestion).toBe("OQ-002");
+    expect(result.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("suggests OQ-002 for POSITION_QUERY_READ evidence too", () => {
+    const result = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ operation: "POSITION_QUERY_READ", evidenceKind: "POSITION_QUERY_READ" })
+    );
+
+    expect(result.suggestedRelatedOpenQuestion).toBe("OQ-002");
+  });
+
+  it("rejects a receipt claiming a raw payload was stored", () => {
+    const result = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ rawPayloadStored: true as unknown as false })
+    );
+
+    expect(result.acceptedForIntakeDraft).toBe(false);
+    expect(result.reasonCodes).toContain("verification_result_raw_payload_stored_must_be_false");
+  });
+
+  it("rejects a receipt claiming live broker writes are allowed", () => {
+    const result = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ liveBrokerWriteAllowed: true as unknown as false })
+    );
+
+    expect(result.acceptedForIntakeDraft).toBe(false);
+    expect(result.reasonCodes).toContain("verification_result_live_broker_write_allowed_must_be_false");
+  });
+
+  it("rejects a receipt for a write-scoped operation", () => {
+    const result = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ operation: "CANCEL_ORDER" as TossReadOnlyVerificationResultSummary["operation"] })
+    );
+
+    expect(result.acceptedForIntakeDraft).toBe(false);
+    expect(result.reasonCodes).toContain("verification_result_operation_not_read_only");
+  });
+
+  it("rejects a sanitized evidence path that looks like it contains a secret or account identifier", () => {
+    const secretResult = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ sanitizedEvidencePath: "tmp/phase5/access_token-dump.json" })
+    );
+    expect(secretResult.acceptedForIntakeDraft).toBe(false);
+    expect(secretResult.reasonCodes).toContain("verification_result_evidence_path_may_contain_secret");
+
+    const accountResult = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ sanitizedEvidencePath: "tmp/phase5/account-1234567890.json" })
+    );
+    expect(accountResult.acceptedForIntakeDraft).toBe(false);
+    expect(accountResult.reasonCodes).toContain(
+      "verification_result_evidence_path_may_contain_account_identifier"
+    );
+  });
+
+  it("rejects a sanitized evidence path with directory traversal or a remote URL", () => {
+    const traversalResult = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ sanitizedEvidencePath: "tmp/phase5/../../etc/passwd" })
+    );
+    expect(traversalResult.reasonCodes).toContain("verification_result_evidence_path_traversal_rejected");
+
+    const remoteResult = new TossReadOnlyVerificationResultValidator().review(
+      verificationResult({ sanitizedEvidencePath: "https://example.com/evidence.json" })
+    );
+    expect(remoteResult.reasonCodes).toContain("verification_result_evidence_path_must_be_local");
+  });
+
+  it("draftIntakeItem builds an unreviewed, empty-summary intake item that a human must complete", () => {
+    const draft = new TossReadOnlyVerificationResultValidator().draftIntakeItem(verificationResult(), {
+      id: "account-snapshot-draft"
+    });
+
+    expect(draft.reviewedByHuman).toBe(false);
+    expect(draft.sanitizedSummary).toBe("");
+    expect(draft.relatedOpenQuestion).toBe("OQ-002");
+    expect(draft.source).toBe("LOCAL_READ_ONLY_CHECK");
+    expect(draft.sourceReference).toBe("tmp/phase5/account-snapshot-result.json");
+
+    // The draft alone is never enough to reach the manifest: it still needs
+    // a human-written summary and an explicit reviewedByHuman: true.
+    const review = new TossReadOnlyEvidenceIntakeValidator().review(intake([draft]));
+    expect(review.readyForEvidenceManifest).toBe(false);
+    expect(review.reasonCodes).toContain("intake_not_human_reviewed_account-snapshot-draft");
+  });
+
+  it("draftIntakeItem refuses to build a draft from an unsafe verification result", () => {
+    const validator = new TossReadOnlyVerificationResultValidator();
+
+    expect(() =>
+      validator.draftIntakeItem(verificationResult({ rawPayloadStored: true as unknown as false }), {
+        id: "unsafe"
+      })
+    ).toThrow();
+  });
+});
+
+function verificationResult(
+  overrides: Partial<TossReadOnlyVerificationResultSummary> = {}
+): TossReadOnlyVerificationResultSummary {
+  return {
+    operation: "ACCOUNT_SNAPSHOT_READ",
+    evidenceKind: "ACCOUNT_SNAPSHOT_READ",
+    sanitizedEvidencePath: "tmp/phase5/account-snapshot-result.json",
+    liveBrokerWriteAllowed: false,
+    networkCallsPerformed: true,
+    rawPayloadStored: false,
+    ...overrides
+  };
+}
 
 describe("TossReadOnlyCallApprovalValidator", () => {
   it("approves a sanitized single-scope read-only approval record", () => {
