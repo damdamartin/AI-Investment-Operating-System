@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.40
+Version: 0.4.41
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.41 - 2026-07-28
+
+### Added
+
+- Added deployment environment skeleton.
+- Added local, test, staging, and production environment example files.
+- Added DeploymentEnvironmentSkeletonService.
+- Added validation for required environments, disabled live trading defaults, test credential behavior, and secret reference safety.
+- Added tests for deployment skeleton validation.
+
+### Changed
+
+- Marked Task-056 as complete.
+- Updated repository and package version to `0.4.41`.
+
+### Safety
+
+- Live trading remains disabled in all generated environments.
+- Test environment does not require real API credentials.
+- Secret values are represented as placeholders or secret references only.
+
+### Verification
+
+- Targeted Deployment Environment Skeleton tests passed with 5 tests.
 
 ## 0.4.40 - 2026-07-28
 
