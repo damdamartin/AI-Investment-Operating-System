@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.44
+Version: 0.4.45
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.4.45 - 2026-07-28
+
+### Added
+
+- Added a review-only Phase 4 readiness model for implementation status, safety rule coverage, open question impact, and next-phase gating.
+- Added tests confirming read-only next-phase approval, live broker write blocking, open question impact mapping, missing safety rule deferral, and incomplete-task deferral.
+- Updated the Phase 4 readiness review document to reflect safe foundation completion and the next read-only evidence phase.
+
+### Safety
+
+- Reconfirmed that Phase 4 completion does not authorize live Toss order creation, live Toss order cancellation, production capital use, or automatic production strategy promotion.
+- Mapped unresolved high-priority open questions to live-trading blockers.
 
 ## 0.4.44 - 2026-07-28
 

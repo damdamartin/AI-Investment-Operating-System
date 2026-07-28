@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.4.44
+Version: 0.4.45
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -41,6 +41,12 @@ Phase 9: Small-capital live trading preparation
 Phase 10: Small-capital live operation
 Phase 11: Production candidate hardening
 Phase 12: Continuous strategy evolution
+```
+
+Current phase decision:
+
+```text
+Phase 4 safe foundation review complete. Next work should focus on read-only evidence collection and validation preparation. Live broker write operations remain blocked.
 ```
 
 ## 3. Phase 0: Repository and Documentation Scaffold
