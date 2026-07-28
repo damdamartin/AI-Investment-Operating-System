@@ -1,8 +1,8 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.19
+Version: 0.5.20
 Status: Active
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 
 ## Purpose
 
@@ -15,6 +15,14 @@ Primary local runbook:
 - `docs/phase5/local-toss-read-only-runbook.md`
 - `docs/phase5/toss-read-only-call-gate.md`
 - `docs/phase5/phase5-toss-completion-checklist.md`
+
+## Current Read-Only Target Status
+
+- `accounts` (account snapshot read) — completed at least once by the human operator.
+- `holdings` (position query read) — completed at least once by the human operator.
+- `market-prices` (market data read) — next pending target. Not yet available as a real call target on this branch; support is being added as a separate, parallel effort.
+
+Real receipts for any completed target exist only as local, git-ignored files under `tmp/phase5/`, alongside a local `.env`. Neither is part of this repository. Full detail and per-step instructions: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 
 ## Non-Negotiable Boundary
 

@@ -1,8 +1,8 @@
 # Phase 5 Toss Completion Checklist
 
-Version: 0.6.0
+Version: 0.7.0
 Status: Active
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 
 ## Purpose
 
@@ -11,6 +11,12 @@ This checklist defines when Toss Securities Phase 5 preparation is complete.
 Completion means the project is ready for one scoped real read-only Toss API verification call in a separate task (step 9 of `docs/phase5/local-toss-read-only-runbook.md`).
 
 Completion does not mean live trading is allowed.
+
+## Current Status
+
+- `accounts` and `holdings` read-only verification calls have each been completed at least once by the human operator.
+- `market-prices` read-only verification is the next pending target. It is not yet available as a real call target on this branch — support for it is being added as a separate, parallel effort. Once it lands, this checklist and `npm run phase5:toss:completion` apply to it the same way they applied to `accounts` and `holdings`: local setup, endpoint verification, approval artifact, evidence intake, preflight, and call gate all have to pass again for that specific target before it can be attempted.
+- Completing `accounts` and `holdings` does not, by itself, satisfy `npm run phase5:toss:completion` for a future `market-prices` attempt, and it does not resolve any open question. Full status detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
 
 ## Completion Command
 
@@ -23,6 +29,8 @@ npm run phase5:toss:completion
 The command performs no network calls.
 
 It fails closed until the read-only call gate is ready. On a fresh checkout, before local credentials are entered and before evidence intake is human-reviewed, this command is expected to fail closed (`phase5TossPreparationComplete: false`). That is normal, not a bug — it means steps 1-8 of the runbook are not finished yet, not that the command is broken.
+
+This remains true immediately after `npm run check` passes: a passing build and test suite says nothing about local `.env`, verified endpoints, or reviewed evidence, so `npm run phase5:toss:completion` still fails closed on a fresh checkout right after `npm run check` succeeds. It is a readiness gate you re-run per target — a passing completion result for `accounts` or `holdings` earlier does not carry forward to a future `market-prices` attempt; the call gate and preflight have to pass again for that target specifically.
 
 ## Required Before Completion
 

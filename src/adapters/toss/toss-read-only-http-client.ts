@@ -54,7 +54,8 @@ export interface TossReadOnlyHttpClientOptions {
 export const TOSS_READ_ONLY_HTTP_CLIENT_ALLOWED_OPERATIONS = [
   "AUTHENTICATION_READ",
   "ACCOUNT_SNAPSHOT_READ",
-  "POSITION_QUERY_READ"
+  "POSITION_QUERY_READ",
+  "MARKET_DATA_READ"
 ] as const satisfies readonly TossReadOnlyOperation[];
 
 export interface TossReadOnlyHttpSafetyReport {
@@ -96,6 +97,21 @@ export interface TossReadOnlyHoldingSummary {
   currency?: string;
 }
 
+/**
+ * Intentionally count-only. Official Toss documentation confirms only the
+ * `GET /api/v1/prices` path for Phase 5 (see
+ * docs/phase5/toss-official-api-source-notes.md); the response body's exact
+ * field names for individual price quotes are not yet officially confirmed
+ * for this repository's Phase 5 evidence work. Rather than guess at symbol or
+ * price field names, this client never extracts a per-item value from a
+ * market-prices response at all - only how many items came back - matching
+ * the task requirement that raw prices and raw symbols must never be stored
+ * or exposed anywhere in this pipeline.
+ */
+export interface TossReadOnlyMarketDataSummary {
+  itemCount: number;
+}
+
 interface CachedToken {
   accessToken: string;
   tokenType: string;
@@ -106,6 +122,7 @@ interface CachedToken {
 const TOKEN_PATH = "/oauth2/token";
 const ACCOUNTS_PATH = "/api/v1/accounts";
 const HOLDINGS_PATH = "/api/v1/holdings";
+const MARKET_PRICES_PATH = "/api/v1/prices";
 
 /**
  * Narrowly scoped, real Toss Securities read-only HTTP client.
@@ -119,11 +136,12 @@ const HOLDINGS_PATH = "/api/v1/holdings";
  *
  * Safety comes from what this class exposes, not from being fake:
  *
- * - `authenticate()`  -> POST /oauth2/token    (AUTHENTICATION_READ)
- * - `getAccounts()`   -> GET  /api/v1/accounts (ACCOUNT_SNAPSHOT_READ)
- * - `getHoldings()`   -> GET  /api/v1/holdings (POSITION_QUERY_READ)
+ * - `authenticate()`     -> POST /oauth2/token    (AUTHENTICATION_READ)
+ * - `getAccounts()`      -> GET  /api/v1/accounts (ACCOUNT_SNAPSHOT_READ)
+ * - `getHoldings()`      -> GET  /api/v1/holdings (POSITION_QUERY_READ)
+ * - `getMarketPrices()`  -> GET  /api/v1/prices   (MARKET_DATA_READ)
  *
- * Those are the only three operations reachable through this class's public
+ * Those are the only four operations reachable through this class's public
  * API. There is no generic request method, so no caller can construct an
  * order-write request (or any other unlisted request) through this client.
  *
@@ -138,9 +156,9 @@ export class TossReadOnlyHttpClient {
   // True (ES) private fields, not just TypeScript `private`: these are not
   // reachable, enumerable, or spoofable from outside the class at runtime,
   // which is what keeps the public prototype surface limited to exactly
-  // authenticate/getAccounts/getHoldings/getSafetyReport (see this class's
-  // corresponding test, "has no public API surface capable of constructing a
-  // write-looking request").
+  // authenticate/getAccounts/getHoldings/getMarketPrices/getSafetyReport (see
+  // this class's corresponding test, "has no public API surface capable of
+  // constructing a write-looking request").
   readonly #baseUrl: URL;
   readonly #clientId: string;
   readonly #clientSecret: string;
@@ -368,6 +386,70 @@ export class TossReadOnlyHttpClient {
     return {
       ok: true,
       data: holdings,
+      metadata: this.#metadataFor(collectedAt, startedAt)
+    };
+  }
+
+  /**
+   * GET /api/v1/prices - narrowly scoped current-price lookup
+   * (MARKET_DATA_READ, OQ-004; see docs/phase5/toss-official-api-source-notes.md).
+   * Unlike `getAccounts()`/`getHoldings()`, this method deliberately never
+   * extracts a per-item symbol or price value from the response - only how
+   * many items came back. This is stricter than the account/holding methods
+   * on purpose: this endpoint's response body field names are not yet
+   * officially confirmed for this repository (only the path is), and the
+   * task this method was added under (P5-016) explicitly requires that raw
+   * prices and raw symbols never be stored or exposed anywhere in this
+   * pipeline, at every layer - not just in the sanitized evidence a caller
+   * later writes to disk.
+   */
+  async getMarketPrices(): Promise<TossReadOnlyHttpResult<TossReadOnlyMarketDataSummary>> {
+    const collectedAt = this.#now();
+    const startedAt = Date.now();
+    const tokenResult = await this.#ensureToken(collectedAt, startedAt);
+    if (!tokenResult.ok) return tokenResult;
+
+    let response: TossReadOnlyHttpFetchResponse;
+    try {
+      response = await this.#fetchImpl(this.#buildUrl(MARKET_PRICES_PATH), {
+        method: "GET",
+        headers: { authorization: `Bearer ${tokenResult.data}` }
+      });
+    } catch {
+      return this.#errorResult(
+        "TOSS_HTTP_MARKET_PRICES_NETWORK_ERROR",
+        "Toss market prices request failed before receiving a response.",
+        true,
+        collectedAt,
+        startedAt
+      );
+    }
+
+    if (!response.ok) {
+      return this.#errorResult(
+        `TOSS_HTTP_MARKET_PRICES_REQUEST_FAILED_STATUS_${response.status}`,
+        "Toss market prices request returned a non-success status.",
+        response.status >= 500,
+        collectedAt,
+        startedAt
+      );
+    }
+
+    const payload = await safeJson(response);
+    const items = extractArray(payload);
+    if (!items) {
+      return this.#errorResult(
+        "TOSS_HTTP_MARKET_PRICES_RESPONSE_INVALID_SHAPE",
+        "Toss market prices response was not a recognizable list shape.",
+        false,
+        collectedAt,
+        startedAt
+      );
+    }
+
+    return {
+      ok: true,
+      data: { itemCount: items.length },
       metadata: this.#metadataFor(collectedAt, startedAt)
     };
   }

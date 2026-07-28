@@ -121,6 +121,37 @@ describe("TossReadOnlyEvidenceManifestValidator", () => {
     expect(result.valid).toBe(false);
     expect(result.reasonCodes).toContain("manifest_evidence_open_question_mismatch_mismatch");
   });
+
+  it("accepts MARKET_DATA_READ evidence correctly mapped to OQ-004", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([evidence("market-data", "MARKET_DATA_READ", "OQ-004")])
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.relatedOpenQuestions).toEqual(["OQ-004"]);
+  });
+
+  it("rejects MARKET_DATA_READ evidence mismapped to a different open question, now that the mapping is total", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([evidence("market-data-mismatch", "MARKET_DATA_READ", "OQ-001")])
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.reasonCodes).toContain("manifest_evidence_open_question_mismatch_market-data-mismatch");
+  });
+
+  it("accepts multiple distinct OQ-002 evidence items (account snapshot plus holdings) without conflict", () => {
+    const result = new TossReadOnlyEvidenceManifestValidator().review(
+      manifest([
+        evidence("account", "ACCOUNT_SNAPSHOT_READ", "OQ-002"),
+        evidence("holdings", "POSITION_QUERY_READ", "OQ-002")
+      ])
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.evidenceCount).toBe(2);
+    expect(result.relatedOpenQuestions).toEqual(["OQ-002"]);
+  });
 });
 
 function manifest(evidenceItems: TossReadOnlyEvidenceItem[]): TossReadOnlyEvidenceManifest {

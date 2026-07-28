@@ -211,6 +211,169 @@ describe("phase5-toss-read-only-verify script", () => {
     30000
   );
 
+  it("no approval means no network call and fails closed for market-prices", async () => {
+    const { stdout, status } = await runScript(["market-prices"], baseFixtureEnv());
+    const report = JSON.parse(stdout);
+
+    expect(status).not.toBe(0);
+    expect(report.reasonCodes).toContain("human_read_only_call_approval_missing");
+    expect(report.networkCallsPerformed).toBe(false);
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.rawPayloadStored).toBe(false);
+    expect(report.sanitizedEvidencePath).toBeNull();
+    expect(report.preflight).toBeNull();
+    expect(report.callGate).toBeNull();
+  });
+
+  it(
+    "fails closed with no network call for market-prices when preflight/call-gate are not ready even with approval set",
+    async () => {
+      const { stdout, status } = await runScript(["market-prices"], {
+        ...baseFixtureEnv(),
+        PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true"
+      });
+      const report = JSON.parse(stdout);
+
+      expect(status).not.toBe(0);
+      expect(report.networkCallsPerformed).toBe(false);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.preflight?.readyForReadOnlyCall).toBe(false);
+      expect(report.reasonCodes).toContain("preflight_not_ready");
+    },
+    30000
+  );
+
+  it(
+    "fails closed with no network call when market-prices endpoint is not explicitly verified, even after preflight and call gate pass",
+    async () => {
+      // The endpoint catalog here has a verified ACCOUNT_SNAPSHOT_READ entry
+      // (enough to make generic preflight/doctor readiness pass, since those
+      // only require *some* verified endpoint), but its MARKET_DATA_READ
+      // entry is deliberately left verified:false. This proves the
+      // market-prices-specific check is a real, independent gate - not just
+      // inherited from generic preflight/doctor validity.
+      const [endpointPath, manifestPath, intakePath] = readyLocalPathsForMarketPrices(false);
+
+      const { stdout, status } = await runScript(["market-prices", endpointPath, manifestPath, intakePath], {
+        ...baseFixtureEnv(),
+        PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true"
+      });
+      const report = JSON.parse(stdout);
+
+      expect(status).not.toBe(0);
+      expect(report.networkCallsPerformed).toBe(false);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.rawPayloadStored).toBe(false);
+      expect(report.sanitizedEvidencePath).toBeNull();
+      // Preflight and call gate both passed - proving this is a distinct gate.
+      expect(report.preflight.readyForReadOnlyCall).toBe(true);
+      expect(report.callGate.readyToAttemptRealReadOnlyCall).toBe(true);
+      expect(report.reasonCodes).toContain("market_data_endpoint_not_verified_in_catalog");
+    },
+    30000
+  );
+
+  it(
+    "fails closed with no network call when the market-prices endpoint is entirely absent from the catalog",
+    async () => {
+      // No MARKET_DATA_READ entry at all (only an unrelated verified
+      // ACCOUNT_SNAPSHOT_READ entry, again enough for generic preflight to
+      // pass on its own).
+      const [endpointPath, manifestPath, intakePath] = readyLocalPaths("ACCOUNT_SNAPSHOT_READ");
+
+      const { stdout, status } = await runScript(["market-prices", endpointPath, manifestPath, intakePath], {
+        ...baseFixtureEnv(),
+        PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true"
+      });
+      const report = JSON.parse(stdout);
+
+      expect(status).not.toBe(0);
+      expect(report.networkCallsPerformed).toBe(false);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.preflight.readyForReadOnlyCall).toBe(true);
+      expect(report.callGate.readyToAttemptRealReadOnlyCall).toBe(true);
+      expect(report.reasonCodes).toContain("market_data_endpoint_not_verified_in_catalog");
+    },
+    30000
+  );
+
+  it(
+    "an approved market-prices call against a local mock server writes sanitized evidence only",
+    async () => {
+      const server = await startMockTossServer({
+        pricesBody: {
+          result: [
+            { symbol: "005930", price: "71000" },
+            { symbol: "AAPL", price: "150.25" },
+            { symbol: "MSFT", price: "410.10" }
+          ]
+        }
+      });
+      const [endpointPath, manifestPath, intakePath] = readyLocalPathsForMarketPrices(true);
+
+      const { stdout, status } = await runScript(["market-prices", endpointPath, manifestPath, intakePath], {
+        ...baseFixtureEnv(server.url),
+        PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true"
+      });
+      const report = JSON.parse(stdout);
+
+      expect(status).toBe(0);
+      expect(report.operation).toBe("MARKET_DATA_READ");
+      expect(report.evidenceKind).toBe("MARKET_DATA_READ");
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.networkCallsPerformed).toBe(true);
+      expect(report.rawPayloadStored).toBe(false);
+      expect(report.reasonCodes).toEqual([]);
+      expect(typeof report.sanitizedEvidencePath).toBe("string");
+      expect(report.sanitizedEvidencePath).toMatch(/^tmp\/phase5\//);
+      expect(report.preflight.readyForReadOnlyCall).toBe(true);
+      expect(report.callGate.readyToAttemptRealReadOnlyCall).toBe(true);
+
+      // Raw secrets, symbols, and prices must never appear on stdout.
+      expect(stdout).not.toContain("mock-access-token");
+      expect(stdout).not.toContain("005930");
+      expect(stdout).not.toContain("AAPL");
+      expect(stdout).not.toContain("MSFT");
+      expect(stdout).not.toContain("71000");
+      expect(stdout).not.toContain("150.25");
+      expect(stdout).not.toContain("fixture-client-secret");
+
+      const absoluteEvidencePath = join(repoRoot, report.sanitizedEvidencePath);
+      evidenceFilesWritten.push(absoluteEvidencePath);
+      expect(existsSync(absoluteEvidencePath)).toBe(true);
+
+      const evidenceContent = readFileSync(absoluteEvidencePath, "utf8");
+      expect(evidenceContent).not.toContain("mock-access-token");
+      expect(evidenceContent).not.toContain("005930");
+      expect(evidenceContent).not.toContain("AAPL");
+      expect(evidenceContent).not.toContain("MSFT");
+      expect(evidenceContent).not.toContain("71000");
+      expect(evidenceContent).not.toContain("150.25");
+      expect(evidenceContent).not.toContain("symbol");
+      expect(evidenceContent).not.toContain("price");
+
+      const evidence = JSON.parse(evidenceContent);
+      expect(evidence.rawPayloadStored).toBe(false);
+      expect(evidence.liveBrokerWriteAllowed).toBe(false);
+      expect(evidence.itemCount).toBe(3);
+
+      // Cross-check against Engineer 3's real, merged validator. MARKET_DATA_READ
+      // intentionally has no canonical open-question mapping (see
+      // src/application/toss/read-only-evidence-intake.ts), so this only
+      // asserts acceptance, not a suggestedRelatedOpenQuestion value.
+      const review = new TossReadOnlyVerificationResultValidator().review({
+        operation: report.operation,
+        evidenceKind: report.evidenceKind,
+        sanitizedEvidencePath: report.sanitizedEvidencePath,
+        liveBrokerWriteAllowed: report.liveBrokerWriteAllowed,
+        networkCallsPerformed: report.networkCallsPerformed,
+        rawPayloadStored: report.rawPayloadStored
+      });
+      expect(review.acceptedForIntakeDraft, JSON.stringify(review.reasonCodes)).toBe(true);
+    },
+    30000
+  );
+
   it(
     "an approved holdings call against a local mock server writes sanitized evidence only",
     async () => {
@@ -348,6 +511,70 @@ function readyLocalPaths(
   return [endpointPath, manifestPath, intakePath];
 }
 
+/**
+ * Endpoint catalog paths for market-prices scenarios. Always includes a
+ * verified ACCOUNT_SNAPSHOT_READ entry (so generic preflight/doctor
+ * readiness - which only requires *some* verified endpoint - passes on its
+ * own) plus a MARKET_DATA_READ entry for GET /api/v1/prices whose `verified`
+ * flag is controlled by `marketDataVerified`. This isolates the
+ * market-prices-specific verified-endpoint check tested above from the
+ * generic preflight/doctor checks.
+ */
+function readyLocalPathsForMarketPrices(marketDataVerified: boolean): [string, string, string] {
+  const endpointPath = tempJson({
+    catalogVersion: "1",
+    items: [
+      {
+        id: "accounts-read",
+        path: "/api/v1/accounts",
+        method: "GET",
+        operation: "ACCOUNT_SNAPSHOT_READ",
+        evidenceKind: "ACCOUNT_SNAPSHOT_READ",
+        source: "LOCAL_VERIFICATION",
+        relatedOpenQuestion: "OQ-002",
+        verified: true
+      },
+      {
+        id: "market-prices-read",
+        path: "/api/v1/prices",
+        method: "GET",
+        operation: "MARKET_DATA_READ",
+        evidenceKind: "MARKET_DATA_READ",
+        source: "LOCAL_VERIFICATION",
+        relatedOpenQuestion: "OQ-004",
+        verified: marketDataVerified
+      }
+    ]
+  });
+  const manifestPath = tempJson({
+    manifestVersion: "1",
+    evidence: ["OQ-001", "OQ-002", "OQ-003", "OQ-004"].map((relatedOpenQuestion) => ({
+      id: `evidence-${relatedOpenQuestion.toLowerCase()}`,
+      relatedOpenQuestion,
+      sanitized: true,
+      containsCredential: false,
+      liveWriteOperation: false
+    }))
+  });
+  const intakePath = tempJson({
+    intakeVersion: "1",
+    items: ["OQ-001", "OQ-002", "OQ-003", "OQ-004"].map((relatedOpenQuestion) => ({
+      id: `intake-${relatedOpenQuestion.toLowerCase()}`,
+      kind: "API_TERMS_REVIEW",
+      relatedOpenQuestion,
+      source: "TOSS_OFFICIAL_DOCS",
+      sourceReference: "Local fixture reference for scripted tests.",
+      sanitizedSummary: "Sanitized fixture summary with enough detail to pass intake review.",
+      reviewedByHuman: true,
+      rawPayloadIncluded: false,
+      screenshotContainsSecrets: false,
+      liveWriteOperation: false
+    }))
+  });
+
+  return [endpointPath, manifestPath, intakePath];
+}
+
 function tempJson(value: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "toss-read-only-verify-"));
   const path = join(dir, "input.json");
@@ -358,6 +585,7 @@ function tempJson(value: unknown): string {
 function startMockTossServer(config: {
   accountsBody?: unknown;
   holdingsBody?: unknown;
+  pricesBody?: unknown;
   requireHoldingsAccountHeader?: boolean;
 }): Promise<{ url: string }> {
   return new Promise((resolve) => {
@@ -387,6 +615,12 @@ function startMockTossServer(config: {
         }
         response.writeHead(200, { "content-type": "application/json" });
         response.end(JSON.stringify(config.holdingsBody ?? { result: [] }));
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/v1/prices") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify(config.pricesBody ?? { result: [] }));
         return;
       }
 

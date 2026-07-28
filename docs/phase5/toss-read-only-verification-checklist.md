@@ -1,6 +1,6 @@
 # Toss Read-Only Verification Checklist
 
-Version: 0.7.0
+Version: 0.8.0
 Status: Active
 Last Updated: 2026-07-29
 
@@ -11,6 +11,14 @@ This checklist prepares local read-only Toss Securities API verification.
 It does not authorize live trading, order creation, order cancellation, order modification, or production capital use.
 
 It mirrors the step order in `docs/phase5/local-toss-read-only-runbook.md`. Use the runbook for full explanations; use this page as the operator's quick pass/fail checklist.
+
+## Current Target Status
+
+- `accounts` — completed at least once (checklist item 9 has been carried through Step 10 for this target).
+- `holdings` — completed at least once.
+- `market-prices` — next pending target. Not yet available as a real call target; support is being added in a separate, parallel effort. Full runbook detail: `docs/phase5/local-toss-read-only-runbook.md`, "Current Verification Status".
+
+This status describes which targets have been exercised, not whether their related open question is resolved. Real receipts for any completed target live only in local, git-ignored `tmp/phase5/` files and local `.env` — never in this checklist or any other committed file.
 
 ## 1. Local-Only Setup
 
@@ -114,7 +122,7 @@ PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only --
 
 Full details: `docs/phase5/local-toss-read-only-runbook.md` (Step 9).
 
-Other documented read-only call shapes remain future work, not yet implemented by this script: position read beyond `holdings`, market data read, and order status read (query only, never create/modify/cancel).
+Both currently implemented targets (`accounts`, `holdings`) have been completed at least once — see Current Target Status above. Other documented read-only call shapes remain future work, not yet implemented by this script: market data read (`market-prices`, the next pending target), position read beyond `holdings`, and order status read (query only, never create/modify/cancel).
 
 Blocked, always:
 
@@ -179,6 +187,10 @@ Evidence must not include:
 - account number
 - raw request headers
 - raw Toss response payload
+
+## Expected Fail-Closed States After `npm run check`
+
+`npm run check` passing only confirms the codebase builds and its tests pass. On a checkout without a completed local setup, every command in this checklist still fails closed afterward — `readiness`, `plan`, `doctor`, `preflight`, `call-gate`, and `completion` all report their respective `false`/not-ready states, with `liveBrokerWriteAllowed: false` and `networkCallsPerformed: false` held throughout. Completing a target once does not change this default, because real receipts live only in local, git-ignored files. Full detail: `docs/phase5/local-toss-read-only-runbook.md`, "Expected Fail-Closed States After `npm run check`".
 
 ## Exit Criteria
 
