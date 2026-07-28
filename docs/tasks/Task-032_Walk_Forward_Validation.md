@@ -1,5 +1,8 @@
 # Task-032: Walk-Forward Validation
 
+Status: Complete
+Implemented In: 0.4.17
+
 ## Objective
 
 Implement walk-forward validation to compare strategy behavior across training and validation windows.

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.16
+Version: 0.4.17
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.17 - 2026-07-28
+
+### Added
+
+- Added WalkForwardValidationService.
+- Added walk-forward window construction helper.
+- Added train/validation window metadata and validation result comparison.
+- Added degradation flags for return degradation and drawdown increase.
+- Added tests for window construction, passing validation, degradation detection, overlapping window refusal, and missing window refusal.
+
+### Changed
+
+- Marked Task-032 as complete.
+- Updated repository and package version to `0.4.17`.
+
+### Safety
+
+- Walk-forward validation refuses overlapping training and validation windows.
+- Validation output is validation-only and cannot promote a strategy by itself.
+- Input references from training and validation results are preserved for audit.
+
+### Verification
+
+- `npm run check` passed with 136 tests.
 
 ## 0.4.16 - 2026-07-28
 
