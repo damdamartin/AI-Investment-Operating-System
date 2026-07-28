@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.11
+Version: 0.4.12
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.12 - 2026-07-28
+
+### Added
+
+- Added StrategyScoringService for combining market, fundamental, and news event engine outputs.
+- Added strategy-specific engine weights and required engine checks.
+- Added weighted composite score and composite confidence calculation.
+- Added Signal creation after required scoring inputs pass.
+- Added tests for weighted scoring, missing required engine blocking, review-required news blocking, HOLD/SELL thresholds, and signal/order separation.
+
+### Changed
+
+- Marked Task-027 as complete.
+- Updated repository and package version to `0.4.12`.
+
+### Safety
+
+- Strategy scoring can create a Signal only after required engine outputs are present.
+- Review-required news event scores are not considered available for automated scoring.
+- Signal remains separate from OrderIntent and does not contain side, quantity, limit price, or broker order behavior.
+- Engine scores still cannot bypass Risk Engine, Money Management Engine, or Order Approval Engine.
+
+### Verification
+
+- `npm run check` passed with 112 tests.
 
 ## 0.4.11 - 2026-07-28
 

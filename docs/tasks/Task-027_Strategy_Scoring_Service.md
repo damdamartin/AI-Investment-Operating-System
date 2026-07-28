@@ -1,5 +1,8 @@
 # Task-027: Strategy Scoring Service
 
+Status: Complete
+Implemented In: 0.4.12
+
 ## Objective
 
 Combine engine outputs into strategy-specific score sets.
