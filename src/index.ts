@@ -11,6 +11,7 @@ export * from "./application/cancel-simulation/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/dashboard/index.js";
 export * from "./application/execution-simulation/index.js";
+export * from "./application/fill-processing/index.js";
 export * from "./application/fundamental/index.js";
 export * from "./application/market/index.js";
 export * from "./application/money-management/index.js";

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.29
+Version: 0.4.30
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.30 - 2026-07-28
+
+### Added
+
+- Added FillProcessingService for simulated and future reconciled fill application.
+- Added internal ledger state models for cash balances, positions, applied fill IDs, realized PnL, and unrealized PnL placeholders.
+- Added buy fill processing with weighted average price updates and reserved cash release.
+- Added sell fill processing with position reduction, realized PnL updates, and cash proceeds.
+- Added tests for buy fills, partial fills, sell fills, idempotency, and over-sell blocking.
+
+### Changed
+
+- Marked Task-045 as complete.
+- Updated repository and package version to `0.4.30`.
+
+### Safety
+
+- Duplicate fill IDs do not double-update positions or cash.
+- Sell fills that exceed the internal position quantity are blocked.
+- Fill processing remains an internal ledger operation and does not expose live broker write commands.
+
+### Verification
+
+- Targeted Fill Processing tests passed with 5 tests.
 
 ## 0.4.29 - 2026-07-28
 
