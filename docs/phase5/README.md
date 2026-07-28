@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.4
+Version: 0.5.5
 Status: Active
 Last Updated: 2026-07-28
 
@@ -126,6 +126,14 @@ It verifies:
 - Toss read-only mode is enabled
 
 The readiness service never approves live broker write operations.
+
+Local command:
+
+```bash
+npm run phase5:toss:readiness
+```
+
+This command uses the local `.env` file and prints only a sanitized readiness report.
 
 ## Dry-Run Request Preparation
 

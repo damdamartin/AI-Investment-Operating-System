@@ -1,6 +1,6 @@
 {
   "name": "ai-investment-operating-system",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "private": true,
   "type": "module",
   "description": "Safety-first AI Investment Operating System foundation.",
@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:migrations": "vitest run tests/persistence/migrations.test.ts",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "phase5:toss:readiness": "node scripts/check-toss-readiness.mjs"
   },
   "engines": {
     "node": ">=22"

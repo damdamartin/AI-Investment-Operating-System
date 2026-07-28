@@ -40,6 +40,14 @@ Before any real Toss read-only API call:
 - confirm logs redact headers, tokens, account numbers, and secrets
 - confirm evidence will be summarized, not committed as raw payload
 
+You can run the local readiness check:
+
+```bash
+npm run phase5:toss:readiness
+```
+
+The command prints only a readiness report. It must not print API keys, client secrets, account references, tokens, or account numbers.
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.4
+Version: 0.5.5
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,20 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.5 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:readiness` for local Toss read-only readiness checks.
+- Added a sanitized readiness script that reports missing fields and safety state without printing secrets.
+- The readiness script loads `.env` when present and fails closed with a sanitized report when `.env` is missing.
+- Added script tests for complete config, missing config, and accidental live trading configuration.
+
+### Safety
+
+- The local readiness command never prints API keys, client secrets, account references, tokens, or account numbers.
+- The local readiness command fails closed when live trading is enabled or read-only configuration is incomplete.
 
 ## 0.5.4 - 2026-07-28
 
