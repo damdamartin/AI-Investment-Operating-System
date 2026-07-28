@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.13
+Version: 0.4.14
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.14 - 2026-07-28
+
+### Added
+
+- Added baseline MoneyManagementEngine service.
+- Added checks for available cash, per-order cap, per-strategy allocation cap, and minimum cash after order.
+- Added MoneyCheck integration with explicit reason codes.
+- Added tests for available cash, reserved and unsettled cash separation, order caps, strategy allocation caps, and minimum cash rule.
+
+### Changed
+
+- Marked Task-029 as complete.
+- Updated repository and package version to `0.4.14`.
+
+### Safety
+
+- Reserved and unsettled cash are not treated as available buying power.
+- Failed money checks do not include approved quantity, approved amount, or cash after order.
+- No order may assume buying power without a passing MoneyCheck.
+
+### Verification
+
+- `npm run check` passed with 122 tests.
 
 ## 0.4.13 - 2026-07-28
 

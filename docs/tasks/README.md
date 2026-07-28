@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.13
+Version: 0.4.14
 Status: Active
 Last Updated: 2026-07-28
 
@@ -47,7 +47,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-026](Task-026_News_Event_Engine_Baseline.md) | News Event Engine Baseline | Strategy | Complete |
 | [Task-027](Task-027_Strategy_Scoring_Service.md) | Strategy Scoring Service | Strategy | Complete |
 | [Task-028](Task-028_Risk_Engine_Baseline.md) | Risk Engine Baseline | Risk | Complete |
-| [Task-029](Task-029_Money_Management_Engine_Baseline.md) | Money Management Engine Baseline | Money | Draft |
+| [Task-029](Task-029_Money_Management_Engine_Baseline.md) | Money Management Engine Baseline | Money | Complete |
 | [Task-030](Task-030_Order_Approval_Engine_Baseline.md) | Order Approval Engine Baseline | Trading | Draft |
 | [Task-031](Task-031_Backtest_Engine_Baseline.md) | Backtest Engine Baseline | Validation | Draft |
 | [Task-032](Task-032_Walk_Forward_Validation.md) | Walk-Forward Validation | Validation | Draft |

@@ -1,5 +1,8 @@
 # Task-029: Money Management Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.14
+
 ## Objective
 
 Implement baseline position sizing and cash allocation checks.
