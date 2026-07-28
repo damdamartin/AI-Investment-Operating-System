@@ -1,7 +1,7 @@
 # AI Investment Operating System Documentation
 
-Version: 0.2.0
-Status: Architecture Review Revision Draft
+Version: 0.3.0
+Status: Development Task Draft
 Last Updated: 2026-07-28
 
 ## Purpose
@@ -35,3 +35,7 @@ Reusable templates are stored in [templates](templates/).
 ## Reviews
 
 Architecture review prompts and checklists are stored in [reviews](reviews/).
+
+## Implementation Tasks
+
+Claude Code implementation task specifications are stored in [tasks](tasks/README.md).

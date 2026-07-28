@@ -165,7 +165,7 @@ Required Phase 2 revision themes:
 Status:
 
 ```text
-Ready after Phase 2 revision acceptance
+In progress
 ```
 
 Goal:
@@ -205,6 +205,14 @@ Exit criteria:
 - task dependencies are clear
 - each task has tests and safety requirements
 - Claude Code sessions can start without guessing architecture
+
+Current task index:
+
+- `docs/tasks/README.md`
+
+Initial task batch:
+
+- Task-001 through Task-020 cover project structure, config, value objects, domain models, broker account model, strategy/signal model, order state machines, risk and money model, database migrations, core schema, historical data schema, outbox schema, adapter contracts, read-only Toss capability discovery, Naver News adapter, Claude schema validation, compliance gate, audit logging, safety regression tests, and CI baseline.
 
 ## 7. Phase 4: Core Implementation Foundation
 

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.2.0
+Version: 0.3.0
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,25 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.3.0 - 2026-07-28
+
+### Added
+
+- Added `docs/tasks/README.md` as the implementation task index.
+- Added initial Phase 1 foundation implementation tasks `Task-001` through `Task-020`.
+- Added task specifications for project structure, runtime config and secrets, core value objects, market and asset model, broker account model, strategy and signal model, order state machines, risk and money model, database migrations, core schema, historical data schema, outbox event schema, adapter contracts, read-only Toss capability discovery, Naver News adapter, Claude schema validation, compliance gate service, audit log service, safety regression test harness, and CI baseline.
+
+### Changed
+
+- Updated the roadmap Phase 3 status to `In progress`.
+- Updated the docs index to point to the implementation task folder.
+
+### Safety
+
+- Kept live broker write tasks out of the initial task batch.
+- Marked Toss work as read-only capability discovery only.
+- Required safety regression tests before trading execution implementation.
 
 ## 0.2.0 - 2026-07-28
 
