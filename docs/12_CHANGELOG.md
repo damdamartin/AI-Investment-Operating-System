@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.27
+Version: 0.4.28
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.28 - 2026-07-28
+
+### Added
+
+- Added OrderExecutionSimulationService.
+- Added simulated execution command model derived from approved `OrderApproval` records.
+- Added simulated broker response and auditable execution record models.
+- Added accepted, rejected, partially filled, filled, and unknown simulated execution states.
+- Added simulated outbox event creation and fake execution handlers.
+- Added tests for approved command creation, rejected approval refusal, lifecycle responses, outbox processing, and unknown broker state dead-letter handling.
+
+### Changed
+
+- Marked Task-043 as complete.
+- Updated repository and package version to `0.4.28`.
+
+### Safety
+
+- Rejected approvals cannot enter simulated execution.
+- Unknown simulated broker state blocks dependent actions and is dead-lettered through Outbox handling.
+- Simulation code does not call Toss write methods.
+
+### Verification
+
+- Targeted Order Execution Simulation tests passed with 5 tests.
 
 ## 0.4.27 - 2026-07-28
 

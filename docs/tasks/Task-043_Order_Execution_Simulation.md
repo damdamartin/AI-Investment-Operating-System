@@ -1,5 +1,8 @@
 # Task-043: Order Execution Simulation
 
+Status: Complete
+Implemented In: 0.4.28
+
 ## Objective
 
 Implement simulated order execution through the execution pipeline without calling live broker write methods.
@@ -30,6 +33,16 @@ Required reading: `docs/07_Trading_System.md`, `docs/08_Testing_Validation.md`, 
 - Only approved orders can enter simulated execution.
 - Unknown simulated state blocks dependent actions.
 - Results are auditable.
+
+## Implementation Notes
+
+- Added an `OrderExecutionSimulationService`.
+- Added simulated execution command model built from approved `OrderApproval` records.
+- Added simulated broker response and execution record models.
+- Added accepted, rejected, partially filled, filled, and unknown simulated execution states.
+- Added simulated outbox event creation for fake execution handlers.
+- Unknown simulated broker state is routed as `UNKNOWN_BROKER_STATE` for dead-letter handling by the Outbox worker.
+- Rejected approvals are refused before execution simulation.
 
 ## Tests Required
 

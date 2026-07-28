@@ -9,6 +9,7 @@ export * from "./application/backtest/index.js";
 export * from "./application/broker-write-guard/index.js";
 export * from "./application/compliance/index.js";
 export * from "./application/dashboard/index.js";
+export * from "./application/execution-simulation/index.js";
 export * from "./application/fundamental/index.js";
 export * from "./application/market/index.js";
 export * from "./application/money-management/index.js";
