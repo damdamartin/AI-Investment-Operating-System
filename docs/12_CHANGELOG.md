@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.24
+Version: 0.4.25
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.25 - 2026-07-28
+
+### Added
+
+- Added OperationalAlertingService.
+- Added alert event model with category, severity, immediate notification flag, and redacted payload.
+- Added classification for API failures, broker outages, order failures, unknown broker state, reconciliation mismatches, duplicate order risk, kill switch activation, risk limit breaches, stale market data, AI Health Check red/blocked, Claude schema failures, backup failures, and worker outages.
+- Added AI Health Check red and blocked alert hooks.
+- Added tests for normal event suppression, critical classification, AI Health Check hooks, green/yellow suppression, payload redaction, and command-free alerts.
+
+### Changed
+
+- Marked Task-040 as complete.
+- Updated repository and package version to `0.4.25`.
+
+### Safety
+
+- Normal buys, sells, fills, profits, and routine green health checks do not trigger immediate alerts by default.
+- Alert events are exception-focused and record-only.
+- Alert payloads are redacted before output.
+- Alert events do not expose order, cancel, or manual intervention commands.
+
+### Verification
+
+- Targeted Operational Alerting tests passed with 6 tests.
 
 ## 0.4.24 - 2026-07-28
 

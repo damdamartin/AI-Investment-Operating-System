@@ -1,5 +1,8 @@
 # Task-040: Operational Alerting Baseline
 
+Status: Complete
+Implemented In: 0.4.25
+
 ## Objective
 
 Implement baseline exception-focused alerting rules.
@@ -31,6 +34,15 @@ Required reading: `docs/09_Operation_Deployment.md`, `docs/06_AI_Architecture.md
 - Normal buys, sells, profits, and daily reports do not trigger immediate alerts by default.
 - Critical failures can create alert events.
 - Alert events do not expose secrets.
+
+## Implementation Notes
+
+- Added an `OperationalAlertingService`.
+- Added alert event model with category, severity, immediate notification flag, and redacted payload.
+- Added classification for API failures, broker outages, order failures, unknown broker state, reconciliation mismatches, duplicate order risk, kill switch activation, risk limit breaches, stale market data, AI Health Check red/blocked, Claude schema failures, backup failures, and worker outages.
+- Added AI Health Check red and blocked alert hooks.
+- Normal trade and routine status events do not create alerts by default.
+- Alert events are record-only and do not expose order, cancel, or manual intervention commands.
 
 ## Tests Required
 

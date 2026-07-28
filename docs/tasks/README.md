@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.24
+Version: 0.4.25
 Status: Active
 Last Updated: 2026-07-28
 
@@ -58,7 +58,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-037](Task-037_AI_Health_Check_Baseline.md) | AI Health Check Baseline | AI Operations | Complete |
 | [Task-038](Task-038_Reconciliation_Readonly_Baseline.md) | Reconciliation Read-Only Baseline | Trading Ops | Complete |
 | [Task-039](Task-039_Dashboard_Readonly_Status.md) | Dashboard Read-Only Status | Dashboard | Complete |
-| [Task-040](Task-040_Operational_Alerting_Baseline.md) | Operational Alerting Baseline | Operations | Draft |
+| [Task-040](Task-040_Operational_Alerting_Baseline.md) | Operational Alerting Baseline | Operations | Complete |
 
 ## Phase 3: Operations and Controlled Execution Tasks
 
