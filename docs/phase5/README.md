@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.11
+Version: 0.5.12
 Status: Active
 Last Updated: 2026-07-28
 
@@ -131,6 +131,25 @@ npm run phase5:toss:doctor
 ```
 
 It performs no network calls and never prints secret values.
+
+## Toss Open Question Evidence
+
+The codebase includes `TossOpenQuestionEvidenceTracker`.
+
+It checks whether valid sanitized evidence exists for:
+
+- OQ-001 Toss automated trading permission
+- OQ-002 Toss account and permission model
+- OQ-003 Toss order and fill identifiers
+- OQ-004 Toss ETF, fractional, and extended-hours support
+
+Local command:
+
+```bash
+npm run phase5:toss:open-questions
+```
+
+This command does not resolve open questions automatically. It only reports whether enough sanitized evidence exists for review.
 
 ## Credential Readiness
 

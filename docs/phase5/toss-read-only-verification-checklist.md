@@ -76,6 +76,12 @@ npm run phase5:toss:doctor
 
 The doctor command performs no network calls and should be used before any real read-only verification attempt.
 
+Review open question evidence coverage:
+
+```bash
+npm run phase5:toss:open-questions
+```
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:

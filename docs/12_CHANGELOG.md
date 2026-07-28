@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.11
+Version: 0.5.12
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.12 - 2026-07-28
+
+### Added
+
+- Added `TossOpenQuestionEvidenceTracker` for OQ-001 through OQ-004 evidence coverage.
+- Added `npm run phase5:toss:open-questions` for local open-question evidence coverage reports.
+- Added tests for required open questions, sanitized evidence readiness, unsafe evidence exclusion, and local report behavior.
+
+### Safety
+
+- Open question evidence tracking never resolves live trading blockers automatically.
+- Evidence containing credentials or live write operations does not count toward open question readiness.
 
 ## 0.5.11 - 2026-07-28
 
