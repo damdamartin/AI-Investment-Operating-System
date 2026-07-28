@@ -47,6 +47,10 @@ Forbidden in every task:
 | [P5-013](P5-013_first_read_only_verification_runner.md) | First Read-Only Verification Runner | `phase5/p5-013-first-read-only-verification-runner` |
 | [P5-014](P5-014_sanitized_evidence_pipeline.md) | Sanitized Evidence Pipeline | `phase5/p5-014-sanitized-evidence-pipeline` |
 | [P5-015](P5-015_phase5_read_only_integration_review.md) | Phase 5 Read-Only Integration Review | `phase5/p5-015-read-only-integration-review` |
+| [P5-016](P5-016_market_prices_read_only_verification.md) | Market Prices Read-Only Verification | `phase5/p5-016-market-prices-read-only-verification` |
+| [P5-017](P5-017_read_only_evidence_receipts_and_operator_report.md) | Read-Only Evidence Receipts and Operator Report | `phase5/p5-017-read-only-evidence-receipts` |
+| [P5-018](P5-018_phase5_operator_runbook_and_status_visibility.md) | Phase 5 Operator Runbook and Status Visibility | `phase5/p5-018-operator-runbook-status-visibility` |
+| [P5-019](P5-019_round5_integration_safety_review.md) | Round 5 Integration Safety Review | `phase5/p5-019-round5-integration-safety-review` |
 
 ## Merge Guidance
 
@@ -73,3 +77,11 @@ Use `ROUND4_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md` to launch the four-engineer ba
 Tasks P5-012 (Engineer 1) and P5-014 (Engineer 3) ran in parallel first, each scoped to its own files (the real `TossReadOnlyHttpClient` transport, and the strengthened evidence intake/manifest/open-question pipeline, respectively), and were merged into `main` by the orchestrator (merge commits `76da4f2` and `5d1d85b`). Task P5-013 (Engineer 2) started only after those two merged, since its verification runner needed both the HTTP-client safety pattern and the evidence-pipeline receipt shape to build against; it added `scripts/phase5-toss-read-only-verify.mjs` and was merged next (merge commit `78e8798`, current local `main` tip). Task P5-015 (Engineer 4) ran in two phases: phase 1 did a regression-gap check against the pre-merge codebase and produced a scaffold integration review while P5-012/013/014 were still in progress (P5-013 had not even started yet); phase 2, after the orchestrator merged all three into local `main`, filled in the review with the actual merged content and re-ran the full verification suite. See `docs/reviews/Codex_Phase5_First_Read_Only_Verification_Review.md` for the result.
 
 As of the P5-015 review, live trading remains blocked, `liveBrokerWriteAllowed` and `rawPayloadStored:false` hold in every report, and no real read-only Toss call has been attempted by any AI agent. The project now has a complete, tested, human-operable path to attempt one real read-only call (`PHASE5_TOSS_READ_ONLY_CALL_APPROVED=true npm run phase5:toss:verify-read-only -- accounts`), but this local environment is not yet operationally ready to use it: no real `.env` credentials, zero verified endpoint catalog entries, and zero human-reviewed evidence intake items exist here. Attempting that call remains a decision reserved for the human operator, never an AI agent.
+
+## Round 5 (P5-016 through P5-019)
+
+Round 5 starts after the operator-side accounts and holdings read-only verification path has been exercised locally and after the code fixes supporting holdings verification have landed on `main`. The next work expands only the read-only surface and the safety/reporting wrapper around it.
+
+Use `ROUND5_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md` to launch the next four-engineer batch. P5-016 owns market-prices read-only client/runner support, P5-017 owns sanitized receipt/evidence workflow hardening, P5-018 owns operator runbook and status visibility updates, and P5-019 owns integration review plus safety regression coverage.
+
+Round 5 still does not authorize live trading. Real Toss calls remain human-only, single-scope, approval-gated, and must never be executed by Claude Code engineers or test suites.
