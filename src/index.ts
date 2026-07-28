@@ -24,6 +24,7 @@ export * from "./application/outbox/index.js";
 export * from "./application/paper-trading/index.js";
 export * from "./application/reconciliation/index.js";
 export * from "./application/risk-engine/index.js";
+export * from "./application/scheduler/index.js";
 export * from "./application/shadow-portfolio/index.js";
 export * from "./application/strategy-diversity/index.js";
 export * from "./application/strategy-promotion/index.js";

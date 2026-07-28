@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.35
+Version: 0.4.36
 Status: Active
 Last Updated: 2026-07-28
 
@@ -74,7 +74,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-048](Task-048_Dashboard_Sensitive_Control_Gate.md) | Dashboard Sensitive Control Gate | Dashboard | Complete |
 | [Task-049](Task-049_Strategy_Promotion_Dashboard_Workflow.md) | Strategy Promotion Dashboard Workflow | Dashboard | Complete |
 | [Task-050](Task-050_Config_Versioning_Service.md) | Config Versioning Service | Operations | Complete |
-| [Task-051](Task-051_Scheduler_and_Job_Runner_Baseline.md) | Scheduler and Job Runner Baseline | Operations | Draft |
+| [Task-051](Task-051_Scheduler_and_Job_Runner_Baseline.md) | Scheduler and Job Runner Baseline | Operations | Complete |
 | [Task-052](Task-052_Data_Quality_Monitor.md) | Data Quality Monitor | Data Ops | Draft |
 | [Task-053](Task-053_API_Usage_and_Cost_Monitor.md) | API Usage and Cost Monitor | Operations | Draft |
 | [Task-054](Task-054_Backup_and_Restore_Runbook.md) | Backup and Restore Runbook | Operations | Draft |

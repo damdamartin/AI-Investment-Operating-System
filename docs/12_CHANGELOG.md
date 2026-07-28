@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.35
+Version: 0.4.36
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,33 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.36 - 2026-07-28
+
+### Added
+
+- Added SchedulerJobRunner.
+- Added scheduled job definition and run record models.
+- Added run states for `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, and `SKIPPED`.
+- Added singleton job locking behavior.
+- Added safe error summaries for failed jobs.
+- Added trading job safety checks for kill switch, reconciliation, stale data, and broker write gates.
+- Added tests for job start/completion, singleton overlap blocking, failure summaries, trading safety blocks, and required safety gate state.
+
+### Changed
+
+- Marked Task-051 as complete.
+- Updated repository and package version to `0.4.36`.
+
+### Safety
+
+- Singleton jobs cannot overlap.
+- Failed jobs store redacted safe error summaries.
+- Trading-related jobs do not run unless safety state explicitly permits them.
+
+### Verification
+
+- Targeted Scheduler and Job Runner tests passed with 5 tests.
 
 ## 0.4.35 - 2026-07-28
 
