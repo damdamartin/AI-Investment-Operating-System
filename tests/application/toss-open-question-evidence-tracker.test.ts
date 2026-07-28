@@ -12,6 +12,8 @@ describe("TossOpenQuestionEvidenceTracker", () => {
     expect(result.readyForOpenQuestionReview).toBe(false);
     expect(result.missingOpenQuestions).toEqual(["OQ-001", "OQ-002", "OQ-003", "OQ-004"]);
     expect(result.liveBrokerWriteAllowed).toBe(false);
+    expect(result.liveTradingAuthorized).toBe(false);
+    expect(result.statuses.every((status) => status.evidenceStatus === "NO_EVIDENCE")).toBe(true);
   });
 
   it("marks open questions ready when sanitized evidence exists", () => {
@@ -25,6 +27,11 @@ describe("TossOpenQuestionEvidenceTracker", () => {
     expect(result.readyForOpenQuestionReview).toBe(true);
     expect(result.missingOpenQuestions).toEqual([]);
     expect(result.statuses.every((status) => status.readyForReview)).toBe(true);
+    expect(result.statuses.every((status) => status.evidenceStatus === "EVIDENCE_SANITIZED")).toBe(true);
+    // Sanitized evidence never flips the live-trading blockers, even when
+    // every open question is ready for human review.
+    expect(result.liveBrokerWriteAllowed).toBe(false);
+    expect(result.liveTradingAuthorized).toBe(false);
   });
 
   it("does not count evidence that contains credentials", () => {
@@ -34,6 +41,7 @@ describe("TossOpenQuestionEvidenceTracker", () => {
 
     expect(result.statuses[0]?.evidenceCount).toBe(1);
     expect(result.statuses[0]?.validEvidenceCount).toBe(0);
+    expect(result.statuses[0]?.evidenceStatus).toBe("EVIDENCE_COLLECTED");
     expect(result.reasonCodes).toContain("missing_valid_evidence_oq-001");
   });
 
@@ -45,7 +53,19 @@ describe("TossOpenQuestionEvidenceTracker", () => {
     const status = result.statuses.find((item) => item.openQuestionId === "OQ-003");
 
     expect(status?.validEvidenceCount).toBe(0);
+    expect(status?.evidenceStatus).toBe("EVIDENCE_COLLECTED");
     expect(result.reasonCodes).toContain("missing_valid_evidence_oq-003");
+  });
+
+  it("treats unsanitized evidence as collected-but-not-sanitized", () => {
+    const result = new TossOpenQuestionEvidenceTracker().review([
+      evidence("draft", "OQ-002", { sanitized: false })
+    ]);
+
+    const status = result.statuses.find((item) => item.openQuestionId === "OQ-002");
+
+    expect(status?.evidenceStatus).toBe("EVIDENCE_COLLECTED");
+    expect(status?.readyForReview).toBe(false);
   });
 
   it("exposes the required Toss open question set", () => {

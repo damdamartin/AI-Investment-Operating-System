@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.18
+Version: 0.5.19
 Status: Active
 Last Updated: 2026-07-28
 
@@ -222,6 +222,49 @@ npm run phase5:toss:open-questions
 ```
 
 This command does not resolve open questions automatically. It only reports whether enough sanitized evidence exists for review.
+
+### Evidence Status Policy
+
+Evidence collection is not the same thing as live trading authorization, and
+it is not the same thing as resolving an open question. The full policy,
+including the state model and per-question notes for OQ-001 through OQ-004,
+is documented in:
+
+- `docs/phase5/open-question-evidence-policy.md`
+
+Short version — evidence and question status move through a fixed sequence:
+
+```text
+NO_EVIDENCE
+-> EVIDENCE_COLLECTED
+-> EVIDENCE_SANITIZED
+-> EVIDENCE_REVIEWED        (human only)
+-> QUESTION_IN_REVIEW       (human only)
+-> QUESTION_RESOLVED        (human only)
+
+LIVE_TRADING_STILL_BLOCKED  (permanent, parallel to every state above)
+```
+
+`TossOpenQuestionEvidenceTracker` can only compute the first three states
+from evidence item fields. It never marks a question `EVIDENCE_REVIEWED`,
+`QUESTION_IN_REVIEW`, or `QUESTION_RESOLVED` — those require a human reviewer
+name, a reviewed date, and a recorded decision in `docs/open_questions.md`.
+Its review output always carries `liveBrokerWriteAllowed: false` and
+`liveTradingAuthorized: false`, regardless of how many open questions are
+`readyForReview`.
+
+For OQ-001 through OQ-004 specifically, sanitized Phase 5 evidence — and even
+a human `RESOLVED` decision on the question itself — never by itself
+authorizes:
+
+- Toss order creation
+- Toss order cancellation
+- Toss order replacement
+- live capital use
+- production reconciliation based on unverified identifiers
+
+Those remain gated by `docs/11_AI_RULES.md`, the risk engine, the money
+management engine, and the order approval engine.
 
 ## Credential Readiness
 
