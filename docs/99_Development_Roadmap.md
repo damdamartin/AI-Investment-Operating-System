@@ -1,6 +1,6 @@
 # 99 Development Roadmap
 
-Version: 0.4.45
+Version: 0.5.0
 Status: Draft
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 02_System_Architecture.md, 08_Testing_Validation.md, 09_Operation_Deployment.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 12_CHANGELOG.md, 13_Compliance_and_Legal_Review.md, open_questions.md
@@ -33,7 +33,7 @@ Phase 1: Architecture documentation foundation
 Phase 2: Codex architecture review
 Phase 3: Development specification and task breakdown
 Phase 4: Core implementation foundation
-Phase 5: External adapters and data ingestion
+Phase 5: Read-only external adapter evidence and data ingestion
 Phase 6: Trading controls and approval pipeline
 Phase 7: Research, backtest, Shadow Portfolio, and Paper Trading
 Phase 8: Operations, dashboard, monitoring, and deployment
@@ -46,8 +46,30 @@ Phase 12: Continuous strategy evolution
 Current phase decision:
 
 ```text
-Phase 4 safe foundation review complete. Next work should focus on read-only evidence collection and validation preparation. Live broker write operations remain blocked.
+Phase 5 read-only evidence work has started. Toss API credentials may be used only through local or secret-managed configuration, and live broker write operations remain blocked.
 ```
+
+## 2.1 Phase 5 Entry Scope
+
+Phase 5 starts with read-only evidence collection.
+
+Allowed:
+
+- verify Toss API authentication without placing orders
+- collect sanitized account snapshot evidence
+- collect sanitized position query evidence
+- collect sanitized market data evidence
+- record Toss capability documentation evidence
+- measure Naver News and Claude adapter data quality
+- prepare recorded fixtures for integration tests
+
+Blocked:
+
+- real Toss order creation
+- real Toss order cancellation
+- production capital use
+- automatic strategy promotion to production
+- committing API keys, account identifiers, or raw credential-bearing payloads
 
 ## 3. Phase 0: Repository and Documentation Scaffold
 

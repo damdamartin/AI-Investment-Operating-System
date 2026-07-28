@@ -12,10 +12,16 @@ export interface ExternalSecrets {
   claudeApiKey: string | undefined;
 }
 
+export interface ExternalApiConfig {
+  tossApiBaseUrl: string | undefined;
+  tossReadOnlyMode: boolean;
+}
+
 export interface AppConfig {
   appEnv: AppEnvironment;
   logLevel: LogLevel;
   liveTradingEnabled: boolean;
+  externalApis: ExternalApiConfig;
   secrets: ExternalSecrets;
 }
 
@@ -39,10 +45,15 @@ export function loadAppConfig(
   const appEnv = readEnum(env.APP_ENV ?? "development", appEnvironments, "APP_ENV");
   const logLevel = readEnum(env.LOG_LEVEL ?? "info", logLevels, "LOG_LEVEL");
   const liveTradingEnabled = readBoolean(env.LIVE_TRADING_ENABLED ?? "false", "LIVE_TRADING_ENABLED");
+  const tossReadOnlyMode = readBoolean(env.TOSS_READ_ONLY_MODE ?? "true", "TOSS_READ_ONLY_MODE");
   const requireExternalSecrets = options.requireExternalSecrets ?? appEnv === "production";
 
   if (liveTradingEnabled && appEnv !== "production") {
     throw new ConfigurationError("LIVE_TRADING_ENABLED can only be true in production.");
+  }
+
+  if (!tossReadOnlyMode) {
+    throw new ConfigurationError("TOSS_READ_ONLY_MODE must remain true until live trading gates are approved.");
   }
 
   const secrets: ExternalSecrets = {
@@ -67,6 +78,10 @@ export function loadAppConfig(
     appEnv,
     logLevel,
     liveTradingEnabled,
+    externalApis: {
+      tossApiBaseUrl: emptyToUndefined(env.TOSS_API_BASE_URL),
+      tossReadOnlyMode
+    },
     secrets
   };
 }

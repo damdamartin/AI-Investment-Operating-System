@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.45
+Version: 0.5.0
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,22 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.0 - 2026-07-28
+
+### Added
+
+- Started Phase 5 read-only evidence work.
+- Added `TossReadOnlyEvidencePlan` for review-only Toss API evidence readiness.
+- Added tests for missing read-only evidence, sanitized evidence acceptance, credential rejection, live write rejection, and stale evidence warnings.
+- Added `TOSS_READ_ONLY_MODE` and `TOSS_API_BASE_URL` configuration fields.
+- Added Phase 5 read-only evidence plan documentation.
+
+### Safety
+
+- `TOSS_READ_ONLY_MODE` must remain `true` until live trading gates are approved.
+- Toss API evidence cannot enable live broker write operations.
+- Evidence containing credentials, unsanitized payloads, or live write operations is rejected by the review model.
 
 ## 0.4.45 - 2026-07-28
 

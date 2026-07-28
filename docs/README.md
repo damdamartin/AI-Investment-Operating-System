@@ -1,7 +1,7 @@
 # AI Investment Operating System Documentation
 
-Version: 0.4.45
-Status: Safe Foundation Review Complete
+Version: 0.5.0
+Status: Phase 5 Read-Only Evidence Started
 Last Updated: 2026-07-28
 
 ## Purpose
@@ -39,6 +39,10 @@ Architecture review prompts and checklists are stored in [reviews](reviews/).
 ## Runbooks
 
 Operational runbooks are stored in [runbooks](runbooks/).
+
+## Phase 5
+
+Read-only external API evidence planning is stored in [phase5](phase5/README.md).
 
 ## Implementation Tasks
 
