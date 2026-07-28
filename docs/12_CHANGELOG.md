@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.7
+Version: 0.4.8
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,32 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.8 - 2026-07-28
+
+### Added
+
+- Added AIAnalysisRecord for schema-valid Claude analysis outputs.
+- Added AIAnalysisValidationFailureRecord for rejected Claude outputs.
+- Added AIAnalysisRepository boundary and in-memory implementation.
+- Added builders that preserve prompt template id, prompt template version, model, schema version, evidence, contradictions, risks, raw payload references, and input references.
+- Added tests for valid persistence records, invalid output rejection, validation failure records, required input traceability, and separated repository paths.
+
+### Changed
+
+- Marked Task-023 as complete.
+- Updated repository and package version to `0.4.8`.
+
+### Safety
+
+- Invalid Claude output cannot be stored as valid AI analysis.
+- Valid analysis records are marked advisory-only.
+- Validation failure records are stored separately from valid analyses.
+- AI analysis records require traceable input references before they can be persisted.
+
+### Verification
+
+- `npm run check` passed with 94 tests.
 
 ## 0.4.7 - 2026-07-28
 

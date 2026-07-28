@@ -1,5 +1,8 @@
 # Task-023: AI Analysis Persistence
 
+Status: Complete
+Implemented In: 0.4.8
+
 ## Objective
 
 Persist schema-validated AI analysis outputs with prompt, model, and evidence metadata.
