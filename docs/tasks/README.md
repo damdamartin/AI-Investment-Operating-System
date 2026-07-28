@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.38
+Version: 0.4.39
 Status: Active
 Last Updated: 2026-07-28
 
@@ -77,7 +77,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-051](Task-051_Scheduler_and_Job_Runner_Baseline.md) | Scheduler and Job Runner Baseline | Operations | Complete |
 | [Task-052](Task-052_Data_Quality_Monitor.md) | Data Quality Monitor | Data Ops | Complete |
 | [Task-053](Task-053_API_Usage_and_Cost_Monitor.md) | API Usage and Cost Monitor | Operations | Complete |
-| [Task-054](Task-054_Backup_and_Restore_Runbook.md) | Backup and Restore Runbook | Operations | Draft |
+| [Task-054](Task-054_Backup_and_Restore_Runbook.md) | Backup and Restore Runbook | Operations | Complete |
 | [Task-055](Task-055_Incident_Runbook_Set.md) | Incident Runbook Set | Operations | Draft |
 | [Task-056](Task-056_Deployment_Environment_Skeleton.md) | Deployment Environment Skeleton | Infrastructure | Draft |
 | [Task-057](Task-057_Observability_Metrics_Baseline.md) | Observability Metrics Baseline | Operations | Draft |

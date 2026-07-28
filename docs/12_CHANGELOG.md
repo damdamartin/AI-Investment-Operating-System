@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.38
+Version: 0.4.39
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.39 - 2026-07-28
+
+### Added
+
+- Added Backup and Restore runbook.
+- Added RestoreSafetyGate.
+- Added post-restore checklist for backup manifest, schema version, config versions, audit continuity, separate secret handling, reconciliation, data quality, kill switch availability, and operator approval.
+- Added tests for restore readiness, incomplete verification, separate secret handling, post-restore reconciliation/data quality blocking, and command-surface separation.
+
+### Changed
+
+- Marked Task-054 as complete.
+- Updated repository and package version to `0.4.39`.
+
+### Safety
+
+- Trading remains disabled after restore until all restore safety checks pass.
+- Secrets are documented as separate from normal data backup.
+- Restore safety gate does not create corrective trading commands.
+
+### Verification
+
+- Targeted Restore Safety Gate tests passed with 5 tests.
 
 ## 0.4.38 - 2026-07-28
 

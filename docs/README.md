@@ -1,6 +1,6 @@
 # AI Investment Operating System Documentation
 
-Version: 0.4.38
+Version: 0.4.39
 Status: Safe Foundation Implementation Started
 Last Updated: 2026-07-28
 
@@ -35,6 +35,10 @@ Reusable templates are stored in [templates](templates/).
 ## Reviews
 
 Architecture review prompts and checklists are stored in [reviews](reviews/).
+
+## Runbooks
+
+Operational runbooks are stored in [runbooks](runbooks/).
 
 ## Implementation Tasks
 

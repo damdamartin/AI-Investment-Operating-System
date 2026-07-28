@@ -7,6 +7,7 @@ export * from "./application/api-usage/index.js";
 export * from "./application/alerting/index.js";
 export * from "./application/audit/index.js";
 export * from "./application/backtest/index.js";
+export * from "./application/backup-restore/index.js";
 export * from "./application/broker-write-guard/index.js";
 export * from "./application/cancel-simulation/index.js";
 export * from "./application/compliance/index.js";
