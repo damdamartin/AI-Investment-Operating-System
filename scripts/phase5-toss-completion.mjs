@@ -2,6 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 
+const customPaths = process.argv.slice(2).filter(Boolean);
 const callGate = runCallGate();
 const reasonCodes = [];
 
@@ -28,7 +29,7 @@ process.exit(report.phase5TossPreparationComplete ? 0 : 1);
 
 function runCallGate() {
   try {
-    return JSON.parse(execFileSync("npm", ["run", "phase5:toss:call-gate", "--silent"], {
+    return JSON.parse(execFileSync("npm", ["run", "phase5:toss:call-gate", "--silent", ...customPaths], {
       cwd: process.cwd(),
       env: process.env
     }).toString());

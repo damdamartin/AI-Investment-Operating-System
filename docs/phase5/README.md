@@ -34,6 +34,16 @@ Local setup checklist:
 
 - `docs/phase5/toss-read-only-verification-checklist.md`
 
+Optional local setup helper:
+
+```bash
+npm run phase5:toss:local-setup
+```
+
+This helper writes only local, git-ignored files: `.env` and `tmp/phase5/*`. It does not call Toss
+API, does not print secret values in its JSON report, and keeps `LIVE_TRADING_ENABLED=false` and
+`TOSS_READ_ONLY_MODE=true`.
+
 ## Required Toss Evidence
 
 Minimum evidence before read-only integration work is considered ready:

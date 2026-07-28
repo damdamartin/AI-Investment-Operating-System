@@ -2,6 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 
+const customPaths = process.argv.slice(2).filter(Boolean);
 const approvalFlag = process.env.PHASE5_TOSS_READ_ONLY_CALL_APPROVED;
 const preflight = runPreflight();
 const reasonCodes = [];
@@ -34,7 +35,7 @@ process.exit(report.readyToAttemptRealReadOnlyCall ? 0 : 1);
 
 function runPreflight() {
   try {
-    return JSON.parse(execFileSync("npm", ["run", "phase5:toss:preflight", "--silent"], {
+    return JSON.parse(execFileSync("npm", ["run", "phase5:toss:preflight", "--silent", ...customPaths], {
       cwd: process.cwd(),
       env: process.env
     }).toString());

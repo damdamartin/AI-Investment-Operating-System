@@ -2,13 +2,17 @@
 
 import { execFileSync } from "node:child_process";
 
+const customPaths = process.argv.slice(2).filter(Boolean);
+const endpointCatalogPath = customPaths[0];
+const evidenceManifestPath = customPaths[1];
+const evidenceIntakePath = customPaths[2];
 const commands = [
   ["readiness", ["npm", ["run", "phase5:toss:readiness", "--silent"]]],
-  ["endpoints", ["npm", ["run", "phase5:toss:endpoints", "--silent"]]],
-  ["evidence", ["npm", ["run", "phase5:toss:evidence", "--silent"]]],
-  ["intake", ["npm", ["run", "phase5:toss:intake", "--silent"]]],
-  ["openQuestions", ["npm", ["run", "phase5:toss:open-questions", "--silent"]]],
-  ["doctor", ["npm", ["run", "phase5:toss:doctor", "--silent"]]]
+  ["endpoints", ["npm", withOptionalPath(["run", "phase5:toss:endpoints", "--silent"], endpointCatalogPath)]],
+  ["evidence", ["npm", withOptionalPath(["run", "phase5:toss:evidence", "--silent"], evidenceManifestPath)]],
+  ["intake", ["npm", withOptionalPath(["run", "phase5:toss:intake", "--silent"], evidenceIntakePath)]],
+  ["openQuestions", ["npm", withOptionalPath(["run", "phase5:toss:open-questions", "--silent"], evidenceManifestPath)]],
+  ["doctor", ["npm", ["run", "phase5:toss:doctor", "--silent", ...customPaths]]]
 ];
 
 const reports = {};
@@ -70,4 +74,8 @@ function runJsonCommand(command, args) {
       report: JSON.parse(output)
     };
   }
+}
+
+function withOptionalPath(args, path) {
+  return path ? [...args, path] : args;
 }

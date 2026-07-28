@@ -20,7 +20,8 @@
     "phase5:toss:open-questions": "node scripts/report-toss-open-questions.mjs",
     "phase5:toss:preflight": "node scripts/phase5-toss-preflight.mjs",
     "phase5:toss:call-gate": "node scripts/phase5-toss-call-gate.mjs",
-    "phase5:toss:completion": "node scripts/phase5-toss-completion.mjs"
+    "phase5:toss:completion": "node scripts/phase5-toss-completion.mjs",
+    "phase5:toss:local-setup": "node scripts/phase5-toss-local-setup.mjs"
   },
   "engines": {
     "node": ">=22"

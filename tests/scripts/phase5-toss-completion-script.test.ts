@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -41,11 +43,30 @@ describe("phase5-toss-completion script", () => {
     expect(typeof report.nextAction).toBe("string");
     expect(report.nextAction.length).toBeGreaterThan(0);
   });
+
+  it("can pass with custom local file paths and explicit read-only approval", () => {
+    const output = runScript(true, {
+      PHASE5_TOSS_READ_ONLY_CALL_APPROVED: "true",
+      LIVE_TRADING_ENABLED: "false",
+      TOSS_READ_ONLY_MODE: "true",
+      TOSS_API_BASE_URL: "https://toss.example",
+      TOSS_CLIENT_ID: "client-id-value",
+      TOSS_CLIENT_SECRET: "client-secret-value",
+      TOSS_ACCOUNT_REF: "account-ref-value"
+    }, readyLocalPaths());
+    const report = JSON.parse(output);
+
+    expect(report.phase5TossPreparationComplete).toBe(true);
+    expect(report.readyForFirstRealReadOnlyCall).toBe(true);
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+    expect(output).not.toContain("client-secret-value");
+  });
 });
 
-function runScript(expectSuccess = true, extraEnv: NodeJS.ProcessEnv = {}): string {
+function runScript(expectSuccess = true, extraEnv: NodeJS.ProcessEnv = {}, args: string[] = []): string {
   try {
-    return execFileSync("node", [scriptPath], {
+    return execFileSync("node", [scriptPath, ...args], {
       cwd: repoRoot,
       encoding: "utf8",
       env: { PATH: process.env.PATH, ...extraEnv },
@@ -55,4 +76,57 @@ function runScript(expectSuccess = true, extraEnv: NodeJS.ProcessEnv = {}): stri
     if (expectSuccess) throw error;
     return String((error as { stdout?: Buffer }).stdout ?? "");
   }
+}
+
+function readyLocalPaths(): string[] {
+  const endpointPath = tempJson({
+    catalogVersion: "1",
+    items: [
+      {
+        id: "account-read",
+        operation: "ACCOUNT_SNAPSHOT_READ",
+        method: "GET",
+        path: "/v1/account",
+        evidenceKind: "ACCOUNT_SNAPSHOT_READ",
+        relatedOpenQuestion: "OQ-002",
+        source: "TOSS_OFFICIAL_DOCS",
+        verified: true,
+        notes: "Fixture read-only endpoint."
+      }
+    ]
+  });
+  const manifestPath = tempJson({
+    manifestVersion: "1",
+    evidence: ["OQ-001", "OQ-002", "OQ-003", "OQ-004"].map((relatedOpenQuestion) => ({
+      id: `evidence-${relatedOpenQuestion.toLowerCase()}`,
+      relatedOpenQuestion,
+      sanitized: true,
+      containsCredential: false,
+      liveWriteOperation: false
+    }))
+  });
+  const intakePath = tempJson({
+    intakeVersion: "1",
+    items: ["OQ-001", "OQ-002", "OQ-003", "OQ-004"].map((relatedOpenQuestion) => ({
+      id: `intake-${relatedOpenQuestion.toLowerCase()}`,
+      kind: relatedOpenQuestion === "OQ-002" ? "ACCOUNT_SNAPSHOT_READ" : "API_TERMS_REVIEW",
+      relatedOpenQuestion,
+      source: "TOSS_OFFICIAL_DOCS",
+      sourceReference: "Official fixture reference.",
+      sanitizedSummary: "Sanitized fixture summary with enough detail for review.",
+      reviewedByHuman: true,
+      rawPayloadIncluded: false,
+      screenshotContainsSecrets: false,
+      liveWriteOperation: false
+    }))
+  });
+
+  return [endpointPath, manifestPath, intakePath];
+}
+
+function tempJson(value: unknown): string {
+  const dir = mkdtempSync(join(tmpdir(), "toss-completion-"));
+  const path = join(dir, "input.json");
+  writeFileSync(path, JSON.stringify(value), "utf8");
+  return path;
 }
