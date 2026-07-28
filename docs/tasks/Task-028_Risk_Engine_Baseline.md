@@ -1,5 +1,8 @@
 # Task-028: Risk Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.13
+
 ## Objective
 
 Implement the baseline Risk Engine that can approve or veto candidate orders based on risk rules.

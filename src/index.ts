@@ -8,6 +8,7 @@ export * from "./application/fundamental/index.js";
 export * from "./application/market/index.js";
 export * from "./application/news-event-engine/index.js";
 export * from "./application/news/index.js";
+export * from "./application/risk-engine/index.js";
 export * from "./application/strategy-scoring/index.js";
 export * from "./application/toss/index.js";
 export * from "./config/index.js";

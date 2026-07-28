@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.12
+Version: 0.4.13
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,30 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.13 - 2026-07-28
+
+### Added
+
+- Added baseline RiskEngine service.
+- Added hard checks for max order amount, position exposure, strategy exposure, market exposure, drawdown gate, and kill switch state.
+- Added RiskCheck integration with reason codes and failed limit IDs.
+- Added tests for pass behavior, hard rule vetoes, kill switch blocking, and drawdown blocking.
+
+### Changed
+
+- Marked Task-028 as complete.
+- Updated repository and package version to `0.4.13`.
+
+### Safety
+
+- Any hard risk rule failure returns a non-approval RiskCheck.
+- Active kill switch and drawdown gate produce BLOCKED risk checks.
+- Risk Engine output is a check only and does not submit broker orders.
+
+### Verification
+
+- `npm run check` passed with 117 tests.
 
 ## 0.4.12 - 2026-07-28
 
