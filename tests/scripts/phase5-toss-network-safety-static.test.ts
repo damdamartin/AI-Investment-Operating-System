@@ -90,7 +90,20 @@ describe("Phase 5 Toss scripts hardcode fail-safe defaults (static source scan)"
     "report-toss-open-questions.mjs",
     "validate-toss-endpoints.mjs",
     "validate-toss-evidence-intake.mjs",
-    "validate-toss-evidence-manifest.mjs"
+    "validate-toss-evidence-manifest.mjs",
+    // phase5-toss-account-ref-setup.mjs is intentionally NOT in
+    // `allPhase5TossScripts` above: unlike every other script in this list,
+    // it legitimately performs real network calls (POST /oauth2/token, GET
+    // /api/v1/accounts — see docs/phase5/local-toss-read-only-runbook.md
+    // Step 1) and its own dedicated behavioral test file
+    // (tests/scripts/phase5-toss-account-ref-setup-script.test.ts) proves
+    // that against a mock HTTP server. But it still hardcodes
+    // `liveBrokerWriteAllowed: false` as a literal, so that specific claim
+    // belongs in this static lock too. It must NOT be added to
+    // `scriptsWithNetworkCallsFlag` below, because for this script
+    // `networkCallsPerformed` is genuinely computed (true once a call is
+    // attempted), not a hardcoded false.
+    "phase5-toss-account-ref-setup.mjs"
   ];
 
   it.each(scriptsWithLiveBrokerWriteFlag)(
