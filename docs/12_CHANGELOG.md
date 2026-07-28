@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.5.9
+Version: 0.5.10
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -127,6 +127,19 @@ Recommended format:
 
 - Open question ...
 ```
+
+## 0.5.10 - 2026-07-28
+
+### Added
+
+- Added `npm run phase5:toss:evidence` for local Toss read-only evidence manifest validation.
+- Added a sanitized evidence manifest validation script.
+- Added script tests for valid example manifests, unsafe evidence failure, and missing manifest failure.
+
+### Safety
+
+- Evidence manifest validation never enables live broker writes.
+- Evidence manifest validation fails closed for unsanitized evidence, credential flags, live write flags, and missing open-question mapping.
 
 ## 0.5.9 - 2026-07-28
 

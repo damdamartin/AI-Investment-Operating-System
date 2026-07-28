@@ -1,6 +1,6 @@
 # Phase 5 Read-Only Evidence Plan
 
-Version: 0.5.9
+Version: 0.5.10
 Status: Active
 Last Updated: 2026-07-28
 
@@ -109,6 +109,18 @@ Rules:
 - manifests must not contain raw Toss payloads
 
 The codebase includes `TossReadOnlyEvidenceManifestValidator` to review these constraints.
+
+Local validation command:
+
+```bash
+npm run phase5:toss:evidence
+```
+
+To validate another local evidence manifest:
+
+```bash
+npm run phase5:toss:evidence -- path/to/evidence-manifest.json
+```
 
 ## Credential Readiness
 

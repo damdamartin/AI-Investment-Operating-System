@@ -62,6 +62,12 @@ npm run phase5:toss:plan
 
 This command performs no network calls.
 
+Validate sanitized evidence before committing or using it in readiness decisions:
+
+```bash
+npm run phase5:toss:evidence
+```
+
 ## Allowed Read-Only Calls
 
 Allowed for Phase 5:
