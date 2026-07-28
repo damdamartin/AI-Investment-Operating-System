@@ -1,5 +1,8 @@
 # Task-024: Market Engine Baseline
 
+Status: Complete
+Implemented In: 0.4.9
+
 ## Objective
 
 Implement a baseline Market Engine that scores assets using price and volume data.

@@ -1,6 +1,6 @@
 # 12 Changelog
 
-Version: 0.4.8
+Version: 0.4.9
 Status: Active
 Last Updated: 2026-07-28
 Related Docs: 01_Project_Vision.md, 10_Claude_Code_Guide.md, 11_AI_RULES.md, 13_Compliance_and_Legal_Review.md, 99_Development_Roadmap.md
@@ -131,6 +131,31 @@ Recommended format:
 Every entry should be understandable without reading the code diff.
 
 ## 7. Current Release
+
+## 0.4.9 - 2026-07-28
+
+### Added
+
+- Added baseline MarketEngine service.
+- Added deterministic trend, volume, and volatility placeholder scores.
+- Added MarketEngine refusal path for stale, missing, suspect, or empty market data.
+- Added score output with input references, scoring version, generated timestamp, and analysis-only safety marker.
+- Added tests for scoring, stale data refusal, missing data refusal, empty input refusal, and signal/order separation.
+
+### Changed
+
+- Marked Task-024 as complete.
+- Updated repository and package version to `0.4.9`.
+
+### Safety
+
+- MarketEngine produces analysis scores only and does not create Signal, OrderIntent, or broker commands.
+- Stale or missing market data prevents score output.
+- Score output keeps source input references for later audit and traceability.
+
+### Verification
+
+- `npm run check` passed with 98 tests.
 
 ## 0.4.8 - 2026-07-28
 

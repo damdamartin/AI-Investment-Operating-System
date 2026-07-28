@@ -1,6 +1,6 @@
 # Implementation Task Index
 
-Version: 0.4.8
+Version: 0.4.9
 Status: Active
 Last Updated: 2026-07-28
 
@@ -42,7 +42,7 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
 | [Task-021](Task-021_Market_Data_Ingestion_Read_Model.md) | Market Data Ingestion Read Model | Market Data | Complete |
 | [Task-022](Task-022_News_Event_Normalization.md) | News Event Normalization | News | Complete |
 | [Task-023](Task-023_AI_Analysis_Persistence.md) | AI Analysis Persistence | AI | Complete |
-| [Task-024](Task-024_Market_Engine_Baseline.md) | Market Engine Baseline | Strategy | Draft |
+| [Task-024](Task-024_Market_Engine_Baseline.md) | Market Engine Baseline | Strategy | Complete |
 | [Task-025](Task-025_Fundamental_Engine_Interface.md) | Fundamental Engine Interface | Strategy | Draft |
 | [Task-026](Task-026_News_Event_Engine_Baseline.md) | News Event Engine Baseline | Strategy | Draft |
 | [Task-027](Task-027_Strategy_Scoring_Service.md) | Strategy Scoring Service | Strategy | Draft |
