@@ -1,6 +1,7 @@
 import type { OrderIntent } from "../../domain/orders/index.js";
 import { KillSwitchState, RiskCheck, type RiskLevel } from "../../domain/risk/index.js";
 import type { Money } from "../../domain/value-objects/index.js";
+import type { KillSwitchTradingGate } from "../kill-switch/index.js";
 
 export interface RiskEngineLimits {
   maxOrderAmount: Money;
@@ -25,6 +26,14 @@ export interface RiskEngineInput {
   limits: RiskEngineLimits;
   portfolio: RiskEnginePortfolioState;
   killSwitches?: KillSwitchState[];
+  /**
+   * Optional authoritative kill-switch gate from KillSwitchControlService.
+   * When provided, the risk engine treats it as a second, independent
+   * source of kill-switch truth so a risk decision can never disagree with
+   * the kill-switch control chain (defense in depth: two sources must both
+   * be clear before risk allows a trade).
+   */
+  killSwitchGate?: KillSwitchTradingGate;
   checkedAt: Date;
 }
 
@@ -39,10 +48,20 @@ export class RiskEngine {
     const reasonCodes: string[] = [];
     const failedLimitIds: string[] = [];
     const activeKillSwitch = (input.killSwitches ?? []).find((killSwitch) => killSwitch.blocksOrders());
+    const killSwitchGateBlocked = input.killSwitchGate !== undefined && !input.killSwitchGate.allowed;
 
     if (activeKillSwitch) {
       reasonCodes.push("kill_switch_active");
       failedLimitIds.push(activeKillSwitch.id);
+    }
+
+    if (killSwitchGateBlocked) {
+      // Reuse the kill-switch control service's own reason codes (for
+      // example kill_switch_active_global, kill_switch_state_unknown) so the
+      // risk engine's veto is always traceable back to the same audit trail
+      // instead of inventing a second, divergent reason vocabulary.
+      reasonCodes.push(...input.killSwitchGate!.reasonCodes);
+      failedLimitIds.push("kill-switch-gate");
     }
 
     if (input.orderAmount.isGreaterThan(input.limits.maxOrderAmount)) {
@@ -73,22 +92,26 @@ export class RiskEngine {
       failedLimitIds.push("max-drawdown");
     }
 
-    const blocked = activeKillSwitch !== undefined || input.portfolio.currentDrawdownRatio > input.limits.maxDrawdownRatio;
-    const failed = reasonCodes.length > 0;
+    const blocked =
+      activeKillSwitch !== undefined ||
+      killSwitchGateBlocked ||
+      input.portfolio.currentDrawdownRatio > input.limits.maxDrawdownRatio;
+    const sortedReasonCodes = [...new Set(reasonCodes)].sort();
+    const failed = sortedReasonCodes.length > 0;
     const riskCheck = new RiskCheck({
       id: input.riskCheckId,
       subjectType: "ORDER_INTENT",
       subjectId: input.orderIntent.id,
       result: blocked ? "BLOCKED" : failed ? "FAIL" : "PASS",
-      riskLevel: riskLevelFor(reasonCodes, blocked),
-      failedLimitIds: failed ? [...new Set(failedLimitIds)] : [],
+      riskLevel: riskLevelFor(sortedReasonCodes, blocked),
+      failedLimitIds: failed ? [...new Set(failedLimitIds)].sort() : [],
       warnings: [],
       checkedAt: input.checkedAt
     });
 
     return {
       riskCheck,
-      reasonCodes,
+      reasonCodes: sortedReasonCodes,
       safetyType: "RISK_ENGINE_CHECK_ONLY"
     };
   }

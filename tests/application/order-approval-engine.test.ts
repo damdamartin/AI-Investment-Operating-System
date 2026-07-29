@@ -15,10 +15,13 @@ import {
   RiskCheck,
   Signal,
   StrategyVersion,
-  TossCapabilityRegistry
+  TossCapabilityRegistry,
+  type KillSwitchTradingGate,
+  type ReconciliationReport
 } from "../../src/index.js";
 
 const usd = Currency.from("USD");
+const checkedAt = new Date("2026-01-01T00:00:00Z");
 
 describe("OrderApprovalEngine", () => {
   it("creates approved OrderApproval only when every prerequisite passes", () => {
@@ -30,7 +33,10 @@ describe("OrderApprovalEngine", () => {
       brokerAccount: liveBrokerAccount(),
       compliance: { allowed: true, reasons: [], limitations: [] },
       capabilityRegistry: supportedCapabilities(),
-      requiredCapability: "US_STOCK_LIMIT_ORDER"
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      killSwitchGate: passingKillSwitchGate(),
+      reconciliation: cleanReconciliation(),
+      evaluatedAt: checkedAt
     });
 
     expect(output.approval.status).toBe("APPROVED");
@@ -47,7 +53,10 @@ describe("OrderApprovalEngine", () => {
       brokerAccount: liveBrokerAccount(),
       compliance: { allowed: true, reasons: [], limitations: [] },
       capabilityRegistry: supportedCapabilities(),
-      requiredCapability: "US_STOCK_LIMIT_ORDER"
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      killSwitchGate: passingKillSwitchGate(),
+      reconciliation: cleanReconciliation(),
+      evaluatedAt: checkedAt
     });
     const failing = new OrderApprovalEngine().evaluate({
       approvalId: "approval-2",
@@ -59,13 +68,16 @@ describe("OrderApprovalEngine", () => {
         result: "FAIL",
         riskLevel: "HIGH",
         failedLimitIds: ["max-order-amount"],
-        checkedAt: new Date("2026-01-01T00:00:00Z")
+        checkedAt
       }),
       moneyCheck: passingMoneyCheck(),
       brokerAccount: liveBrokerAccount(),
       compliance: { allowed: true, reasons: [], limitations: [] },
       capabilityRegistry: supportedCapabilities(),
-      requiredCapability: "US_STOCK_LIMIT_ORDER"
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      killSwitchGate: passingKillSwitchGate(),
+      reconciliation: cleanReconciliation(),
+      evaluatedAt: checkedAt
     });
 
     expect(missing.approval.status).toBe("REJECTED");
@@ -91,7 +103,10 @@ describe("OrderApprovalEngine", () => {
       }),
       compliance: { allowed: false, reasons: ["missing_review_toss_api_terms"], limitations: [] },
       capabilityRegistry: new TossCapabilityRegistry([]),
-      requiredCapability: "US_STOCK_LIMIT_ORDER"
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      killSwitchGate: passingKillSwitchGate(),
+      reconciliation: cleanReconciliation(),
+      evaluatedAt: checkedAt
     });
 
     expect(output.approval.status).toBe("REJECTED");
@@ -113,13 +128,135 @@ describe("OrderApprovalEngine", () => {
       brokerAccount: liveBrokerAccount(),
       compliance: { allowed: true, reasons: [], limitations: [] },
       capabilityRegistry: supportedCapabilities(),
-      requiredCapability: "US_STOCK_LIMIT_ORDER"
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      killSwitchGate: passingKillSwitchGate(),
+      reconciliation: cleanReconciliation(),
+      evaluatedAt: checkedAt
     });
 
     expect(output.approval.status).toBe("REJECTED");
     expect(output.reasonCodes).toEqual(expect.arrayContaining(["missing_risk_check", "missing_money_check"]));
   });
+
+  it("rejects when the kill-switch gate is missing, unknown, or active, using the shared reason vocabulary", () => {
+    const missingGate = new OrderApprovalEngine().evaluate(fullyPassingInput({ killSwitchGate: undefined }));
+    const blockedGate = new OrderApprovalEngine().evaluate(
+      fullyPassingInput({
+        killSwitchGate: {
+          allowed: false,
+          blocksNewOrders: true,
+          reasonCodes: ["kill_switch_active_portfolio"],
+          brokerWriteGate: { active: true, scope: "PORTFOLIO", reason: "manual stop" },
+          safetyType: "KILL_SWITCH_TRADING_GATE_ONLY"
+        }
+      })
+    );
+
+    expect(missingGate.approval.status).toBe("REJECTED");
+    expect(missingGate.reasonCodes).toContain("missing_kill_switch_gate");
+
+    expect(blockedGate.approval.status).toBe("REJECTED");
+    expect(blockedGate.reasonCodes).toContain("kill_switch_active_portfolio");
+  });
+
+  it("rejects when reconciliation state is missing or blocks dependent trading", () => {
+    const missingReconciliation = new OrderApprovalEngine().evaluate(fullyPassingInput({ reconciliation: undefined }));
+    const mismatchedReconciliation = new OrderApprovalEngine().evaluate(
+      fullyPassingInput({
+        reconciliation: {
+          ...cleanReconciliation(),
+          status: "MISMATCH",
+          blocksDependentTrading: true
+        }
+      })
+    );
+
+    expect(missingReconciliation.approval.status).toBe("REJECTED");
+    expect(missingReconciliation.reasonCodes).toContain("missing_reconciliation_state");
+
+    expect(mismatchedReconciliation.approval.status).toBe("REJECTED");
+    expect(mismatchedReconciliation.reasonCodes).toContain("reconciliation_mismatch_blocks_trading");
+  });
+
+  it("rejects a stale approval basis and a missing evaluation time, but allows a fresh one", () => {
+    const missingEvaluatedAt = new OrderApprovalEngine().evaluate(fullyPassingInput({ evaluatedAt: undefined }));
+    const stale = new OrderApprovalEngine().evaluate(
+      fullyPassingInput({ evaluatedAt: new Date(checkedAt.getTime() + 10 * 60 * 1000) })
+    );
+    const future = new OrderApprovalEngine().evaluate(
+      fullyPassingInput({ evaluatedAt: new Date(checkedAt.getTime() - 1000) })
+    );
+    const fresh = new OrderApprovalEngine().evaluate(
+      fullyPassingInput({ evaluatedAt: new Date(checkedAt.getTime() + 60 * 1000) })
+    );
+
+    expect(missingEvaluatedAt.approval.status).toBe("REJECTED");
+    expect(missingEvaluatedAt.reasonCodes).toContain("missing_evaluation_time");
+
+    expect(stale.approval.status).toBe("REJECTED");
+    expect(stale.reasonCodes).toEqual(expect.arrayContaining(["risk_check_stale", "money_check_stale"]));
+
+    expect(future.approval.status).toBe("REJECTED");
+    expect(future.reasonCodes).toEqual(
+      expect.arrayContaining(["risk_check_timestamp_in_future", "money_check_timestamp_in_future"])
+    );
+
+    expect(fresh.approval.status).toBe("APPROVED");
+    expect(fresh.reasonCodes).toEqual([]);
+  });
+
+  it("returns deterministically sorted, deduplicated reason codes", () => {
+    const output = new OrderApprovalEngine().evaluate({
+      approvalId: "approval-1",
+      orderIntent: orderIntent(),
+      requiredCapability: "US_STOCK_LIMIT_ORDER"
+    });
+
+    const sorted = [...output.reasonCodes].sort();
+    expect(output.reasonCodes).toEqual(sorted);
+    expect(output.reasonCodes).toEqual([...new Set(output.reasonCodes)]);
+  });
 });
+
+function fullyPassingInput(overrides: Record<string, unknown> = {}) {
+  return {
+    approvalId: "approval-1",
+    orderIntent: orderIntent(),
+    riskCheck: passingRiskCheck(),
+    moneyCheck: passingMoneyCheck(),
+    brokerAccount: liveBrokerAccount(),
+    compliance: { allowed: true, reasons: [], limitations: [] },
+    capabilityRegistry: supportedCapabilities(),
+    requiredCapability: "US_STOCK_LIMIT_ORDER" as const,
+    killSwitchGate: passingKillSwitchGate(),
+    reconciliation: cleanReconciliation(),
+    evaluatedAt: checkedAt,
+    ...overrides
+  };
+}
+
+function passingKillSwitchGate(): KillSwitchTradingGate {
+  return {
+    allowed: true,
+    blocksNewOrders: false,
+    reasonCodes: [],
+    brokerWriteGate: { active: false, scope: "GLOBAL" },
+    safetyType: "KILL_SWITCH_TRADING_GATE_ONLY"
+  };
+}
+
+function cleanReconciliation(): ReconciliationReport {
+  return {
+    id: "reconciliation-1",
+    status: "CLEAN",
+    positionIssues: [],
+    cashIssues: [],
+    unknownReasons: [],
+    blocksDependentTrading: false,
+    checkedAt,
+    safetyType: "RECONCILIATION_READ_ONLY_REPORT"
+  };
+}
 
 function liveBrokerAccount(): BrokerAccount {
   return new BrokerAccount({
@@ -138,7 +275,7 @@ function supportedCapabilities(): TossCapabilityRegistry {
     {
       capability: "US_STOCK_LIMIT_ORDER",
       status: "SUPPORTED",
-      checkedAt: new Date("2026-01-01T00:00:00Z")
+      checkedAt
     }
   ]);
 }
@@ -150,7 +287,7 @@ function passingRiskCheck(): RiskCheck {
     subjectId: "intent-1",
     result: "PASS",
     riskLevel: "LOW",
-    checkedAt: new Date("2026-01-01T00:00:00Z")
+    checkedAt
   });
 }
 
@@ -162,7 +299,7 @@ function passingMoneyCheck(): MoneyCheck {
     approvedQuantity: Quantity.from("1"),
     approvedAmount: Money.fromMajor("500.00", usd),
     cashAfterOrder: Money.fromMajor("1500.00", usd),
-    checkedAt: new Date("2026-01-01T00:00:00Z")
+    checkedAt
   });
 }
 
@@ -187,7 +324,7 @@ function orderIntent(): OrderIntent {
       }),
       direction: "BUY",
       scoreSet: new EngineScoreSet([{ engine: "STRATEGY_COMPOSITE", score: 70, confidence: 0.8 }], "score-v1"),
-      generatedAt: new Date("2026-01-01T00:00:00Z")
+      generatedAt: checkedAt
     }),
     side: "BUY",
     quantity: Quantity.from("1"),

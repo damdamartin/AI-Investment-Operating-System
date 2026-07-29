@@ -4,7 +4,17 @@ import { OrderApproval, type OrderIntent } from "../../domain/orders/index.js";
 import { MoneyCheck } from "../../domain/portfolio/index.js";
 import { RiskCheck } from "../../domain/risk/index.js";
 import type { ComplianceGateResult } from "../compliance/index.js";
+import type { KillSwitchTradingGate } from "../kill-switch/index.js";
+import type { ReconciliationReport } from "../reconciliation/index.js";
 import type { TossCapabilityRegistry } from "../toss/index.js";
+
+/**
+ * Default maximum age for a RiskCheck or MoneyCheck used to build an
+ * approval. Per docs/11_AI_RULES.md Rule 22 (fail closed), an approval must
+ * not be built on checks that are no longer a fresh view of risk or money
+ * state. Callers may override with `maxCheckAgeMs`.
+ */
+export const DEFAULT_MAX_CHECK_AGE_MS = 5 * 60 * 1000;
 
 export interface OrderApprovalEngineInput {
   approvalId: string;
@@ -15,6 +25,23 @@ export interface OrderApprovalEngineInput {
   compliance?: ComplianceGateResult | undefined;
   capabilityRegistry?: TossCapabilityRegistry | undefined;
   requiredCapability: TossCapability;
+  /**
+   * Current kill-switch trading gate from KillSwitchControlService. Required
+   * for approval: per docs/07_Trading_System.md section 15, "current kill
+   * switch state" is one of the Order Approval Engine's inputs, and per
+   * Rule 23 no approval may bypass an active or unknown kill switch.
+   */
+  killSwitchGate?: KillSwitchTradingGate | undefined;
+  /**
+   * Latest reconciliation status. Required for approval: per
+   * docs/07_Trading_System.md section 15, "approval requires clean
+   * reconciliation state".
+   */
+  reconciliation?: ReconciliationReport | undefined;
+  /** The time this approval decision is being evaluated ("now"). */
+  evaluatedAt?: Date | undefined;
+  /** Overrides DEFAULT_MAX_CHECK_AGE_MS for staleness checks. */
+  maxCheckAgeMs?: number | undefined;
 }
 
 export interface OrderApprovalEngineOutput {
@@ -82,7 +109,48 @@ function rejectionReasons(input: OrderApprovalEngineInput): string[] {
     if (reason) reasons.push(reason);
   }
 
-  return [...new Set(reasons)];
+  if (!input.killSwitchGate) {
+    reasons.push("missing_kill_switch_gate");
+  } else if (!input.killSwitchGate.allowed) {
+    // Reuse the kill-switch control service's own reason codes verbatim so
+    // approval rejections stay traceable to the same audit vocabulary used
+    // by the risk engine and the broker write guard.
+    reasons.push(...input.killSwitchGate.reasonCodes);
+  }
+
+  if (!input.reconciliation) {
+    reasons.push("missing_reconciliation_state");
+  } else if (input.reconciliation.blocksDependentTrading) {
+    reasons.push(`reconciliation_${input.reconciliation.status.toLowerCase()}_blocks_trading`);
+  }
+
+  reasons.push(...stalenessReasons(input));
+
+  return [...new Set(reasons)].sort();
+}
+
+function stalenessReasons(input: OrderApprovalEngineInput): string[] {
+  const evaluatedAt = input.evaluatedAt;
+  if (!evaluatedAt || Number.isNaN(evaluatedAt.getTime())) {
+    return ["missing_evaluation_time"];
+  }
+
+  const maxAgeMs = input.maxCheckAgeMs ?? DEFAULT_MAX_CHECK_AGE_MS;
+  const reasons: string[] = [];
+
+  if (input.riskCheck) {
+    const ageMs = evaluatedAt.getTime() - input.riskCheck.checkedAt.getTime();
+    if (ageMs < 0) reasons.push("risk_check_timestamp_in_future");
+    else if (ageMs > maxAgeMs) reasons.push("risk_check_stale");
+  }
+
+  if (input.moneyCheck) {
+    const ageMs = evaluatedAt.getTime() - input.moneyCheck.checkedAt.getTime();
+    if (ageMs < 0) reasons.push("money_check_timestamp_in_future");
+    else if (ageMs > maxAgeMs) reasons.push("money_check_stale");
+  }
+
+  return reasons;
 }
 
 function advanceIntentToApproved(intent: OrderIntent): OrderIntent {
