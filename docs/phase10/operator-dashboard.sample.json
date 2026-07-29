@@ -7,6 +7,21 @@
     "accountRef": "masked",
     "liveOrder": "차단"
   },
+  "performance": {
+    "week": [
+      { "label": "월", "returnPct": 0.0, "balance": 1000000 },
+      { "label": "화", "returnPct": 0.4, "balance": 1004000 },
+      { "label": "수", "returnPct": 0.1, "balance": 1001000 },
+      { "label": "목", "returnPct": 0.8, "balance": 1008000 },
+      { "label": "금", "returnPct": 0.6, "balance": 1006000 }
+    ],
+    "month": [
+      { "label": "1주", "returnPct": 0.6, "balance": 1006000 },
+      { "label": "2주", "returnPct": 1.1, "balance": 1011000 },
+      { "label": "3주", "returnPct": 0.7, "balance": 1007000 },
+      { "label": "4주", "returnPct": 1.4, "balance": 1014000 }
+    ]
+  },
   "signals": [
     {
       "name": "뉴스 기반 후보 1",

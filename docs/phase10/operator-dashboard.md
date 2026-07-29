@@ -15,6 +15,13 @@ It exists because the project previously had validators, documents, and
 templates, but no visible surface showing the operator what the system
 state means.
 
+The target product model is AI-led operation: the system monitors news,
+builds AI candidates, selects buy/sell candidates, and eventually runs
+orders according to the operator's approved principles. Human intervention
+is intended for exceptions such as system errors, kill-switch decisions,
+withdrawal needs, or changes to the operating principles. The current
+dashboard reflects that model while keeping live trading locked.
+
 ## How To Open
 
 Open this file in a browser:
@@ -32,8 +39,11 @@ The dashboard works as a static file. It does not require a dev server.
   or human review for full liquidation
 - lets the user choose profit behavior: protect cash, review partial
   withdrawal, or review reinvestment
+- shows weekly/monthly account status charts: return rate as a line chart
+  and balance as a bar chart
 - lets the user record a daily withdrawal target as an operating target,
-  without executing transfers, withdrawals, or sell orders
+  so the future AI operation can generate cash-raising sell candidates,
+  without executing transfers, withdrawals, or sell orders in this phase
 - includes settings for broker provider selection: Toss Securities,
   Korea Investment Securities, or both
 - includes settings for AI provider/model policy selection
@@ -44,7 +54,6 @@ The dashboard works as a static file. It does not require a dev server.
 - shows account summary placeholders without exposing account identifiers,
   balances, or holdings quantities
 - shows news/AI candidate placeholders as review candidates, not orders
-- shows today's operator queue and the remaining live-trading blockers
 - stores drafts only in browser `localStorage`
 - exports a local JSON draft with `liveBrokerWriteAllowed: false`
 

@@ -220,6 +220,45 @@
         align-items: start;
       }
 
+      .chart-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .chart-box {
+        min-height: 250px;
+      }
+
+      .chart-toolbar {
+        display: inline-flex;
+        gap: 6px;
+      }
+
+      .chart-toolbar button {
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 5px 9px;
+        background: #ffffff;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .chart-toolbar button[aria-pressed="true"] {
+        border-color: var(--blue);
+        background: #eaf2ff;
+        color: var(--blue);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 190px;
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -306,6 +345,7 @@
       @media (max-width: 980px) {
         .top-grid,
         .content-grid,
+        .chart-grid,
         .settings-grid {
           grid-template-columns: 1fr;
         }
@@ -342,12 +382,12 @@
     <main>
       <section class="top-grid">
         <div class="panel mode-card">
-          <span class="tag red">실거래 잠금 · 주문/인출 실행 없음</span>
-          <h2>운영모드만 정하고, 실행은 승인 전까지 멈춥니다.</h2>
+          <span class="tag red">현재: 실거래 잠금 · 주문/인출 실행 없음</span>
+          <h2>목표는 AI 자동 운영, 사람은 예외 상황에만 개입입니다.</h2>
           <p>
-            이 화면은 당신 개인용입니다. 문제가 생겼을 때 어떻게 행동할지, 수익이 났을 때
-            어떻게 보호할지, 오늘 얼마를 인출 목표로 둘지 정합니다. 실제 매도/인출은 아직
-            자동 실행하지 않습니다.
+            최종 운영에서는 뉴스/AI 후보 발굴, 매수·매도 후보 선정, 원칙 기반 주문 실행까지
+            시스템이 자동으로 수행합니다. 사람은 시스템 에러, 비상정지, 인출 필요, 운영원칙 변경
+            같은 예외 상황에 개입합니다. 지금 화면은 그 운영 모델을 먼저 보여주는 잠금 상태입니다.
           </p>
         </div>
 
@@ -378,6 +418,30 @@
         </div>
       </section>
 
+      <section class="chart-grid">
+        <div class="panel section chart-box">
+          <div class="section-head">
+            <h2>수익률 현황</h2>
+            <div class="chart-toolbar">
+              <button type="button" data-range="week" data-chart="return" aria-pressed="true">주간</button>
+              <button type="button" data-range="month" data-chart="return" aria-pressed="false">월간</button>
+            </div>
+          </div>
+          <canvas id="returnChart" width="560" height="190" aria-label="수익률 선그래프"></canvas>
+        </div>
+
+        <div class="panel section chart-box">
+          <div class="section-head">
+            <h2>잔고 현황</h2>
+            <div class="chart-toolbar">
+              <button type="button" data-range="week" data-chart="balance" aria-pressed="true">주간</button>
+              <button type="button" data-range="month" data-chart="balance" aria-pressed="false">월간</button>
+            </div>
+          </div>
+          <canvas id="balanceChart" width="560" height="190" aria-label="잔고 막대그래프"></canvas>
+        </div>
+      </section>
+
       <section class="content-grid">
         <div class="panel section">
           <div class="section-head">
@@ -400,7 +464,7 @@
         <div class="panel section">
           <div class="section-head">
             <h2>내 계좌 & 운영 현황</h2>
-            <span class="tag red">자동 실행 없음</span>
+            <span class="tag red">현재 잠금</span>
           </div>
           <div class="form-grid">
             <label>
@@ -505,6 +569,21 @@
           accountRef: "masked",
           liveOrder: "차단"
         },
+        performance: {
+          week: [
+            { label: "월", returnPct: 0.0, balance: 1000000 },
+            { label: "화", returnPct: 0.4, balance: 1004000 },
+            { label: "수", returnPct: 0.1, balance: 1001000 },
+            { label: "목", returnPct: 0.8, balance: 1008000 },
+            { label: "금", returnPct: 0.6, balance: 1006000 }
+          ],
+          month: [
+            { label: "1주", returnPct: 0.6, balance: 1006000 },
+            { label: "2주", returnPct: 1.1, balance: 1011000 },
+            { label: "3주", returnPct: 0.7, balance: 1007000 },
+            { label: "4주", returnPct: 1.4, balance: 1014000 }
+          ]
+        },
         signals: [
           {
             name: "뉴스 기반 후보 1",
@@ -523,6 +602,7 @@
 
       const state = loadState();
       let data = loadData();
+      let chartRange = { return: "week", balance: "week" };
 
       function loadState() {
         try {
@@ -598,8 +678,88 @@
         bindValues();
         renderMode();
         renderWithdrawal();
+        renderCharts();
         renderSignals();
         renderAccount();
+      }
+
+      function drawLineChart(canvasId, points) {
+        points = Array.isArray(points) && points.length ? points : defaultData.performance.week;
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        const padding = 28;
+        const values = points.map((point) => Number(point.returnPct || 0));
+        const min = Math.min(...values, 0);
+        const max = Math.max(...values, 1);
+        const span = max - min || 1;
+        ctx.strokeStyle = "#d9e0ea";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i += 1) {
+          const y = padding + ((height - padding * 2) / 3) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = "#1f66d1";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = padding + ((width - padding * 2) / Math.max(points.length - 1, 1)) * index;
+          const y = height - padding - ((Number(point.returnPct || 0) - min) / span) * (height - padding * 2);
+          if (index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.fillStyle = "#182230";
+        ctx.font = "12px system-ui";
+        points.forEach((point, index) => {
+          const x = padding + ((width - padding * 2) / Math.max(points.length - 1, 1)) * index;
+          ctx.fillText(String(point.label || ""), x - 8, height - 8);
+        });
+      }
+
+      function drawBarChart(canvasId, points) {
+        points = Array.isArray(points) && points.length ? points : defaultData.performance.week;
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        const padding = 28;
+        const values = points.map((point) => Number(point.balance || 0));
+        const max = Math.max(...values, 1);
+        const barGap = 10;
+        const barWidth = (width - padding * 2 - barGap * (points.length - 1)) / Math.max(points.length, 1);
+        ctx.strokeStyle = "#d9e0ea";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i += 1) {
+          const y = padding + ((height - padding * 2) / 3) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        points.forEach((point, index) => {
+          const value = Number(point.balance || 0);
+          const barHeight = (value / max) * (height - padding * 2);
+          const x = padding + index * (barWidth + barGap);
+          const y = height - padding - barHeight;
+          ctx.fillStyle = "#087a4b";
+          ctx.fillRect(x, y, Math.max(barWidth, 4), barHeight);
+          ctx.fillStyle = "#182230";
+          ctx.font = "12px system-ui";
+          ctx.fillText(String(point.label || ""), x, height - 8);
+        });
+      }
+
+      function renderCharts() {
+        const performance = data.performance || defaultData.performance;
+        drawLineChart("returnChart", performance[chartRange.return] || performance.week);
+        drawBarChart("balanceChart", performance[chartRange.balance] || performance.week);
       }
 
       function bindValues() {
@@ -620,14 +780,14 @@
 
       function renderMode() {
         const incidentText = {
-          PAUSE: "문제가 생기면 새 활동을 멈추고 읽기 전용/Paper로 돌아갑니다.",
-          CONSERVATIVE: "문제가 작으면 후보 관찰만 유지하고 주문/증액은 막습니다.",
-          REVIEW_SELL: "위험이 크면 전액 매도를 사람이 검토합니다. 자동 전량매도는 아직 없습니다."
+          PAUSE: "문제가 생기면 AI가 새 매수/매도 판단을 멈추고 읽기 전용/Paper로 돌아갑니다.",
+          CONSERVATIVE: "문제가 작으면 AI가 신규 매수는 줄이고 방어적 매도 후보와 현금 비중을 우선합니다.",
+          REVIEW_SELL: "위험이 크면 AI가 전액 매도 후보와 청산 순서를 만들고, 현재 단계에서는 실행하지 않습니다."
         }[state.incidentMode];
         const profitText = {
           PROTECT: "수익은 보호 현금으로 분리하는 정책입니다.",
-          PARTIAL_WITHDRAW: "일부 인출을 사람이 검토합니다. 실제 인출은 증권사 앱에서 직접 합니다.",
-          REINVEST: "조건 충족 시 재투자를 검토합니다. 자동 증액은 하지 않습니다."
+          PARTIAL_WITHDRAW: "인출 목표가 있으면 AI가 필요한 현금 확보용 매도 후보를 먼저 산출합니다.",
+          REINVEST: "조건 충족 시 AI가 운영원칙 안에서 재투자 후보를 자동 평가합니다."
         }[state.profitMode];
         document.getElementById("modeOutput").innerHTML = `
           <strong>현재 방침</strong>
@@ -640,7 +800,7 @@
         const raw = String(state.withdrawalTarget || "").replace(/[^\d]/g, "");
         const amount = raw ? Number(raw).toLocaleString("ko-KR") : "0";
         const text = raw
-          ? `오늘 ${amount}원 인출 목표. 시스템은 이 금액을 맞추기 위한 매도 후보만 제안하고, 실제 매도/인출은 승인 전까지 실행하지 않습니다.`
+          ? `오늘 ${amount}원 인출 목표. 활성화 이후에는 AI가 이 금액을 맞추는 매도 후보와 현금화 순서를 자동 산출합니다. 현재 단계에서는 주문/인출을 실행하지 않습니다.`
           : "인출 목표가 없습니다. 수익 보호 정책만 적용됩니다.";
         document.getElementById("withdrawalOutput").innerHTML = `
           <strong>인출 목표</strong>
@@ -725,6 +885,17 @@
 
       document.getElementById("settingsButton").addEventListener("click", () => {
         document.getElementById("settingsPanel").classList.toggle("hidden");
+      });
+
+      document.querySelectorAll("[data-chart]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const chart = button.dataset.chart;
+          chartRange[chart] = button.dataset.range;
+          document.querySelectorAll(`[data-chart="${chart}"]`).forEach((item) => {
+            item.setAttribute("aria-pressed", String(item === button));
+          });
+          renderCharts();
+        });
       });
 
       document.getElementById("loadExampleButton").addEventListener("click", () => {
