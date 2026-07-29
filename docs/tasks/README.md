@@ -22,6 +22,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
   `docs/tasks/phase8_claude_worktree_tasks/README.md`
 - Phase 9 small-capital live trading preparation:
   `docs/tasks/phase9_claude_worktree_tasks/README.md`
+- Phase 10 small-capital live operation readiness:
+  `docs/tasks/phase10_claude_worktree_tasks/README.md`
 
 ## Phase 1: Foundation Tasks
 
@@ -108,3 +110,7 @@ Tasks that touch live broker write operations remain blocked until the related o
 - [Phase_4_Readiness_Review.md](Phase_4_Readiness_Review.md) defines the implementation readiness decision and recommended implementation waves.
 - [phase5_claude_worktree_tasks/](phase5_claude_worktree_tasks/README.md) contains Phase 5 read-only verification task history.
 - [phase6_claude_worktree_tasks/](phase6_claude_worktree_tasks/README.md) contains Phase 6 simulation safety task instructions.
+- [phase7_claude_worktree_tasks/](phase7_claude_worktree_tasks/README.md) contains Phase 7 live-capable design readiness task instructions.
+- [phase8_claude_worktree_tasks/](phase8_claude_worktree_tasks/README.md) contains Phase 8 operations readiness task instructions.
+- [phase9_claude_worktree_tasks/](phase9_claude_worktree_tasks/README.md) contains Phase 9 small-capital preparation task instructions.
+- [phase10_claude_worktree_tasks/](phase10_claude_worktree_tasks/README.md) contains Phase 10 live-operation readiness task instructions.

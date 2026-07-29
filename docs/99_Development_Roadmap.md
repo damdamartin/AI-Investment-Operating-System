@@ -46,7 +46,11 @@ Phase 12: Continuous strategy evolution
 Current phase decision:
 
 ```text
-Phase 5 read-only evidence work has started. Toss API credentials may be used only through local or secret-managed configuration, and live broker write operations remain blocked.
+Phase 10 round 1 planning has started. Phase 5 read-only verification,
+Phase 6 simulation safety, Phase 7 live-capable design readiness,
+Phase 8 operations readiness, and Phase 9 small-capital preparation are
+complete locally, but live broker write operations remain blocked until
+all LCB-001 through LCB-008 human-only blockers are resolved.
 ```
 
 ## 2.1 Phase 5 Entry Scope
@@ -677,6 +681,15 @@ Exit criteria:
 Goal:
 
 Validate the system with real orders under strict limits.
+
+Current round 1 scope:
+
+```text
+Phase 10 round 1 is live-operation readiness only. It creates the
+approval packet, first-trade manual operating protocol, runtime no-write
+lock, and integration review needed before any future write-capable
+implementation is considered. It does not implement live broker writes.
+```
 
 Measure:
 
