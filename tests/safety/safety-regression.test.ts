@@ -22,6 +22,7 @@ import {
   OrderApproval,
   OrderApprovalEngine,
   OrderIntent,
+  PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY,
   PortfolioBrokerAccountLink,
   Price,
   Quantity,
@@ -35,6 +36,8 @@ import {
   Signal,
   StrategyVersion,
   TossCapabilityRegistry,
+  evaluateRuntimeLiveLockGate,
+  evaluateSmallCapitalEnablementGate,
   evaluateSmallCapitalReadiness,
   validateClaudeAnalysis,
   type BackupRestoreDrillInput,
@@ -50,6 +53,7 @@ import {
   type Phase6OperatorSafetyStatus,
   type ReconciliationReport,
   type RollbackRehearsalStepRecord,
+  type RuntimeLiveLockGateApprovalSignal,
   type SmallCapitalCapitalLimits,
   type SmallCapitalKillSwitchSignal,
   type SmallCapitalOperatorSurfaceSignal,
@@ -59,6 +63,7 @@ import {
   type TossWriteAdapter
 } from "../../src/index.js";
 import type { ComplianceGateResult } from "../../src/application/compliance/index.js";
+import { TOSS_FUTURE_WRITE_CONTRACT_SAFETY_REPORT } from "../../src/adapters/toss-write-contract.js";
 
 function signal(): Signal {
   return new Signal({
@@ -1306,6 +1311,130 @@ describe("safety regression harness", () => {
       const guardResult = new BrokerWriteCommandGuard().evaluate({
         commandType: "SUBMIT_ORDER",
         aiContext: report
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+  });
+
+  describe("P10-003 runtime live lock and audit gate: cannot itself satisfy BrokerWriteCommandGuard, and rejects tampered evidence (Phase 10 round 1)", () => {
+    // Phase 10 round 1 (P10-001 live operation approval packet, P10-002
+    // first-trade operating protocol, P10-003 runtime lock and audit gate,
+    // P10-004 integration review) is small-capital LIVE OPERATION READINESS
+    // -- still no-write, per docs/phase10/README.md. `evaluateRuntimeLiveLockGate`
+    // (src/application/live-readiness/runtime-live-lock-gate.ts) is P10-003's
+    // own safety-critical module: a pure gate/report that proves the
+    // application remains structurally unable to perform a live broker
+    // write, no matter how favorable, or how deliberately tampered, the
+    // evidence handed to it is. This block closes the same two gaps every
+    // other module in this consolidated harness already closes for its own
+    // "cleanest possible" output above: (1) cross-checks this module's own
+    // cleanest possible report -- built from a real, non-mocked, maximally
+    // permissive BrokerWriteCommandGuard result -- against the real guard
+    // again, and (2) proves a deliberately tampered `liveBrokerWriteAllowed:
+    // true`-shaped "everything is resolved" approval object is detected as
+    // blocking, never trusted as authorization. Point (2) is the load-
+    // bearing property P10-003 exists to prove, per
+    // docs/tasks/phase10_claude_worktree_tasks/P10-003_runtime_lock_and_audit_gate.md.
+
+    const P10_NOW = new Date("2026-07-29T00:00:00Z");
+
+    it("does not let this gate's own cleanest possible report (built from a real, maximally permissive BrokerWriteCommandGuard result) satisfy BrokerWriteCommandGuard on its own", () => {
+      const permissiveGuardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        approval: new OrderApproval({
+          id: "approval-1",
+          orderIntent: approvedIntent(),
+          riskCheck: passingRiskCheck(),
+          moneyCheck: passingMoneyCheck(),
+          status: "APPROVED",
+          reasons: []
+        }),
+        brokerAccount: livePassingBrokerAccount(),
+        portfolioLink: activePortfolioLink(),
+        compliance: { allowed: true, reasons: [], limitations: [] },
+        capabilityRegistry: supportedCapabilityRegistry(),
+        requiredCapability: "US_STOCK_LIMIT_ORDER",
+        environment: {
+          environment: "production",
+          liveBrokerWritesEnabled: true,
+          allowedEnvironments: ["production"]
+        },
+        killSwitch: { active: false, scope: "GLOBAL" },
+        reconciliation: cleanReconciliationReport(),
+        now: new Date("2026-01-01T00:00:00Z")
+      });
+      // Sanity: this really is the most favorable BrokerWriteCommandGuard
+      // result the real, non-mocked guard can ever produce for this command.
+      expect(permissiveGuardResult.allowed).toBe(true);
+      expect(permissiveGuardResult.reasonCodes).toEqual([]);
+
+      const enablementReport = evaluateSmallCapitalEnablementGate({ now: P10_NOW });
+      expect(enablementReport.liveBrokerWriteAllowed).toBe(false);
+
+      const lockGateReport = evaluateRuntimeLiveLockGate({
+        now: P10_NOW,
+        brokerWriteGuardResult: permissiveGuardResult,
+        tossFutureWriteContractSafetyReport: TOSS_FUTURE_WRITE_CONTRACT_SAFETY_REPORT,
+        smallCapitalEnablementReport: enablementReport
+      });
+
+      // The property under test: even fed the single most favorable,
+      // genuinely-computed guard result, this gate's own output never flips.
+      expect(lockGateReport.runtimeWriteLockEngaged).toBe(true);
+      expect(lockGateReport.liveBrokerWriteAllowed).toBe(false);
+      expect(lockGateReport.safetyType).toBe("RUNTIME_LIVE_LOCK_GATE_REPORT_EVIDENCE_ONLY");
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: lockGateReport
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+
+    it("detects a deliberately tampered liveBrokerWriteAllowed: true approval object ('everything is resolved') as blocking, never as authorization, and BrokerWriteCommandGuard still independently denies", () => {
+      const tamperedApprovalSignal: RuntimeLiveLockGateApprovalSignal = {
+        claimedLiveBrokerWriteAllowed: true,
+        claimedFullyResolved: true
+      };
+
+      const lockGateReport = evaluateRuntimeLiveLockGate({
+        now: P10_NOW,
+        brokerWriteGuardResult: new BrokerWriteCommandGuard().evaluate({
+          commandType: "SUBMIT_ORDER",
+          environment: PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY
+        }),
+        tossFutureWriteContractSafetyReport: TOSS_FUTURE_WRITE_CONTRACT_SAFETY_REPORT,
+        runtimeApprovalSignals: [tamperedApprovalSignal]
+      });
+
+      expect(lockGateReport.blockingAnomalyReasonCodes).toContain(
+        "approval_signal_0_claims_live_broker_write_allowed_not_false"
+      );
+      // Tampering is detected and reported -- never trusted as
+      // authorization, and never changes the hardcoded output below.
+      expect(lockGateReport.runtimeWriteLockEngaged).toBe(true);
+      expect(lockGateReport.liveBrokerWriteAllowed).toBe(false);
+      expect(JSON.stringify(lockGateReport)).not.toMatch(/"liveBrokerWriteAllowed":true/);
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: lockGateReport
       });
 
       expect(guardResult.allowed).toBe(false);
