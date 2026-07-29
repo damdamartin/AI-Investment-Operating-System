@@ -171,43 +171,16 @@ task docs' scope:
   all four `evaluate*View` helper functions and by four dedicated
   "flags a tampered ... report" tests.
 
-  **Evidence-vocabulary compatibility note (flagged per the
-  orchestrator's request):** P9-003 deliberately does not import
-  P9-001's actual `LiveBlockerEvidenceRecord`/`LiveBlockerEvidenceStatus`
-  types (both were built independently and concurrently; the module's
-  own doc comment explains this was to keep the task mergeable in
-  either order and avoid an import-cycle risk). Instead it defines a
-  local `LiveBlockerEvidenceSummaryEntry` type with
+  **Evidence-vocabulary compatibility note (resolved by follow-up):**
+  P9-003 originally accepted only
   `status: "NOT_STARTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"`
-  (3 values). P9-001's actual record-level status vocabulary
-  (`LiveBlockerEvidenceStatus`) is `"REJECTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"`
-  (3 values, but with `REJECTED` instead of `NOT_STARTED`), and its
-  register-level vocabulary
-  (`LiveBlockerEvidenceRegisterBlockerStatus`) additionally adds
-  `"MISSING"`/`"DUPLICATE"` (5 values total). These are genuinely
-  different vocabularies: P9-001 has no `NOT_STARTED` value (a record
-  simply does not exist yet, which its register reviewer reports as
-  `MISSING`), and P9-003 has no `REJECTED`/`MISSING`/`DUPLICATE`
-  values (an entry with an unrecognized status is rejected outright via
-  `live_blocker_evidence_invalid_status_<slug>`, and no entry at all
-  for a required blocker id is reported via `missing_blocker_evidence_summary`
-  / `live_blocker_evidence_missing_<slug>`). **This does not create a
-  safety gap**, because P9-003 fails closed on any status value outside
-  its own 3-value set (an unrecognized status, including a raw
-  passthrough of P9-001's `"REJECTED"`, is rejected as
-  `live_blocker_evidence_invalid_status_<slug>` and counted in
-  `humanReviewMissingReasonCodes`, never silently treated as reviewed)
-  and fails closed on a missing entry. But it does mean **a future
-  integration task will need explicit glue/mapping code** to convert a
-  real P9-001 `LiveBlockerEvidenceRegisterReview.blockers[]` array into
-  P9-003's `LiveBlockerEvidenceSummaryEntry[]` input shape — at minimum
-  mapping P9-001's `MISSING` and `REJECTED` (and, arguably,
-  `DUPLICATE`) statuses to something P9-003 can safely interpret (most
-  naturally: omit the entry entirely, so P9-003 reports it as missing,
-  or explicitly map it to `NOT_STARTED`, never to `HUMAN_REVIEWED`).
-  Until that glue code exists, P9-003's `liveBlockerEvidence` input must
-  be hand-constructed or supplied by some other adapter — it cannot yet
-  be wired directly to P9-001's real output. Flagging this as a
+  while P9-001's register-level status vocabulary also included
+  `"MISSING"`, `"REJECTED"`, and `"DUPLICATE"`. This was safe because it
+  failed closed, but it left unnecessary integration friction. A follow-up
+  change now imports the P9-001 register blocker status type and treats
+  `MISSING`, `REJECTED`, and `DUPLICATE` as explicit blocking preparation
+  states. None can become `HUMAN_REVIEWED`, and `RESOLVED` remains outside
+  the runtime status vocabulary. Flagging the original finding as a
   concrete follow-up item, not a blocker for Phase 9 round 1's own exit
   criteria (which only requires the two modules to each individually
   fail closed, which both do).
@@ -897,8 +870,8 @@ through `LCB-008` entries remain not-`RESOLVED` in that register (Phase
 9 does not touch that register's `Current Status` field at all; the
 register itself was confirmed byte-for-byte unchanged by this merge).
 The one concrete, non-blocking follow-up item this review surfaces is
-the P9-001/P9-003 evidence-vocabulary reconciliation noted above — a
-future integration task, not a re-run of Phase 9 round 1.
+the P9-001/P9-003 evidence-vocabulary reconciliation noted above — now
+closed by a follow-up integration fix, not a re-run of Phase 9 round 1.
 
 ### LCB-001..008 Status Summary (unchanged by Phase 9, per the canonical register)
 

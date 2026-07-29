@@ -1,5 +1,6 @@
 import type { DeploymentReadinessReport } from "../deployment/index.js";
 import type { BackupRestoreDrillReport } from "../backup-restore/index.js";
+import type { LiveBlockerEvidenceRegisterBlockerStatus } from "./live-blocker-evidence-intake.js";
 import type { SmallCapitalReadinessReport } from "./small-capital-readiness.js";
 
 /**
@@ -56,15 +57,11 @@ import type { SmallCapitalReadinessReport } from "./small-capital-readiness.js";
  *
  * Deliberate non-import of Engineer 1's (P9-001) in-flight module:
  *
- * `live-blocker-evidence-intake.ts` does not exist in this worktree and is
- * being built independently and concurrently by another engineer. Per
- * `docs/tasks/phase9_claude_worktree_tasks/P9-003_small_capital_enablement_gate.md`,
- * this gate accepts a plain, LOCALLY-DEFINED `LiveBlockerEvidenceSummaryEntry[]`
- * shape as an input parameter instead of importing that module. This keeps
- * this task fully independent and mergeable in either merge order. If the
- * shapes do not line up exactly after both branches merge, that mismatch is
- * expected and will be reconciled in a later, separately reviewed change —
- * it does not need to block this task.
+ * The gate consumes the P9-001 register-review status vocabulary as an
+ * input type only. This remains a one-way, no-side-effect dependency: P9-003
+ * never creates or upgrades evidence, never writes the blocker register, and
+ * never treats `MISSING`, `REJECTED`, or `DUPLICATE` as safe. Those statuses
+ * are explicitly mapped to blocking/not-started preparation states below.
  *
  * Deliberate non-import of Phase 8's `OperationsStatusSummary`:
  *
@@ -106,23 +103,21 @@ export const REQUIRED_LIVE_CAPABLE_BLOCKER_IDS = Object.freeze([
 export type RequiredLiveCapableBlockerId = (typeof REQUIRED_LIVE_CAPABLE_BLOCKER_IDS)[number];
 
 /**
- * Mirrors the register's `Status Values` section, restricted to the three
- * machine-checkable states a P9-001-shaped evidence-intake summary can
- * report. The register's own richer status vocabulary (`NOT_STARTED`,
- * `EVIDENCE_PENDING`, `UNVERIFIED`, `IN_REVIEW`, `BLOCKED`, `RESOLVED`) is
- * a human-maintained document field, not something this gate reads
- * directly; this narrower, machine-checkable vocabulary is what a P9-001
- * evidence-intake summary is expected to compute from it. There is
- * deliberately no `"RESOLVED"` member here: this gate never treats any
- * blocker as resolved, and no code path in this module can produce or
- * accept that value.
+ * Machine-checkable statuses this gate accepts from the P9-001 evidence
+ * intake layer, plus a local `NOT_STARTED` value for callers that have not
+ * yet run that layer. There is deliberately no `"RESOLVED"` member here:
+ * this gate never treats any blocker as resolved, and no code path in this
+ * module can produce or accept that value.
  */
 export const LIVE_BLOCKER_REVIEW_STATUSES = Object.freeze([
   "NOT_STARTED",
+  "MISSING",
+  "DUPLICATE",
+  "REJECTED",
   "READY_FOR_HUMAN_REVIEW",
   "HUMAN_REVIEWED"
 ] as const);
-export type LiveBlockerReviewStatus = (typeof LIVE_BLOCKER_REVIEW_STATUSES)[number];
+export type LiveBlockerReviewStatus = "NOT_STARTED" | LiveBlockerEvidenceRegisterBlockerStatus;
 
 /**
  * A single blocker's evidence-intake summary, shaped like a reasonable
@@ -552,8 +547,22 @@ function evaluateLiveBlockerEvidenceView(
       continue;
     }
 
-    if (entry.status === "NOT_STARTED") {
+    if (entry.status === "NOT_STARTED" || entry.status === "MISSING") {
       reasonCodes.add(`live_blocker_evidence_not_started_${slug}`);
+      notStartedBlockerIds.push(blockerId);
+      humanReviewMissingReasonCodes.push(`human_review_missing_${slug}`);
+      continue;
+    }
+
+    if (entry.status === "REJECTED") {
+      reasonCodes.add(`live_blocker_evidence_rejected_${slug}`);
+      notStartedBlockerIds.push(blockerId);
+      humanReviewMissingReasonCodes.push(`human_review_missing_${slug}`);
+      continue;
+    }
+
+    if (entry.status === "DUPLICATE") {
+      reasonCodes.add(`live_blocker_evidence_duplicate_entries_${slug}`);
       notStartedBlockerIds.push(blockerId);
       humanReviewMissingReasonCodes.push(`human_review_missing_${slug}`);
       continue;

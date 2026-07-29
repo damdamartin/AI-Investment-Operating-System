@@ -106,17 +106,21 @@ carry no dependency back on `live-readiness`, so this module imports those
 two types directly from `../deployment/index.js` and
 `../backup-restore/index.js` with no cycle risk.
 
-## Why The Live-Blocker Evidence Input Is A Locally-Defined Shape, Not An Import
+## Live-Blocker Evidence Input
 
-Engineer 1 (P9-001) is building `live-blocker-evidence-intake.ts` in
-parallel, and it does not exist in this worktree. Per
-`docs/tasks/phase9_claude_worktree_tasks/P9-003_small_capital_enablement_gate.md`,
-this gate accepts a plain, locally-defined `LiveBlockerEvidenceSummaryEntry[]`
-input parameter instead of importing that in-flight module, keeping both
-tasks independently mergeable in either order:
+The original P9-003 branch accepted a locally-defined
+`LiveBlockerEvidenceSummaryEntry[]` shape so it could run in parallel with
+P9-001. After merge, a follow-up integration fix aligned that shape with
+P9-001's actual register-level status vocabulary:
 
 ```ts
-type LiveBlockerReviewStatus = "NOT_STARTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED";
+type LiveBlockerReviewStatus =
+  | "NOT_STARTED"
+  | "MISSING"
+  | "DUPLICATE"
+  | "REJECTED"
+  | "READY_FOR_HUMAN_REVIEW"
+  | "HUMAN_REVIEWED";
 
 interface LiveBlockerEvidenceSummaryEntry {
   blockerId: string;             // one of "LCB-001".."LCB-008"
@@ -126,9 +130,9 @@ interface LiveBlockerEvidenceSummaryEntry {
 }
 ```
 
-If the real P9-001 output shape does not line up exactly with this after
-both branches merge, that mismatch is expected and will be reconciled in a
-later, separately reviewed change. It does not block this task.
+`MISSING`, `REJECTED`, and `DUPLICATE` are now explicitly accepted as
+known P9-001 outputs and converted into blocking preparation states. They
+are never treated as reviewed and never upgraded to `HUMAN_REVIEWED`.
 
 There is deliberately no `"RESOLVED"` member in `LiveBlockerReviewStatus`.
 This gate never treats any `LCB-*` blocker as resolved — resolution can
@@ -191,9 +195,14 @@ Otherwise, for each of `LCB-001`..`LCB-008` (fixed module constant,
 - An unrecognized `status` value blocks
   (`live_blocker_evidence_invalid_status_<id>`) rather than being trusted —
   this fails closed even if a caller widens the type at the JS boundary.
-- `status: "NOT_STARTED"` blocks
+- `status: "NOT_STARTED"` or `status: "MISSING"` blocks
   (`live_blocker_evidence_not_started_<id>`) — preparation cannot be called
   complete for a blocker no evidence-gathering has even begun on.
+- `status: "REJECTED"` blocks
+  (`live_blocker_evidence_rejected_<id>`).
+- `status: "DUPLICATE"` blocks
+  (`live_blocker_evidence_duplicate_entries_<id>`) exactly like duplicate
+  entries in the raw array.
 - `status: "READY_FOR_HUMAN_REVIEW"` does **not** block preparation
   readiness (evidence has been gathered; a human has not yet reviewed it —
   see "Preparation Readiness vs. Human-Review-Missing" below).
@@ -217,7 +226,7 @@ status). Requiring full `HUMAN_REVIEWED` status for every blocker before
 permanently, structurally `false` regardless of how much real preparation
 work is done — which would make the field useless as a preparation signal.
 
-Instead: `NOT_STARTED` blocks (evidence gathering has not even begun);
+Instead: `NOT_STARTED`, `MISSING`, `REJECTED`, and `DUPLICATE` block;
 `READY_FOR_HUMAN_REVIEW` and `HUMAN_REVIEWED` do not block preparation
 readiness. The separate `humanReviewMissingReasonCodes` array (and the
 matching `SmallCapitalEnablementLiveBlockerView.humanReviewMissingReasonCodes`)

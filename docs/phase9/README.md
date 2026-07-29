@@ -100,14 +100,10 @@ It is not approval for live trading. The human-only next steps remain
 exactly those already listed in
 `docs/phase7/live-capable-blocker-register.md` (`LCB-001` through
 `LCB-008`, none `RESOLVED`) — Phase 9 round 1 does not touch that
-register and introduces no new blocker of its own kind. One concrete,
-non-blocking follow-up item was surfaced by the review: P9-003's
-locally-defined `LiveBlockerEvidenceSummaryEntry` evidence-status
-vocabulary (`NOT_STARTED`/`READY_FOR_HUMAN_REVIEW`/`HUMAN_REVIEWED`)
-does not exactly match P9-001's real
-`LiveBlockerEvidenceStatus`/`LiveBlockerEvidenceRegisterBlockerStatus`
-vocabulary (`REJECTED`/`READY_FOR_HUMAN_REVIEW`/`HUMAN_REVIEWED`/
-`MISSING`/`DUPLICATE`) — both fail closed independently, so this is not
-a safety gap, but a future integration task will need explicit glue
-code to map P9-001's real evidence-register output into P9-003's input
-shape.
+register and introduces no new blocker of its own kind. The integration
+review surfaced a non-blocking P9-001/P9-003 evidence-status vocabulary
+gap; a follow-up commit closed it by teaching the enablement gate to
+accept P9-001's real register-review statuses. `MISSING`, `REJECTED`, and
+`DUPLICATE` now map to explicit blocking preparation states, never to
+`HUMAN_REVIEWED`, and `RESOLVED` remains rejected as an invalid runtime
+status.

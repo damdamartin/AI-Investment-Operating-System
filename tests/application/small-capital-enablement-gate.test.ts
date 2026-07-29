@@ -540,6 +540,42 @@ describe("evaluateSmallCapitalEnablementGate", () => {
       expect(report.readyForSmallCapitalPreparation).toBe(false);
     });
 
+    it("maps a P9-001 MISSING status to a safe not-started preparation block", () => {
+      const entries = readyForHumanReviewBlockerEvidence().map((entry) =>
+        entry.blockerId === "LCB-004" ? { ...entry, status: "MISSING" as const } : entry
+      );
+      const report = evaluateSmallCapitalEnablementGate({ ...fullyCleanInput(), liveBlockerEvidence: entries });
+
+      expect(report.blockingReasonCodes).toContain("live_blocker_evidence_not_started_lcb_004");
+      expect(report.blockingReasonCodes).not.toContain("live_blocker_evidence_invalid_status_lcb_004");
+      expect(report.liveBlockerEvidence.notStartedBlockerIds).toContain("LCB-004");
+      expect(report.readyForSmallCapitalPreparation).toBe(false);
+    });
+
+    it("maps a P9-001 REJECTED status to a safe rejected preparation block", () => {
+      const entries = readyForHumanReviewBlockerEvidence().map((entry) =>
+        entry.blockerId === "LCB-005" ? { ...entry, status: "REJECTED" as const } : entry
+      );
+      const report = evaluateSmallCapitalEnablementGate({ ...fullyCleanInput(), liveBlockerEvidence: entries });
+
+      expect(report.blockingReasonCodes).toContain("live_blocker_evidence_rejected_lcb_005");
+      expect(report.blockingReasonCodes).not.toContain("live_blocker_evidence_invalid_status_lcb_005");
+      expect(report.humanReviewMissingReasonCodes).toContain("human_review_missing_lcb_005");
+      expect(report.readyForSmallCapitalPreparation).toBe(false);
+    });
+
+    it("maps a P9-001 DUPLICATE status to a safe duplicate preparation block", () => {
+      const entries = readyForHumanReviewBlockerEvidence().map((entry) =>
+        entry.blockerId === "LCB-001" ? { ...entry, status: "DUPLICATE" as const } : entry
+      );
+      const report = evaluateSmallCapitalEnablementGate({ ...fullyCleanInput(), liveBlockerEvidence: entries });
+
+      expect(report.blockingReasonCodes).toContain("live_blocker_evidence_duplicate_entries_lcb_001");
+      expect(report.blockingReasonCodes).not.toContain("live_blocker_evidence_invalid_status_lcb_001");
+      expect(report.humanReviewMissingReasonCodes).toContain("human_review_missing_lcb_001");
+      expect(report.readyForSmallCapitalPreparation).toBe(false);
+    });
+
     it("does NOT block preparation readiness merely because a blocker is READY_FOR_HUMAN_REVIEW (not yet HUMAN_REVIEWED)", () => {
       const report = evaluateSmallCapitalEnablementGate({
         ...fullyCleanInput(),
