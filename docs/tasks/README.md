@@ -20,6 +20,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
   `docs/tasks/phase7_claude_worktree_tasks/README.md`
 - Phase 8 operations, dashboard, monitoring, and deployment readiness:
   `docs/tasks/phase8_claude_worktree_tasks/README.md`
+- Phase 9 small-capital live trading preparation:
+  `docs/tasks/phase9_claude_worktree_tasks/README.md`
 
 ## Phase 1: Foundation Tasks
 

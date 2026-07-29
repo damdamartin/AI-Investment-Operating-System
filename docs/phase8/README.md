@@ -108,3 +108,8 @@ human-only next steps remain exactly those already listed in
 `docs/phase7/live-capable-blocker-register.md` (`LCB-001` through
 `LCB-008`, none `RESOLVED`) — Phase 8 does not touch that register and
 introduces no new blocker of its own kind.
+
+The next planned task pack is Phase 9 round 1:
+`docs/tasks/phase9_claude_worktree_tasks/README.md`. It turns the
+human-only live blockers into evidence intake, preflight, and enablement
+gates while still forbidding any callable broker-write implementation.
