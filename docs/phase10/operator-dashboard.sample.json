@@ -3,8 +3,8 @@
   "liveBrokerWriteAllowed": false,
   "account": {
     "tossState": "읽기 전용",
+    "broker": "토스증권",
     "accountRef": "masked",
-    "cashPolicy": "수익 보호 현금 분리 전",
     "liveOrder": "차단"
   },
   "signals": [
