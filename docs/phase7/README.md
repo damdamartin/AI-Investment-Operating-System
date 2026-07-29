@@ -97,8 +97,12 @@ auto-populated by AI, `.env`/local Phase 5 receipts remain untouched,
 small-capital readiness is fully specified but not enabled anywhere, and
 future implementation blockers are explicit
 (`docs/phase7/live-capable-blocker-register.md`, `LCB-001` through
-`LCB-008`, none `RESOLVED`). `npm run check` passes (84 test files, 745
-tests on the P7-004 review branch after merging `main`).
+`LCB-008`, none `RESOLVED`). A follow-up test commit
+(`85e4d3d Verify small-capital readiness with Phase 6 signals`) also
+proves `evaluateSmallCapitalReadiness` consumes actual Phase 6
+reconciliation, kill-switch, dashboard, and broker-write guard outputs
+without adding any runtime dependency or broker-write path. `npm run
+check` passes (84 test files, 748 tests after that follow-up).
 
 As stated above, this completion is not approval for live trading. Every
 blocker in the register remains a human-only next step for a later,

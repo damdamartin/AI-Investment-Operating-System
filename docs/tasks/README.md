@@ -18,6 +18,8 @@ Each task is intentionally narrow. A Claude Code session should read the task fi
   `docs/tasks/phase6_claude_worktree_tasks/README.md`
 - Phase 7 live-capable design readiness:
   `docs/tasks/phase7_claude_worktree_tasks/README.md`
+- Phase 8 operations, dashboard, monitoring, and deployment readiness:
+  `docs/tasks/phase8_claude_worktree_tasks/README.md`
 
 ## Phase 1: Foundation Tasks
 
