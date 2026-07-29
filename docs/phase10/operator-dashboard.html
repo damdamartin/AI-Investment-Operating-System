@@ -3,22 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Investment OS Phase 10 Operator Dashboard</title>
+    <title>AI Investment OS Operator Dashboard</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f7f8fa;
+        --bg: #f5f7fa;
         --panel: #ffffff;
-        --panel-2: #f0f3f7;
-        --text: #1d2430;
-        --muted: #637083;
-        --line: #d8dee8;
-        --strong: #0f1722;
+        --ink: #17202f;
+        --muted: #667386;
+        --line: #d9e0ea;
+        --soft: #eef2f6;
         --blue: #1f66d1;
         --green: #087a4b;
-        --amber: #9a5b00;
+        --amber: #946200;
         --red: #b42318;
-        --shadow: 0 10px 26px rgba(18, 31, 49, 0.08);
+        --violet: #6d3fd1;
+        --shadow: 0 12px 28px rgba(20, 32, 52, 0.08);
       }
 
       * {
@@ -28,11 +28,18 @@
       body {
         margin: 0;
         background: var(--bg);
-        color: var(--text);
+        color: var(--ink);
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
         letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
       }
 
       a {
@@ -44,89 +51,79 @@
         text-decoration: underline;
       }
 
-      button,
-      select,
-      input,
-      textarea {
-        font: inherit;
-      }
-
-      .app {
+      .shell {
         min-height: 100vh;
         display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
+        grid-template-columns: 260px minmax(0, 1fr);
       }
 
-      .side {
+      .sidebar {
         position: sticky;
         top: 0;
         height: 100vh;
-        padding: 20px 16px;
-        border-right: 1px solid var(--line);
-        background: #111827;
-        color: #f8fafc;
+        padding: 18px 14px;
+        background: #121926;
+        color: #eef4ff;
       }
 
       .brand {
-        margin-bottom: 22px;
-        padding-bottom: 18px;
+        padding: 8px 8px 18px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.14);
       }
 
       .brand h1 {
         margin: 0;
-        font-size: 20px;
-        line-height: 1.2;
-        letter-spacing: 0;
+        font-size: 19px;
+        line-height: 1.25;
       }
 
       .brand p {
-        margin: 8px 0 0;
-        color: #cbd5e1;
-        font-size: 13px;
-        line-height: 1.45;
+        margin: 7px 0 0;
+        color: #bdc9d9;
+        font-size: 12px;
+        line-height: 1.4;
       }
 
       .nav {
         display: grid;
-        gap: 8px;
+        gap: 6px;
+        margin-top: 18px;
       }
 
       .nav button {
-        width: 100%;
         min-height: 40px;
         border: 0;
         border-radius: 8px;
         padding: 9px 11px;
         background: transparent;
-        color: #cbd5e1;
+        color: #cbd7e7;
         text-align: left;
         cursor: pointer;
       }
 
       .nav button[aria-selected="true"] {
-        background: #243042;
+        background: #243143;
         color: #ffffff;
       }
 
-      .side-status {
-        margin-top: 24px;
-        padding: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.13);
+      .lock-panel {
+        margin-top: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 8px;
+        padding: 13px;
         background: rgba(255, 255, 255, 0.05);
       }
 
-      .side-status .label {
-        color: #cbd5e1;
+      .lock-panel .eyebrow {
+        color: #bdc9d9;
         font-size: 12px;
       }
 
-      .side-status .value {
-        margin-top: 6px;
+      .lock-panel strong {
+        display: block;
+        margin-top: 5px;
         color: #fecaca;
-        font-size: 14px;
-        font-weight: 700;
+        font-size: 15px;
       }
 
       main {
@@ -143,14 +140,13 @@
         gap: 16px;
         padding: 18px 28px;
         border-bottom: 1px solid var(--line);
-        background: rgba(247, 248, 250, 0.92);
+        background: rgba(245, 247, 250, 0.94);
         backdrop-filter: blur(12px);
       }
 
       .topbar h2 {
         margin: 0;
         font-size: 22px;
-        color: var(--strong);
       }
 
       .topbar p {
@@ -159,7 +155,7 @@
         font-size: 13px;
       }
 
-      .actions {
+      .toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -171,8 +167,8 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 8px 12px;
-        background: var(--panel);
-        color: var(--text);
+        background: #ffffff;
+        color: var(--ink);
         cursor: pointer;
         white-space: nowrap;
       }
@@ -184,147 +180,297 @@
       }
 
       .button.danger {
-        border-color: #f4b5ad;
+        border-color: #f0b5ad;
         color: var(--red);
       }
 
       .content {
-        padding: 24px 28px 36px;
         display: grid;
         gap: 18px;
+        padding: 24px 28px 38px;
       }
 
-      .band {
+      .panel {
         border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--panel);
         box-shadow: var(--shadow);
       }
 
-      .summary {
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .status-card {
+        padding: 20px;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .mode {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        border-radius: 999px;
+        padding: 6px 11px;
+        background: #fff0ee;
+        color: var(--red);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .status-card h3 {
+        margin: 16px 0 8px;
+        font-size: 30px;
+        line-height: 1.15;
+      }
+
+      .status-card p {
+        max-width: 740px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .next-actions {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .action-card {
+        min-height: 96px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 13px;
+        background: #fbfcfe;
+      }
+
+      .action-card strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .action-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .readiness {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .readiness h3,
+      .section h3 {
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .meter {
+        height: 12px;
+        border-radius: 999px;
+        background: #e9eef5;
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: var(--green);
+      }
+
+      .readiness-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 12px;
       }
 
-      .metric {
-        padding: 16px;
-        min-height: 104px;
+      .mini {
+        min-height: 106px;
+        padding: 15px;
       }
 
-      .metric .num {
-        margin-top: 8px;
-        font-size: 30px;
-        font-weight: 800;
-        color: var(--strong);
-      }
-
-      .metric .caption {
+      .mini .label {
         color: var(--muted);
-        font-size: 13px;
-        line-height: 1.35;
+        font-size: 12px;
       }
 
-      .alert {
-        padding: 16px 18px;
-        border-color: #f2c2bd;
-        background: #fff7f6;
-        color: #661c14;
-      }
-
-      .alert strong {
+      .mini strong {
         display: block;
-        margin-bottom: 6px;
-        color: var(--red);
+        margin-top: 8px;
+        font-size: 21px;
       }
 
-      .grid {
+      .mini .hint {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .columns {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 390px;
+        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
         gap: 18px;
         align-items: start;
       }
 
-      .blocker-list {
-        display: grid;
-        gap: 10px;
+      .section {
+        padding: 18px;
       }
 
-      .blocker {
-        display: grid;
-        grid-template-columns: 96px minmax(0, 1fr) 176px;
-        gap: 14px;
+      .section-head {
+        display: flex;
         align-items: center;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
       }
 
-      .blocker-id {
-        font-weight: 800;
-        color: var(--strong);
-      }
-
-      .blocker-title {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-      }
-
-      .blocker-owner {
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .status {
+      .tag {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        min-height: 30px;
+        min-height: 28px;
         border-radius: 999px;
-        padding: 5px 10px;
+        padding: 5px 9px;
+        background: var(--soft);
+        color: var(--muted);
         font-size: 12px;
         font-weight: 800;
       }
 
-      .status.not-started,
-      .status.needs {
-        background: #fff4df;
-        color: var(--amber);
-      }
-
-      .status.ready {
-        background: #eaf2ff;
-        color: var(--blue);
-      }
-
-      .status.reviewed {
+      .tag.green {
         background: #e8f6ef;
         color: var(--green);
       }
 
-      .status.rejected,
-      .status.unverified {
+      .tag.amber {
+        background: #fff4df;
+        color: var(--amber);
+      }
+
+      .tag.red {
         background: #fff0ee;
         color: var(--red);
       }
 
-      .detail {
-        padding: 18px;
+      .list {
+        display: grid;
+        gap: 10px;
       }
 
-      .detail h3 {
-        margin: 0 0 4px;
-        color: var(--strong);
-        font-size: 18px;
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
       }
 
-      .detail .meta {
-        margin: 0 0 16px;
+      .row strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .row span {
+        display: block;
+        margin-top: 4px;
         color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .signal-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+      }
+
+      .signal-table th,
+      .signal-table td {
+        padding: 11px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
         font-size: 13px;
+      }
+
+      .signal-table th {
+        color: var(--muted);
+        font-weight: 800;
+        background: var(--soft);
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .blocker-board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .blocker {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .blocker button {
+        width: 100%;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .blocker .id {
+        font-size: 12px;
+        font-weight: 900;
+        color: var(--blue);
+      }
+
+      .blocker h4 {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+
+      .blocker p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
       }
 
       .form-grid {
@@ -335,9 +481,9 @@
       label {
         display: grid;
         gap: 6px;
-        color: var(--strong);
+        color: var(--ink);
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
       }
 
       input,
@@ -348,67 +494,42 @@
         border-radius: 8px;
         padding: 9px 10px;
         background: #ffffff;
-        color: var(--text);
+        color: var(--ink);
       }
 
       textarea {
-        min-height: 88px;
+        min-height: 86px;
         resize: vertical;
       }
 
-      .hint {
+      .help {
         color: var(--muted);
         font-size: 12px;
         line-height: 1.45;
       }
 
-      .template-links {
+      .template-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
 
-      .template-links a {
+      .template-grid a {
         display: block;
-        min-height: 54px;
+        min-height: 72px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
-        background: var(--panel);
-        font-weight: 700;
+        padding: 13px;
+        background: #fbfcfe;
+        font-weight: 800;
       }
 
-      .template-links span {
+      .template-grid span {
         display: block;
-        margin-top: 4px;
+        margin-top: 5px;
         color: var(--muted);
         font-size: 12px;
         font-weight: 500;
-      }
-
-      .table-wrap {
-        overflow: auto;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 720px;
-      }
-
-      th,
-      td {
-        padding: 11px 12px;
-        border-bottom: 1px solid var(--line);
-        text-align: left;
-        vertical-align: top;
-        font-size: 13px;
-      }
-
-      th {
-        color: var(--muted);
-        font-weight: 800;
-        background: var(--panel-2);
       }
 
       .hidden {
@@ -419,33 +540,37 @@
         position: fixed;
         right: 24px;
         bottom: 24px;
-        z-index: 10;
+        z-index: 20;
         max-width: 360px;
-        border: 1px solid var(--line);
         border-radius: 8px;
         padding: 12px 14px;
-        background: #111827;
+        background: #121926;
         color: #ffffff;
         box-shadow: var(--shadow);
       }
 
-      @media (max-width: 980px) {
-        .app {
+      @media (max-width: 1080px) {
+        .hero,
+        .columns,
+        .readiness-grid {
           grid-template-columns: 1fr;
         }
 
-        .side {
-          position: relative;
-          height: auto;
-        }
-
-        .summary,
-        .grid {
+        .next-actions {
           grid-template-columns: 1fr;
         }
       }
 
-      @media (max-width: 680px) {
+      @media (max-width: 820px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: relative;
+          height: auto;
+        }
+
         .topbar {
           align-items: stretch;
           flex-direction: column;
@@ -456,105 +581,249 @@
           padding: 16px;
         }
 
-        .blocker {
-          grid-template-columns: 1fr;
-        }
-
-        .template-links {
+        .blocker-board,
+        .template-grid {
           grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <div class="app">
-      <aside class="side">
+    <div class="shell">
+      <aside class="sidebar">
         <div class="brand">
           <h1>AI Investment OS</h1>
-          <p>Phase 10 human evidence dashboard</p>
+          <p>운영자가 보는 투자 운영 대시보드</p>
         </div>
         <nav class="nav" aria-label="Dashboard sections">
-          <button type="button" data-view="overview" aria-selected="true">상태 개요</button>
+          <button type="button" data-view="home" aria-selected="true">운영 홈</button>
+          <button type="button" data-view="signals">AI 후보</button>
+          <button type="button" data-view="safety">안전조건</button>
           <button type="button" data-view="evidence">증거 입력</button>
-          <button type="button" data-view="templates">템플릿 열기</button>
-          <button type="button" data-view="export">내보내기</button>
+          <button type="button" data-view="templates">문서 / 템플릿</button>
         </nav>
-        <div class="side-status">
-          <div class="label">실거래 상태</div>
-          <div class="value">차단됨</div>
-          <div class="hint">주문, 취소, 정정, 이체, 환전 기능 없음</div>
+        <div class="lock-panel">
+          <div class="eyebrow">실거래 잠금</div>
+          <strong>켜짐</strong>
+          <p class="help">주문 기능은 아직 없습니다.</p>
         </div>
       </aside>
 
       <main>
         <header class="topbar">
           <div>
-            <h2 id="pageTitle">상태 개요</h2>
-            <p>LCB-001부터 LCB-008까지 사람이 채워야 할 증거를 한 화면에서 봅니다.</p>
+            <h2 id="pageTitle">운영 홈</h2>
+            <p>계좌, AI 후보, Paper 운영, 안전조건을 한 화면에서 확인합니다.</p>
           </div>
-          <div class="actions">
+          <div class="toolbar">
             <button class="button" type="button" id="saveButton">저장</button>
-            <button class="button" type="button" id="downloadButton">JSON 내보내기</button>
+            <button class="button primary" type="button" id="downloadButton">리포트 내보내기</button>
             <button class="button danger" type="button" id="resetButton">초기화</button>
           </div>
         </header>
 
-        <section class="content" id="overviewView">
-          <div class="band alert">
-            <strong>아직 실거래 불가</strong>
-            이 화면은 사람이 검토할 증거를 정리하는 도구입니다. Toss 주문 생성, 주문취소,
-            주문정정, 이체, 환전, 실제 API 호출 기능은 없습니다.
-          </div>
-
-          <div class="summary">
-            <div class="band metric">
-              <div class="caption">전체 blocker</div>
-              <div class="num">8</div>
-              <div class="caption">LCB-001 ~ LCB-008</div>
-            </div>
-            <div class="band metric">
-              <div class="caption">사람 검토 완료</div>
-              <div class="num" id="reviewedCount">0</div>
-              <div class="caption">브라우저 로컬 입력 기준</div>
-            </div>
-            <div class="band metric">
-              <div class="caption">아직 남음</div>
-              <div class="num" id="remainingCount">8</div>
-              <div class="caption">완료 전 실거래 차단</div>
-            </div>
-            <div class="band metric">
-              <div class="caption">liveBrokerWriteAllowed</div>
-              <div class="num">false</div>
-              <div class="caption">항상 false로 표시</div>
-            </div>
-          </div>
-
-          <div class="grid">
-            <div>
-              <div class="blocker-list" id="blockerList"></div>
-            </div>
-            <aside class="band detail">
-              <h3 id="selectedTitle">LCB-001</h3>
-              <p class="meta" id="selectedMeta"></p>
-              <div id="selectedDescription" class="hint"></div>
-              <hr />
-              <p class="hint">
-                각 항목을 누르면 오른쪽에 설명이 보입니다. 실제 결정은 사람이 템플릿을
-                채운 뒤 blocker register를 직접 업데이트해야 합니다.
+        <section class="content" id="homeView">
+          <div class="hero">
+            <div class="panel status-card">
+              <div class="status-row">
+                <span class="mode"><span class="dot"></span>실거래 잠금 상태</span>
+                <span class="tag red">liveBrokerWriteAllowed: false</span>
+              </div>
+              <h3>지금은 읽기 전용 / Paper 운영 준비 단계입니다.</h3>
+              <p>
+                이 화면은 실제 돈을 움직이는 화면이 아닙니다. 계좌 상태와 전략 후보를 볼 수
+                있게 준비하고, 실거래로 넘어가기 전에 사람이 확인해야 할 8개 조건을 한눈에
+                보여주는 운영 화면입니다.
               </p>
-            </aside>
+              <div class="next-actions">
+                <div class="action-card">
+                  <strong>1. 계좌 읽기 확인</strong>
+                  <span>Phase 5에서 검증한 read-only 연결과 sanitized evidence를 확인합니다.</span>
+                </div>
+                <div class="action-card">
+                  <strong>2. AI 후보 검토</strong>
+                  <span>추천이 아니라 후보입니다. 주문 버튼 없이 Paper 검토로만 이어집니다.</span>
+                </div>
+                <div class="action-card">
+                  <strong>3. 안전조건 채우기</strong>
+                  <span>LCB-001~008이 모두 사람 검토되기 전 실거래 개발은 멈춥니다.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel readiness">
+              <h3>실거래 준비율</h3>
+              <div class="meter" aria-label="Readiness progress">
+                <span id="readinessBar"></span>
+              </div>
+              <div class="help" id="readinessText">0 / 8 human blockers reviewed</div>
+              <div class="row">
+                <div>
+                  <strong>다음으로 할 일</strong>
+                  <span id="nextTask">LCB-001 Toss 자동매매 권한 확인</span>
+                </div>
+                <span class="tag amber">사람 필요</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="readiness-grid">
+            <div class="panel mini">
+              <div class="label">Toss 연결</div>
+              <strong>읽기 전용</strong>
+              <div class="hint">실제 주문 API 호출 없음</div>
+            </div>
+            <div class="panel mini">
+              <div class="label">Paper 운영</div>
+              <strong>가능</strong>
+              <div class="hint">시뮬레이션 경로만 허용</div>
+            </div>
+            <div class="panel mini">
+              <div class="label">실거래 주문</div>
+              <strong>차단</strong>
+              <div class="hint">write adapter 없음</div>
+            </div>
+            <div class="panel mini">
+              <div class="label">사람 검토</div>
+              <strong id="reviewedMini">0 / 8</strong>
+              <div class="hint">브라우저 로컬 입력 기준</div>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="panel section">
+              <div class="section-head">
+                <h3>오늘의 운영 큐</h3>
+                <span class="tag amber">실행 전 검토</span>
+              </div>
+              <div class="list" id="taskList"></div>
+            </div>
+
+            <div class="panel section">
+              <div class="section-head">
+                <h3>계좌 요약</h3>
+                <span class="tag">민감값 숨김</span>
+              </div>
+              <div class="list">
+                <div class="row">
+                  <div>
+                    <strong>계좌 식별자</strong>
+                    <span>화면에 표시하지 않음</span>
+                  </div>
+                  <span class="tag green">masked</span>
+                </div>
+                <div class="row">
+                  <div>
+                    <strong>잔고 / 보유수량</strong>
+                    <span>raw 값 표시 금지. sanitized evidence만 사용</span>
+                  </div>
+                  <span class="tag">hidden</span>
+                </div>
+                <div class="row">
+                  <div>
+                    <strong>주문 가능 여부</strong>
+                    <span>LCB-001~008 완료 전 차단</span>
+                  </div>
+                  <span class="tag red">blocked</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="content hidden" id="signalsView">
+          <div class="panel section">
+            <div class="section-head">
+              <h3>AI 관심 후보</h3>
+              <span class="tag amber">주문 아님</span>
+            </div>
+            <div class="table-wrap">
+              <table class="signal-table">
+                <thead>
+                  <tr>
+                    <th>후보</th>
+                    <th>상태</th>
+                    <th>근거</th>
+                    <th>다음 행동</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>전략 후보 A</td>
+                    <td><span class="tag">대기</span></td>
+                    <td>시장/뉴스/리스크 점수 연결 예정</td>
+                    <td>Paper 검토만 가능</td>
+                  </tr>
+                  <tr>
+                    <td>전략 후보 B</td>
+                    <td><span class="tag">대기</span></td>
+                    <td>백테스트와 walk-forward 결과 연결 예정</td>
+                    <td>실주문 불가</td>
+                  </tr>
+                  <tr>
+                    <td>전략 후보 C</td>
+                    <td><span class="tag">대기</span></td>
+                    <td>운영 대시보드 데이터 연결 전 placeholder</td>
+                    <td>증거 채우기 먼저</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel section">
+            <h3>왜 후보만 보이나요?</h3>
+            <p class="help">
+              아직 실거래 조건이 닫히지 않았기 때문에 매수/매도 버튼은 만들지 않았습니다.
+              이 영역은 나중에 전략 점수, 뉴스 분석, Paper 결과가 연결될 자리입니다.
+            </p>
+          </div>
+        </section>
+
+        <section class="content hidden" id="safetyView">
+          <div class="columns">
+            <div class="panel section">
+              <div class="section-head">
+                <h3>안전조건 보드</h3>
+                <span class="tag red">미완료 시 실거래 차단</span>
+              </div>
+              <div class="blocker-board" id="blockerBoard"></div>
+            </div>
+            <div class="panel section">
+              <h3 id="selectedBlockerTitle">LCB-001</h3>
+              <p class="help" id="selectedBlockerDescription"></p>
+              <div class="list" style="margin-top: 14px">
+                <div class="row">
+                  <div>
+                    <strong>담당</strong>
+                    <span id="selectedBlockerOwner"></span>
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <strong>템플릿</strong>
+                    <span><a id="selectedTemplateLink" href="#">열기</a></span>
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <strong>현재 입력 상태</strong>
+                    <span id="selectedBlockerStatus"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         <section class="content hidden" id="evidenceView">
-          <div class="band detail">
-            <h3>증거 입력</h3>
-            <p class="meta">
-              입력값은 이 브라우저의 localStorage에만 저장됩니다. 민감정보는 입력하지 마세요.
-            </p>
+          <div class="panel section">
+            <div class="section-head">
+              <h3>사람 검토 메모</h3>
+              <span class="tag">localStorage</span>
+            </div>
             <div class="form-grid">
               <label>
-                Blocker 선택
+                Blocker
                 <select id="blockerSelect"></select>
               </label>
               <label>
@@ -572,7 +841,7 @@
               </label>
               <label>
                 사람 reviewer 이름
-                <input id="reviewerName" autocomplete="off" placeholder="사람 이름만 입력" />
+                <input id="reviewerName" autocomplete="off" placeholder="AI가 아니라 사람 이름" />
               </label>
               <label>
                 reviewer 역할
@@ -592,21 +861,23 @@
               </label>
               <label>
                 사람 결정 문장
-                <textarea id="humanDecision" placeholder="AI 문장이 아니라 사람이 직접 작성"></textarea>
+                <textarea id="humanDecision" placeholder="사람이 직접 작성. AI 문장은 승인으로 인정하지 않음"></textarea>
               </label>
-              <div class="hint">
+              <p class="help">
                 금지: API 키, client secret, token, 계좌번호, 잔고, 보유수량, raw broker payload,
                 .env 내용, tmp/phase5 receipt 내용.
-              </div>
+              </p>
             </div>
           </div>
         </section>
 
         <section class="content hidden" id="templatesView">
-          <div class="band detail">
-            <h3>템플릿 열기</h3>
-            <p class="meta">각 파일은 빈 양식입니다. 사람이 직접 채운 별도 사본을 만들어 사용하세요.</p>
-            <div class="template-links">
+          <div class="panel section">
+            <div class="section-head">
+              <h3>문서 / 템플릿</h3>
+              <span class="tag">사람 작성용</span>
+            </div>
+            <div class="template-grid">
               <a href="human-evidence-templates/toss-compliance-template.md">
                 Toss / Compliance
                 <span>LCB-001, LCB-005</span>
@@ -634,102 +905,86 @@
             </div>
           </div>
         </section>
-
-        <section class="content hidden" id="exportView">
-          <div class="band detail">
-            <h3>내보내기 미리보기</h3>
-            <p class="meta">
-              아래 JSON은 브라우저 로컬 입력의 sanitized draft입니다. 이것만으로 승인되지 않습니다.
-            </p>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>상태</th>
-                    <th>Reviewer</th>
-                    <th>검토일</th>
-                    <th>제한사항</th>
-                  </tr>
-                </thead>
-                <tbody id="exportRows"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
       </main>
     </div>
 
     <div id="toast" class="toast hidden" role="status"></div>
 
     <script>
-      const STORAGE_KEY = "aios.phase10.operatorEvidenceDraft.v1";
+      const STORAGE_KEY = "aios.phase10.operatorDashboard.v2";
 
       const blockers = [
         {
           id: "LCB-001",
           title: "Toss 자동매매 권한",
           owner: "Compliance/legal reviewer",
-          template: "toss-compliance-template.md",
+          template: "human-evidence-templates/toss-compliance-template.md",
           description:
-            "Toss가 API 기반 자동매매를 허용하는지 사람이 공식 문서나 support confirmation으로 확인해야 합니다."
+            "Toss가 API 기반 자동매매를 허용하는지 공식 문서나 support confirmation으로 확인해야 합니다."
         },
         {
           id: "LCB-002",
           title: "계좌 권한과 기능",
           owner: "Operator + compliance reviewer",
-          template: "account-provisioning-template.md",
+          template: "human-evidence-templates/account-provisioning-template.md",
           description:
             "read-only 계좌/권한 검증 결과와 broker account blocking condition 8개를 사람이 확인해야 합니다."
         },
         {
           id: "LCB-003",
-          title: "프로덕션 credential 프로비저닝",
+          title: "credential 프로비저닝",
           owner: "Infrastructure/security reviewer",
-          template: "account-provisioning-template.md",
+          template: "human-evidence-templates/account-provisioning-template.md",
           description:
-            "credential 값이 아니라 저장 위치, 접근권한, rotation, audit process를 사람이 문서화해야 합니다."
+            "credential 값이 아니라 저장 위치, 접근권한, rotation, audit process를 문서화해야 합니다."
         },
         {
           id: "LCB-004",
           title: "명시적 사람 승인",
           owner: "Project owner/operator",
-          template: "owner-risk-template.md",
+          template: "human-evidence-templates/owner-risk-template.md",
           description:
-            "프로젝트 owner가 잔여 리스크를 이해하고 승인 의사를 직접 작성해야 합니다. AI 문장은 승인으로 인정되지 않습니다."
+            "프로젝트 owner가 잔여 리스크를 이해하고 승인 의사를 직접 작성해야 합니다."
         },
         {
           id: "LCB-005",
-          title: "컴플라이언스 / 법무 검토",
+          title: "컴플라이언스 / 법무",
           owner: "Compliance/legal reviewer",
-          template: "toss-compliance-template.md",
+          template: "human-evidence-templates/toss-compliance-template.md",
           description:
-            "Toss 약관, 계좌 권한, 데이터 라이선스, AI 데이터 처리, 세금 기록, 개인 사용 범위를 사람이 검토해야 합니다."
+            "약관, 계좌 권한, 데이터 라이선스, AI 데이터 처리, 세금 기록, 개인 사용 범위를 검토해야 합니다."
         },
         {
           id: "LCB-006",
           title: "소액 운용 한도",
           owner: "Risk owner/operator",
-          template: "owner-risk-template.md",
+          template: "human-evidence-templates/owner-risk-template.md",
           description:
             "총자본, 1회 주문 한도, 전략 범위, limit-order-only, stop criteria를 사람이 직접 정해야 합니다."
         },
         {
           id: "LCB-007",
-          title: "kill-switch / rollback",
+          title: "비상정지 / 복구",
           owner: "Engineering safety reviewer + operator",
-          template: "live-safety-review-template.md",
+          template: "human-evidence-templates/live-safety-review-template.md",
           description:
-            "실거래 맥락의 kill-switch, rollback, reconciliation 리허설을 사람이 검토하고 기록해야 합니다."
+            "실거래 맥락의 kill-switch, rollback, reconciliation 리허설을 기록해야 합니다."
         },
         {
           id: "LCB-008",
-          title: "미래 write adapter 독립 리뷰",
+          title: "미래 write adapter 리뷰",
           owner: "Independent senior reviewer",
-          template: "live-safety-review-template.md",
+          template: "human-evidence-templates/live-safety-review-template.md",
           description:
-            "실제 write adapter가 나중에 만들어진 뒤 독립 리뷰가 필요합니다. 지금 이 화면은 그 리뷰를 대체하지 않습니다."
+            "실제 write adapter가 나중에 만들어진 뒤 독립 리뷰가 필요합니다."
         }
+      ];
+
+      const tasks = [
+        ["Toss 자동매매 허용 여부 확인", "LCB-001과 LCB-005가 최우선입니다.", "사람 필요"],
+        ["read-only 계좌 권한 evidence 확인", "계좌번호나 raw payload는 입력하지 않습니다.", "읽기 전용"],
+        ["소액 운용 한도 초안 작성", "숫자는 AI가 정하지 않고 사람이 직접 정합니다.", "대기"],
+        ["Paper 후보 검토", "실주문이 아니라 시뮬레이션 검토입니다.", "가능"]
       ];
 
       const emptyEntry = () => ({
@@ -760,11 +1015,6 @@
         }
       }
 
-      function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
-        showToast("저장했습니다. 이 데이터는 현재 브라우저에만 있습니다.");
-      }
-
       function showToast(message) {
         const toast = document.getElementById("toast");
         toast.textContent = message;
@@ -773,12 +1023,10 @@
       }
 
       function statusClass(status) {
-        if (status === "READY_FOR_HUMAN_REVIEW") return "ready";
-        if (status.startsWith("HUMAN_REVIEWED_APPROVED")) return "reviewed";
-        if (status.endsWith("REJECTED")) return "rejected";
-        if (status.endsWith("UNVERIFIED")) return "unverified";
-        if (status === "NEEDS_MORE_EVIDENCE") return "needs";
-        return "not-started";
+        if (status === "READY_FOR_HUMAN_REVIEW") return "amber";
+        if (status.startsWith("HUMAN_REVIEWED_APPROVED")) return "green";
+        if (status.endsWith("REJECTED") || status.endsWith("UNVERIFIED")) return "red";
+        return "";
       }
 
       function isReviewed(status) {
@@ -786,43 +1034,79 @@
       }
 
       function render() {
+        renderProgress();
+        renderTasks();
         renderBlockers();
         renderForm();
-        renderExport();
+      }
+
+      function renderProgress() {
         const reviewed = blockers.filter((blocker) => isReviewed(state[blocker.id].status)).length;
-        document.getElementById("reviewedCount").textContent = String(reviewed);
-        document.getElementById("remainingCount").textContent = String(blockers.length - reviewed);
+        const percent = Math.round((reviewed / blockers.length) * 100);
+        document.getElementById("readinessBar").style.width = `${percent}%`;
+        document.getElementById("readinessText").textContent =
+          `${reviewed} / ${blockers.length} human blockers reviewed`;
+        document.getElementById("reviewedMini").textContent = `${reviewed} / ${blockers.length}`;
+        const next = blockers.find((blocker) => !isReviewed(state[blocker.id].status));
+        document.getElementById("nextTask").textContent = next
+          ? `${next.id} ${next.title}`
+          : "사람 검토 결과를 blocker register에 직접 기록";
+      }
+
+      function renderTasks() {
+        const list = document.getElementById("taskList");
+        list.innerHTML = tasks
+          .map(
+            ([title, body, tag]) => `
+              <div class="row">
+                <div>
+                  <strong>${title}</strong>
+                  <span>${body}</span>
+                </div>
+                <span class="tag amber">${tag}</span>
+              </div>
+            `
+          )
+          .join("");
       }
 
       function renderBlockers() {
-        const list = document.getElementById("blockerList");
-        list.innerHTML = "";
-        blockers.forEach((blocker) => {
-          const entry = state[blocker.id];
-          const row = document.createElement("button");
-          row.type = "button";
-          row.className = "blocker";
-          row.addEventListener("click", () => {
-            selectedId = blocker.id;
-            renderSelected(blocker);
+        const board = document.getElementById("blockerBoard");
+        board.innerHTML = blockers
+          .map((blocker) => {
+            const entry = state[blocker.id];
+            return `
+              <div class="blocker">
+                <button type="button" data-blocker-id="${blocker.id}">
+                  <div class="id">${blocker.id}</div>
+                  <h4>${blocker.title}</h4>
+                  <p>${blocker.owner}</p>
+                  <span class="tag ${statusClass(entry.status)}" style="margin-top: 10px">${entry.status}</span>
+                </button>
+              </div>
+            `;
+          })
+          .join("");
+        board.querySelectorAll("[data-blocker-id]").forEach((button) => {
+          button.addEventListener("click", () => {
+            selectedId = button.dataset.blockerId;
+            renderSelectedBlocker();
+            renderForm();
           });
-          row.innerHTML = `
-            <div class="blocker-id">${blocker.id}</div>
-            <div>
-              <p class="blocker-title">${blocker.title}</p>
-              <div class="blocker-owner">${blocker.owner}</div>
-            </div>
-            <span class="status ${statusClass(entry.status)}">${entry.status}</span>
-          `;
-          list.appendChild(row);
         });
-        renderSelected(blockers.find((blocker) => blocker.id === selectedId) || blockers[0]);
+        renderSelectedBlocker();
       }
 
-      function renderSelected(blocker) {
-        document.getElementById("selectedTitle").textContent = `${blocker.id} ${blocker.title}`;
-        document.getElementById("selectedMeta").textContent = `${blocker.owner} · ${blocker.template}`;
-        document.getElementById("selectedDescription").textContent = blocker.description;
+      function renderSelectedBlocker() {
+        const blocker = blockers.find((item) => item.id === selectedId) || blockers[0];
+        const entry = state[blocker.id];
+        document.getElementById("selectedBlockerTitle").textContent = `${blocker.id} ${blocker.title}`;
+        document.getElementById("selectedBlockerDescription").textContent = blocker.description;
+        document.getElementById("selectedBlockerOwner").textContent = blocker.owner;
+        document.getElementById("selectedBlockerStatus").textContent = entry.status;
+        const link = document.getElementById("selectedTemplateLink");
+        link.href = blocker.template;
+        link.textContent = blocker.template;
       }
 
       function renderForm() {
@@ -846,45 +1130,29 @@
         document.getElementById("humanDecision").value = entry.humanDecision;
       }
 
-      function renderExport() {
-        const rows = document.getElementById("exportRows");
-        rows.innerHTML = blockers
-          .map((blocker) => {
-            const entry = state[blocker.id];
-            return `
-              <tr>
-                <td>${blocker.id}</td>
-                <td>${entry.status}</td>
-                <td>${entry.reviewerName || "-"}</td>
-                <td>${entry.reviewDate || "-"}</td>
-                <td>${entry.limitations || "-"}</td>
-              </tr>
-            `;
-          })
-          .join("");
-      }
-
       function updateEntry(field, value) {
         state[selectedId] = { ...state[selectedId], [field]: value };
         render();
       }
 
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
+        showToast("저장했습니다. 현재 브라우저에만 저장됩니다.");
+      }
+
       function downloadJson() {
         const payload = {
-          safetyType: "PHASE10_HUMAN_EVIDENCE_DRAFT_LOCAL_ONLY",
+          safetyType: "PHASE10_OPERATOR_DASHBOARD_LOCAL_DRAFT",
           liveBrokerWriteAllowed: false,
           generatedAt: new Date().toISOString(),
           entries: state,
-          warning:
-            "This local draft is not live-trading authorization and does not resolve any LCB blocker."
+          warning: "This is not live-trading authorization and does not resolve any LCB blocker."
         };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], {
-          type: "application/json"
-        });
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "phase10-human-evidence-draft.json";
+        link.download = "phase10-operator-dashboard-draft.json";
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -898,7 +1166,7 @@
           });
           const view = button.dataset.view;
           document.getElementById("pageTitle").textContent = button.textContent;
-          ["overview", "evidence", "templates", "export"].forEach((name) => {
+          ["home", "signals", "safety", "evidence", "templates"].forEach((name) => {
             document.getElementById(`${name}View`).classList.toggle("hidden", name !== view);
           });
           render();
@@ -927,8 +1195,7 @@
       document.getElementById("saveButton").addEventListener("click", saveState);
       document.getElementById("downloadButton").addEventListener("click", downloadJson);
       document.getElementById("resetButton").addEventListener("click", () => {
-        const confirmed = window.confirm("로컬 입력값을 모두 초기화할까요?");
-        if (!confirmed) return;
+        if (!window.confirm("로컬 입력값을 모두 초기화할까요?")) return;
         localStorage.removeItem(STORAGE_KEY);
         state = loadState();
         selectedId = blockers[0].id;

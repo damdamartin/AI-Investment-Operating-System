@@ -8,11 +8,12 @@ Related Templates: `docs/phase10/human-evidence-templates/README.md`
 
 ## Purpose
 
-`operator-dashboard.html` is a local, browser-only dashboard for the
-human evidence process around `LCB-001` through `LCB-008`.
+`operator-dashboard.html` is a local, browser-only operator dashboard for
+the human-facing investment operation workflow.
 
 It exists because the project previously had validators, documents, and
-templates, but no visible operator surface.
+templates, but no visible surface showing the operator what the system
+state means.
 
 ## How To Open
 
@@ -26,8 +27,13 @@ The dashboard works as a static file. It does not require a dev server.
 
 ## What It Does
 
-- shows all eight `LCB-*` blockers in one screen
-- shows that live trading is still blocked
+- shows the current operation mode first: read-only / Paper-ready /
+  live-trading locked
+- shows account summary placeholders without exposing account identifiers,
+  balances, or holdings quantities
+- shows AI candidate placeholders as review candidates, not orders
+- shows today's operator queue
+- shows all eight `LCB-*` blockers in a secondary safety board
 - links to the four human evidence templates
 - lets the operator draft sanitized local notes per blocker
 - stores drafts only in browser `localStorage`
