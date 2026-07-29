@@ -111,8 +111,8 @@ function printReport(review) {
     itemCount: review.itemCount,
     reviewedItemCount: review.reviewedItemCount,
     relatedOpenQuestions: review.relatedOpenQuestions,
-    reasonCodes: [...new Set([...reasonCodes, ...review.reasonCodes])].sort(),
-    warnings: review.warnings,
+    reasonCodes: [...new Set([...reasonCodes, ...(review.reasonCodes ?? [])])].sort(),
+    warnings: review.warnings ?? [],
     liveBrokerWriteAllowed: false,
     networkCallsPerformed: false,
     safetyType: "TOSS_READ_ONLY_EVIDENCE_INTAKE_LOCAL_REPORT"

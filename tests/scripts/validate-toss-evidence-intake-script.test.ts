@@ -38,6 +38,17 @@ describe("validate-toss-evidence-intake script", () => {
     expect(report.reasonCodes).toContain("intake_may_contain_secret_terms");
     expect(output).not.toContain("very-sensitive-value");
   });
+
+  it("fails closed with a sanitized report when the intake file is missing", () => {
+    const output = runScript(join(tmpdir(), "missing-toss-evidence-intake.json"), false);
+    const report = JSON.parse(output);
+
+    expect(report.readyForEvidenceManifest).toBe(false);
+    expect(report.reasonCodes).toEqual(["evidence_intake_file_missing"]);
+    expect(report.warnings).toEqual([]);
+    expect(report.liveBrokerWriteAllowed).toBe(false);
+    expect(report.networkCallsPerformed).toBe(false);
+  });
 });
 
 function runScript(path: string, expectSuccess = true): string {
