@@ -1,15 +1,44 @@
 import { describe, expect, it } from "vitest";
 import {
+  Asset,
+  AssetType,
+  BrokerAccount,
+  BrokerWriteCommandGuard,
   Currency,
+  EngineScoreSet,
+  KillSwitchControlService,
   Money,
   REQUIRED_MANUAL_APPROVAL_ATTESTATION,
+  Market,
+  MoneyCheck,
+  OrderApprovalEngine,
+  OrderIntent,
+  PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY,
+  PaperOrderIntentPipeline,
+  Phase6OperatorSafetyDashboardService,
+  PortfolioBrokerAccountLink,
+  Price,
+  Quantity,
+  ReconciliationService,
+  ReconciliationWorkflowService,
   evaluateSmallCapitalReadiness,
+  defaultReconciliationPolicy,
+  RiskCheck,
+  RiskEngine,
+  Signal,
+  StrategyVersion,
+  TossCapabilityRegistry,
+  type BrokerCashSnapshot,
+  type InternalPositionSnapshot,
   type ManualLiveApprovalRecord,
+  type Phase6OperatorSafetyStatus,
+  type ReconciliationReport,
   type SmallCapitalCapitalLimits,
   type SmallCapitalKillSwitchSignal,
   type SmallCapitalOperatorSurfaceSignal,
   type SmallCapitalProposedOrder,
-  type SmallCapitalReconciliationSignal
+  type SmallCapitalReconciliationSignal,
+  type TossPositionSnapshot
 } from "../../src/index.js";
 import type { ComplianceGateResult } from "../../src/application/compliance/index.js";
 
@@ -410,4 +439,348 @@ describe("evaluateSmallCapitalReadiness", () => {
     const snapshotAfter = JSON.stringify(input, (_key, value) => (typeof value === "bigint" ? value.toString() : value));
     expect(snapshotAfter).toBe(snapshotBefore);
   });
+
+  describe("Phase 6 signal compatibility", () => {
+    it("accepts actual Phase 6 reconciliation, kill-switch, and dashboard status outputs as readiness signals", () => {
+      const phase6 = phase6CleanStatus();
+      const report = evaluateSmallCapitalReadiness({
+        ...fullyCleanInput(),
+        reconciliation: reconciliationSignalFromPhase6(phase6.reconciliationLiveReadiness),
+        killSwitch: killSwitchSignalFromPhase6(phase6.killSwitchGate),
+        operatorSurface: operatorSurfaceSignalFromPhase6(phase6)
+      });
+
+      expect(report.readyForSmallCapitalLive).toBe(true);
+      expect(report.blockingReasonCodes).toEqual([]);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+    });
+
+    it("fails closed when actual Phase 6 reconciliation output reports unresolved live-readiness", () => {
+      const phase6 = phase6Status({ reconciliationWorkflow: phase6UnresolvedReconciliationWorkflow() });
+      const report = evaluateSmallCapitalReadiness({
+        ...fullyCleanInput(),
+        reconciliation: reconciliationSignalFromPhase6(phase6.reconciliationLiveReadiness),
+        killSwitch: killSwitchSignalFromPhase6(phase6.killSwitchGate),
+        operatorSurface: operatorSurfaceSignalFromPhase6(phase6)
+      });
+
+      expect(report.readyForSmallCapitalLive).toBe(false);
+      expect(report.blockingReasonCodes).toContain("reconciliation_not_fully_resolved");
+      expect(report.blockingReasonCodes).toContain("dashboard_system_status_not_ok_blocked");
+    });
+
+    it("fails closed when actual Phase 6 kill-switch output blocks new orders", () => {
+      const phase6 = phase6Status({ killSwitchGate: phase6ActiveKillSwitchGate() });
+      const report = evaluateSmallCapitalReadiness({
+        ...fullyCleanInput(),
+        reconciliation: reconciliationSignalFromPhase6(phase6.reconciliationLiveReadiness),
+        killSwitch: killSwitchSignalFromPhase6(phase6.killSwitchGate),
+        operatorSurface: operatorSurfaceSignalFromPhase6(phase6)
+      });
+
+      expect(report.readyForSmallCapitalLive).toBe(false);
+      expect(report.blockingReasonCodes).toContain("kill_switch_blocks_new_orders");
+      expect(report.blockingReasonCodes).toContain("dashboard_system_status_not_ok_blocked");
+    });
+  });
 });
+
+function reconciliationSignalFromPhase6(
+  view: Phase6OperatorSafetyStatus["reconciliationLiveReadiness"]
+): SmallCapitalReconciliationSignal {
+  return {
+    liveReadinessBlocked: view.liveReadinessBlocked,
+    stale: view.liveReadinessReasonCodes.includes("reconciliation_stale"),
+    reasonCodes: [...view.liveReadinessReasonCodes]
+  };
+}
+
+function killSwitchSignalFromPhase6(view: Phase6OperatorSafetyStatus["killSwitchGate"]): SmallCapitalKillSwitchSignal {
+  return {
+    allowed: view.allowed,
+    blocksNewOrders: view.blocksNewOrders,
+    reasonCodes: [...view.reasonCodes]
+  };
+}
+
+function operatorSurfaceSignalFromPhase6(status: Phase6OperatorSafetyStatus): SmallCapitalOperatorSurfaceSignal {
+  return {
+    dashboardReachable: true,
+    systemStatus: status.liveReadinessBlocked ? "BLOCKED" : "OK",
+    openCriticalAlertCount: 0,
+    auditTrailRecorded: status.auditCoverage.auditTrailRecorded
+  };
+}
+
+function phase6CleanStatus(): Phase6OperatorSafetyStatus {
+  return phase6Status();
+}
+
+function phase6Status(overrides: Partial<Parameters<Phase6OperatorSafetyDashboardService["buildSafetyStatus"]>[0]> = {}): Phase6OperatorSafetyStatus {
+  const reconciliationReport = phase6CleanReconciliationReport();
+  const reconciliationWorkflow = overrides.reconciliationWorkflow ?? phase6WorkflowFromReport(reconciliationReport, "workflow-phase6-clean-1");
+  const killSwitchGate = overrides.killSwitchGate ?? phase6InactiveKillSwitchGate();
+  const orderApproval = overrides.orderApproval ?? phase6ApprovedOrderApproval(reconciliationReport, killSwitchGate);
+
+  return new Phase6OperatorSafetyDashboardService().buildSafetyStatus({
+    paperOrderIntent: phase6AcceptedPaperOrderIntent(),
+    reconciliationWorkflow,
+    riskEngineOutput: phase6PassingRiskEngineOutput(),
+    killSwitchGate,
+    orderApproval,
+    brokerWriteGuard: new BrokerWriteCommandGuard().evaluate({
+      commandType: "SUBMIT_ORDER",
+      approval: orderApproval.approval,
+      brokerAccount: phase6LiveBrokerAccount(),
+      portfolioLink: phase6PortfolioLink(),
+      compliance: cleanCompliance(),
+      capabilityRegistry: phase6SupportedCapabilities(),
+      requiredCapability: "US_STOCK_LIMIT_ORDER",
+      environment: PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY,
+      killSwitch: killSwitchGate.brokerWriteGate,
+      reconciliation: reconciliationReport,
+      now: NOW
+    }),
+    auditTrailRecorded: true,
+    generatedAt: NOW,
+    ...overrides
+  });
+}
+
+function phase6OrderIntent(): OrderIntent {
+  return new OrderIntent({
+    id: "intent-phase6-1",
+    signal: new Signal({
+      id: "signal-phase6-1",
+      strategyVersion: new StrategyVersion({
+        id: "version-phase6-1",
+        strategyId: "strategy-phase6-1",
+        version: "1.0.0",
+        definitionHash: "hash-phase6-1"
+      }),
+      asset: new Asset({
+        id: "asset-phase6-aapl",
+        symbol: "AAPL",
+        name: "Apple",
+        market: Market.from("US"),
+        assetType: AssetType.from("STOCK"),
+        tradingStatus: "TRADABLE"
+      }),
+      direction: "BUY",
+      scoreSet: new EngineScoreSet([{ engine: "STRATEGY_COMPOSITE", score: 80, confidence: 0.85 }], "score-phase6-v1"),
+      generatedAt: NOW
+    }),
+    side: "BUY",
+    quantity: Quantity.from("1"),
+    limitPrice: Price.from("100.00", Currency.from("USD")),
+    status: "CREATED"
+  });
+}
+
+function phase6PassingRiskCheck(): RiskCheck {
+  return new RiskCheck({
+    id: "risk-check-phase6-1",
+    subjectType: "ORDER_INTENT",
+    subjectId: "intent-phase6-1",
+    result: "PASS",
+    riskLevel: "LOW",
+    checkedAt: NOW
+  });
+}
+
+function phase6PassingMoneyCheck(): MoneyCheck {
+  return new MoneyCheck({
+    id: "money-check-phase6-1",
+    orderIntentId: "intent-phase6-1",
+    result: "PASS",
+    approvedQuantity: Quantity.from("1"),
+    approvedAmount: Money.fromMajor("100.00", Currency.from("USD")),
+    cashAfterOrder: Money.fromMajor("900.00", Currency.from("USD")),
+    checkedAt: NOW
+  });
+}
+
+function phase6AcceptedPaperOrderIntent() {
+  return new PaperOrderIntentPipeline().evaluate({
+    candidateId: "candidate-phase6-1",
+    approvalId: "approval-phase6-1",
+    paperOrderId: "paper-order-phase6-1",
+    orderIntent: phase6OrderIntent(),
+    riskCheck: phase6PassingRiskCheck(),
+    moneyCheck: phase6PassingMoneyCheck(),
+    evaluatedAt: NOW
+  });
+}
+
+function phase6CleanReconciliationReport(): ReconciliationReport {
+  return new ReconciliationService().reconcileSnapshots({
+    id: "reconciliation-phase6-clean-1",
+    internalPositions: [phase6InternalPosition()],
+    brokerPositions: [phase6BrokerPosition()],
+    internalCash: [phase6InternalCash()],
+    brokerCash: [phase6BrokerCash()],
+    checkedAt: NOW,
+    policy: defaultReconciliationPolicy
+  });
+}
+
+function phase6WorkflowFromReport(report: ReconciliationReport, workflowId: string) {
+  return new ReconciliationWorkflowService().evaluate({
+    workflowId,
+    report,
+    evaluatedAt: NOW
+  });
+}
+
+function phase6UnresolvedReconciliationWorkflow() {
+  const report = new ReconciliationService().reconcileSnapshots({
+    id: "reconciliation-phase6-unresolved-1",
+    internalPositions: [phase6InternalPosition({ quantity: 2 })],
+    brokerPositions: [phase6BrokerPosition({ quantity: "1" })],
+    internalCash: [],
+    brokerCash: [],
+    checkedAt: NOW,
+    policy: defaultReconciliationPolicy
+  });
+
+  return new ReconciliationWorkflowService().evaluate({
+    workflowId: "workflow-phase6-unresolved-1",
+    report,
+    evaluatedAt: NOW
+  });
+}
+
+function phase6InternalPosition(overrides: Partial<InternalPositionSnapshot> = {}): InternalPositionSnapshot {
+  return {
+    assetId: "asset-phase6-aapl",
+    brokerSymbol: "AAPL",
+    market: "US",
+    assetType: "STOCK",
+    quantity: 1,
+    averagePrice: 100,
+    currency: "USD",
+    updatedAt: NOW,
+    ...overrides
+  };
+}
+
+function phase6BrokerPosition(overrides: Partial<TossPositionSnapshot> = {}): TossPositionSnapshot {
+  return {
+    brokerAccountId: "broker-phase6-1",
+    brokerSymbol: "AAPL",
+    market: "US",
+    assetType: "STOCK",
+    quantity: "1",
+    averagePrice: "100",
+    currency: "USD",
+    collectedAt: NOW,
+    ...overrides
+  };
+}
+
+function phase6InternalCash(overrides: Partial<BrokerCashSnapshot> = {}): BrokerCashSnapshot {
+  return {
+    brokerAccountId: "internal-ledger",
+    currency: "USD",
+    available: 1000,
+    reserved: 0,
+    unsettled: 0,
+    updatedAt: NOW,
+    collectedAt: NOW,
+    ...overrides
+  };
+}
+
+function phase6BrokerCash(overrides: Partial<BrokerCashSnapshot> = {}): BrokerCashSnapshot {
+  return {
+    brokerAccountId: "broker-phase6-1",
+    currency: "USD",
+    available: 1000,
+    reserved: 0,
+    unsettled: 0,
+    updatedAt: NOW,
+    collectedAt: NOW,
+    ...overrides
+  };
+}
+
+function phase6InactiveKillSwitchGate() {
+  const service = new KillSwitchControlService();
+  return service.evaluateTradingGate(service.createInactiveState({ id: "kill-switch-phase6-1", scope: "GLOBAL", updatedAt: NOW }));
+}
+
+function phase6ActiveKillSwitchGate() {
+  const service = new KillSwitchControlService();
+  const inactive = service.createInactiveState({ id: "kill-switch-phase6-1", scope: "GLOBAL", updatedAt: NOW });
+  return service.evaluateTradingGate(
+    service.activate(inactive, { actor: "operator-1", reason: "manual stop", occurredAt: NOW }).state
+  );
+}
+
+function phase6PassingRiskEngineOutput() {
+  const usd = Currency.from("USD");
+  return new RiskEngine().evaluate({
+    riskCheckId: "risk-engine-phase6-1",
+    orderIntent: phase6OrderIntent(),
+    orderAmount: Money.fromMajor("100.00", usd),
+    limits: {
+      maxOrderAmount: Money.fromMajor("1000.00", usd),
+      maxPositionExposureRatio: 0.3,
+      maxStrategyExposureRatio: 0.45,
+      maxMarketExposureRatio: 0.75,
+      maxDrawdownRatio: 0.2
+    },
+    portfolio: {
+      totalEquity: Money.fromMajor("10000.00", usd),
+      currentAssetExposure: Money.fromMajor("100.00", usd),
+      currentStrategyExposure: Money.fromMajor("100.00", usd),
+      currentMarketExposure: Money.fromMajor("100.00", usd),
+      currentDrawdownRatio: 0.01
+    },
+    checkedAt: NOW
+  });
+}
+
+function phase6ApprovedOrderApproval(reconciliation: ReconciliationReport, killSwitchGate: ReturnType<typeof phase6InactiveKillSwitchGate>) {
+  return new OrderApprovalEngine().evaluate({
+    approvalId: "approval-phase6-1",
+    orderIntent: phase6OrderIntent(),
+    riskCheck: phase6PassingRiskCheck(),
+    moneyCheck: phase6PassingMoneyCheck(),
+    brokerAccount: phase6LiveBrokerAccount(),
+    compliance: cleanCompliance(),
+    capabilityRegistry: phase6SupportedCapabilities(),
+    requiredCapability: "US_STOCK_LIMIT_ORDER",
+    killSwitchGate,
+    reconciliation,
+    evaluatedAt: NOW
+  });
+}
+
+function phase6LiveBrokerAccount(): BrokerAccount {
+  return new BrokerAccount({
+    id: "broker-phase6-1",
+    broker: "TOSS_SECURITIES",
+    externalAccountRef: "account-phase6-1",
+    accountLabel: "Main",
+    permissionStatus: "LIVE_TRADING_ALLOWED",
+    readOnlyEnabled: true,
+    liveTradingEnabled: true,
+    status: "ACTIVE"
+  });
+}
+
+function phase6PortfolioLink(): PortfolioBrokerAccountLink {
+  return new PortfolioBrokerAccountLink({
+    id: "portfolio-link-phase6-1",
+    portfolioId: "portfolio-phase6-1",
+    brokerAccountId: "broker-phase6-1",
+    allowedMarkets: [Market.from("US")],
+    allowedAssetTypes: [AssetType.from("STOCK")],
+    status: "ACTIVE"
+  });
+}
+
+function phase6SupportedCapabilities(): TossCapabilityRegistry {
+  return new TossCapabilityRegistry([{ capability: "US_STOCK_LIMIT_ORDER", status: "SUPPORTED", checkedAt: NOW }]);
+}
