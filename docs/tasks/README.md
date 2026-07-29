@@ -93,3 +93,5 @@ Tasks that touch live broker write operations remain blocked until the related o
 
 - [Claude_Worktree_Orchestration.md](Claude_Worktree_Orchestration.md) defines recommended parallel Claude Code worktree sessions.
 - [Phase_4_Readiness_Review.md](Phase_4_Readiness_Review.md) defines the implementation readiness decision and recommended implementation waves.
+- [phase5_claude_worktree_tasks/](phase5_claude_worktree_tasks/README.md) contains Phase 5 read-only verification task history.
+- [phase6_claude_worktree_tasks/](phase6_claude_worktree_tasks/README.md) contains Phase 6 simulation safety task instructions.
