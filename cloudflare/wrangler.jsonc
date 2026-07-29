@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-investment-operating-system-worker",
+  "main": "aios-worker.mjs",
+  "compatibility_date": "2026-07-29",
+  "observability": {
+    "enabled": true
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *",
+      "0 0 * * *"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "aios_pipeline",
+      "database_name": "aios-pipeline",
+      "database_id": "9d287512-e226-4d7f-b739-d54098b36e0d"
+    }
+  ]
+}

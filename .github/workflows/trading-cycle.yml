@@ -1,0 +1,42 @@
+name: Auto Trading Cycle
+
+# Runs the automated recommendation pipeline on a schedule. This workflow
+# never places a real broker order - it only ever writes
+# order_recommendations rows with status PENDING_HUMAN_SUBMISSION. See
+# src/application/pipeline/auto-recommendation-orchestrator.ts and
+# docs/11_AI_RULES.md Rule 1.
+on:
+  schedule:
+    # Weekdays, 00:30 and 06:00 UTC (~09:30 / 15:00 KST - KRX regular hours).
+    - cron: "30 0 * * 1-5"
+    - cron: "0 6 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  run-cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run trading cycle
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PIPELINE_WATCHLIST: ${{ secrets.PIPELINE_WATCHLIST }}
+          PIPELINE_KILL_SWITCH_ACTIVE: ${{ vars.PIPELINE_KILL_SWITCH_ACTIVE }}
+          PIPELINE_KILL_SWITCH_REASON: ${{ vars.PIPELINE_KILL_SWITCH_REASON }}
+        run: node dist/src/entrypoints/run-trading-cycle.js

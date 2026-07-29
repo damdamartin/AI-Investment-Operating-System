@@ -23,7 +23,16 @@
     "phase5:toss:completion": "node scripts/phase5-toss-completion.mjs",
     "phase5:toss:local-setup": "node scripts/phase5-toss-local-setup.mjs",
     "phase5:toss:account-ref": "node scripts/phase5-toss-account-ref-setup.mjs",
-    "phase5:toss:verify-read-only": "node scripts/phase5-toss-read-only-verify.mjs"
+    "phase5:toss:verify-read-only": "node scripts/phase5-toss-read-only-verify.mjs",
+    "phase5:toss:operator:endpoints": "node scripts/validate-toss-endpoints.mjs docs/phase5/toss-read-only-endpoints.operator.json",
+    "phase5:toss:operator:doctor": "node scripts/phase5-toss-doctor.mjs docs/phase5/toss-read-only-endpoints.operator.json docs/phase5/evidence-manifest.operator.json docs/phase5/evidence-intake.operator.json",
+    "phase5:toss:operator:preflight": "node scripts/phase5-toss-preflight.mjs docs/phase5/toss-read-only-endpoints.operator.json docs/phase5/evidence-manifest.operator.json docs/phase5/evidence-intake.operator.json",
+    "phase5:toss:operator:call-gate": "node scripts/phase5-toss-call-gate.mjs docs/phase5/toss-read-only-endpoints.operator.json docs/phase5/evidence-manifest.operator.json docs/phase5/evidence-intake.operator.json",
+    "phase5:toss:operator:completion": "node scripts/phase5-toss-completion.mjs docs/phase5/toss-read-only-endpoints.operator.json docs/phase5/evidence-manifest.operator.json docs/phase5/evidence-intake.operator.json",
+    "phase10:first-order:candidate": "node scripts/phase10-first-order-candidate-review.mjs",
+    "pipeline:run-cycle": "node dist/src/entrypoints/run-trading-cycle.js",
+    "deploy:cloudflare:pages": "npx wrangler pages deploy public --project-name ai-investment-operating-system",
+    "deploy:cloudflare:worker": "npx wrangler deploy --config cloudflare/wrangler.jsonc"
   },
   "engines": {
     "node": ">=22"
