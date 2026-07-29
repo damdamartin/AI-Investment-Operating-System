@@ -8,6 +8,7 @@ Related Roadmap: `docs/99_Development_Roadmap.md`
 Related Previous Phase: `docs/phase9/README.md`
 Primary Blocker Register: `docs/phase7/live-capable-blocker-register.md`
 Related Tasks: `docs/tasks/phase10_claude_worktree_tasks/README.md`
+Round 2 Workbook: `docs/phase10/human-blocker-evidence-workbook.md`
 
 ## Purpose
 
@@ -70,3 +71,12 @@ reviewed together in P10-004. `npm run check` passes on the merged tree.
 No callable broker-write path was introduced. `docs/phase7/live-capable-blocker-register.md`
 was not touched — `LCB-001` through `LCB-008` remain open and human-only.
 Full detail: `docs/reviews/Codex_Phase10_Live_Operation_Readiness_Review.md`.
+
+## Round 2 Plan
+
+Round 2 prepares the human blocker evidence packets for `LCB-001` through
+`LCB-008`. It remains no-write and does not resolve the blocker register.
+
+The workbook is `docs/phase10/human-blocker-evidence-workbook.md`; the
+four-engineer prompt is
+`docs/tasks/phase10_claude_worktree_tasks/ROUND2_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`.
