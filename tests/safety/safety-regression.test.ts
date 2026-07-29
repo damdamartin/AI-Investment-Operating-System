@@ -308,6 +308,192 @@ describe("safety regression harness", () => {
     expect(guardResult.reasonCodes).toContain("kill_switch_active_global");
   });
 
+  describe("P6-003 chain hardening (kill-switch gate and staleness on approval/guard)", () => {
+    // These four tests were explicitly requested by Engineer 3 in
+    // docs/phase6/risk-kill-switch-approval-guard.md, "For Engineer 4
+    // (P6-004 Phase 2 Integration)", after P6-003 closed the gap flagged in
+    // Engineer 4's Phase 1 report: OrderApprovalEngine previously did not
+    // check kill-switch state or check/approval freshness at all.
+
+    it("OrderApprovalEngine rejects when the kill-switch gate is omitted or blocked", () => {
+      const usd = Currency.from("USD");
+      const intent = new OrderIntent({
+        id: "intent-1",
+        signal: signal(),
+        side: "BUY",
+        quantity: Quantity.from("1"),
+        limitPrice: Price.from("100.00", usd)
+      });
+      const evaluatedAt = new Date("2026-01-01T00:00:00Z");
+
+      const missingGate = new OrderApprovalEngine().evaluate({
+        approvalId: "approval-1",
+        orderIntent: intent,
+        riskCheck: passingRiskCheck(),
+        moneyCheck: passingMoneyCheck(),
+        brokerAccount: livePassingBrokerAccount(),
+        compliance: { allowed: true, reasons: [], limitations: [] },
+        capabilityRegistry: supportedCapabilityRegistry(),
+        requiredCapability: "US_STOCK_LIMIT_ORDER",
+        reconciliation: cleanReconciliationReport(),
+        evaluatedAt
+        // killSwitchGate intentionally omitted
+      });
+
+      expect(missingGate.approval.status).toBe("REJECTED");
+      expect(missingGate.reasonCodes).toContain("missing_kill_switch_gate");
+
+      const killSwitchService = new KillSwitchControlService();
+      const activation = killSwitchService.activate(
+        killSwitchService.createInactiveState({ id: "kill-switch-1", scope: "GLOBAL", updatedAt: evaluatedAt }),
+        { actor: "operator-1", reason: "manual emergency stop", occurredAt: evaluatedAt }
+      );
+      const blockedGate = killSwitchService.evaluateTradingGate(activation.state);
+
+      const blockedByGate = new OrderApprovalEngine().evaluate({
+        approvalId: "approval-2",
+        orderIntent: intent,
+        riskCheck: passingRiskCheck(),
+        moneyCheck: passingMoneyCheck(),
+        brokerAccount: livePassingBrokerAccount(),
+        compliance: { allowed: true, reasons: [], limitations: [] },
+        capabilityRegistry: supportedCapabilityRegistry(),
+        requiredCapability: "US_STOCK_LIMIT_ORDER",
+        reconciliation: cleanReconciliationReport(),
+        evaluatedAt,
+        killSwitchGate: blockedGate
+      });
+
+      expect(blockedByGate.approval.status).toBe("REJECTED");
+      expect(blockedByGate.reasonCodes).toContain("kill_switch_active_global");
+    });
+
+    it("OrderApprovalEngine rejects a stale RiskCheck/MoneyCheck pair", () => {
+      const usd = Currency.from("USD");
+      const intent = new OrderIntent({
+        id: "intent-1",
+        signal: signal(),
+        side: "BUY",
+        quantity: Quantity.from("1"),
+        limitPrice: Price.from("100.00", usd)
+      });
+
+      const checkedAt = new Date("2026-01-01T00:00:00Z");
+      const staleRiskCheck = new RiskCheck({
+        id: "risk-check-1",
+        subjectType: "ORDER_INTENT",
+        subjectId: "intent-1",
+        result: "PASS",
+        riskLevel: "LOW",
+        checkedAt
+      });
+      const staleMoneyCheck = new MoneyCheck({
+        id: "money-check-1",
+        orderIntentId: "intent-1",
+        result: "PASS",
+        approvedQuantity: Quantity.from("1"),
+        approvedAmount: Money.fromMajor("100.00", usd),
+        cashAfterOrder: Money.fromMajor("900.00", usd),
+        checkedAt
+      });
+
+      const killSwitchGate = new KillSwitchControlService().evaluateTradingGate(
+        new KillSwitchControlService().createInactiveState({
+          id: "kill-switch-1",
+          scope: "GLOBAL",
+          updatedAt: checkedAt
+        })
+      );
+
+      // Evaluated 20 minutes after the checks were made, well past the
+      // engine's 5-minute default staleness window.
+      const evaluatedAt = new Date("2026-01-01T00:20:00Z");
+
+      const output = new OrderApprovalEngine().evaluate({
+        approvalId: "approval-1",
+        orderIntent: intent,
+        riskCheck: staleRiskCheck,
+        moneyCheck: staleMoneyCheck,
+        brokerAccount: livePassingBrokerAccount(),
+        compliance: { allowed: true, reasons: [], limitations: [] },
+        capabilityRegistry: supportedCapabilityRegistry(),
+        requiredCapability: "US_STOCK_LIMIT_ORDER",
+        reconciliation: cleanReconciliationReport(),
+        killSwitchGate,
+        evaluatedAt
+      });
+
+      expect(output.approval.status).toBe("REJECTED");
+      expect(output.reasonCodes).toContain("risk_check_stale");
+      expect(output.reasonCodes).toContain("money_check_stale");
+    });
+
+    it("BrokerWriteCommandGuard rejects a broker write command built on a stale OrderApproval", () => {
+      const approval = new OrderApproval({
+        id: "approval-1",
+        orderIntent: approvedIntent(),
+        riskCheck: passingRiskCheck(),
+        moneyCheck: passingMoneyCheck(),
+        status: "APPROVED",
+        reasons: []
+      });
+
+      // passingRiskCheck() / passingMoneyCheck() are both checked at
+      // 2026-01-01T00:00:00Z; evaluating 20 minutes later exceeds the
+      // guard's 5-minute default approval-staleness window.
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        approval,
+        brokerAccount: livePassingBrokerAccount(),
+        portfolioLink: activePortfolioLink(),
+        compliance: { allowed: true, reasons: [], limitations: [] },
+        capabilityRegistry: supportedCapabilityRegistry(),
+        requiredCapability: "US_STOCK_LIMIT_ORDER",
+        environment: {
+          environment: "production",
+          liveBrokerWritesEnabled: true,
+          allowedEnvironments: ["production"]
+        },
+        killSwitch: { active: false, scope: "GLOBAL" },
+        reconciliation: cleanReconciliationReport(),
+        now: new Date("2026-01-01T00:20:00Z")
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("order_approval_stale");
+    });
+
+    it("KillSwitchControlService.deactivate rejects an out-of-order command that predates a more recent activation", () => {
+      const service = new KillSwitchControlService();
+      const inactive = service.createInactiveState({
+        id: "kill-switch-1",
+        scope: "GLOBAL",
+        updatedAt: new Date("2026-01-01T00:00:00Z")
+      });
+
+      const activation = service.activate(inactive, {
+        actor: "operator-1",
+        reason: "manual emergency stop",
+        occurredAt: new Date("2026-01-01T00:10:00Z")
+      });
+      expect(activation.ok).toBe(true);
+      expect(activation.state.status).toBe("ACTIVE");
+
+      // A deactivate command claiming to have occurred *before* the
+      // activation (a stale or replayed command) must never be allowed to
+      // silently turn a more-recently-activated kill switch back off.
+      const staleDeactivation = service.deactivate(activation.state, {
+        actor: "operator-2",
+        reason: "stale replayed deactivation",
+        occurredAt: new Date("2026-01-01T00:05:00Z")
+      });
+
+      expect(staleDeactivation.ok).toBe(false);
+      expect(staleDeactivation.reasonCodes).toContain("kill_switch_command_out_of_order");
+      expect(staleDeactivation.state.status).toBe("ACTIVE");
+    });
+  });
+
   it("keeps unverified broker accounts live-write blocked", () => {
     const account = new BrokerAccount({
       id: "broker-account-1",
