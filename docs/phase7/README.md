@@ -1,13 +1,21 @@
 # Phase 7 Live-Capable Design Readiness
 
-Version: 0.1.0
-Status: Draft
+Version: 0.2.0
+Status: Complete
 Last Updated: 2026-07-29
 Related Reviews:
 `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`,
-`docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`
+`docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`,
+`docs/reviews/Codex_Phase7_Live_Capable_Blocker_Audit.md`,
+`docs/reviews/Codex_Phase7_Live_Capable_Design_Readiness_Review.md`
 Related Tasks:
 `docs/tasks/phase7_claude_worktree_tasks/README.md`
+Related Artifacts:
+`docs/phase7/live-capable-blocker-register.md`,
+`docs/phase7/toss-write-contract-design.md`,
+`docs/phase7/small-capital-readiness-gates.md`,
+`docs/phase7/manual-live-approval-record.md`,
+`docs/phase7/small-capital-operator-checklist.md`
 
 ## Purpose
 
@@ -70,3 +78,28 @@ Phase 7 can be considered complete only when:
 
 Phase 7 completion is not approval for live trading. It is only approval
 to move toward a later, separately reviewed implementation phase.
+
+## Status
+
+Complete. P7-001 (`docs/phase7/live-capable-blocker-register.md`),
+P7-002 (`docs/phase7/toss-write-contract-design.md`,
+`src/adapters/toss-write-contract.ts`), and P7-003
+(`docs/phase7/small-capital-readiness-gates.md`,
+`docs/phase7/manual-live-approval-record.md`,
+`docs/phase7/small-capital-operator-checklist.md`,
+`src/application/live-readiness/small-capital-readiness.ts`) are merged
+into local `main`. P7-004
+(`docs/reviews/Codex_Phase7_Live_Capable_Design_Readiness_Review.md`)
+reviewed all three together and found every exit criterion above
+satisfied: no task introduced a callable broker write path, human
+approval remains structurally required and cannot be inferred or
+auto-populated by AI, `.env`/local Phase 5 receipts remain untouched,
+small-capital readiness is fully specified but not enabled anywhere, and
+future implementation blockers are explicit
+(`docs/phase7/live-capable-blocker-register.md`, `LCB-001` through
+`LCB-008`, none `RESOLVED`). `npm run check` passes (84 test files, 745
+tests on the P7-004 review branch after merging `main`).
+
+As stated above, this completion is not approval for live trading. Every
+blocker in the register remains a human-only next step for a later,
+separately reviewed implementation phase.
