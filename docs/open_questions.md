@@ -10,6 +10,12 @@ This document tracks unresolved architecture, API, data, compliance, testing, an
 
 Questions in this document should be resolved before related implementation tasks are assigned.
 
+Related Phase 7 Blocker Register: `docs/phase7/live-capable-blocker-register.md`
+tracks live-capable blockers (required evidence, human owner, artifact
+path, go/no-go impact) that reference several of the questions below for
+traceability. That register does not resolve, advance, or change the
+`Status` or `Evidence Status` of any question in this document.
+
 ## Phase 5 Evidence Status Fields (OQ-001 through OQ-004)
 
 OQ-001 through OQ-004 carry an additional `Evidence Status` block. This
