@@ -150,9 +150,11 @@ function reconciliationReport(): ReconciliationReport {
     status: "CLEAN",
     positionIssues: [],
     cashIssues: [],
+    issueCounts: { informational: 0, blocking: 0, requiresHumanReview: 0 },
     unknownReasons: [],
     blocksDependentTrading: false,
     checkedAt: new Date("2026-01-01T00:00:00Z"),
+    liveBrokerWriteAllowed: false,
     safetyType: "RECONCILIATION_READ_ONLY_REPORT"
   };
 }
