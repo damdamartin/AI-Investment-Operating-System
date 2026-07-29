@@ -7,6 +7,8 @@ Related Phase: `docs/phase10/README.md`
 Primary Register: `docs/phase7/live-capable-blocker-register.md`
 Related Approval Packet: `docs/phase10/live-operation-approval-packet.md`
 Related Tasks: `docs/tasks/phase10_claude_worktree_tasks/ROUND2_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`
+Human Templates: `docs/phase10/human-evidence-templates/README.md`
+Human Runbook: `docs/phase10/human-evidence-operator-runbook.md`
 
 ## Purpose
 
@@ -87,3 +89,14 @@ Phase 10 round 2 should produce:
 - a clear list of what the human operator must still do manually
 
 Round 2 must not implement any broker write path.
+
+## Human Template Pack
+
+After round 2, use the blank templates in
+`docs/phase10/human-evidence-templates/` to draft sanitized human evidence
+records. The operator procedure is
+`docs/phase10/human-evidence-operator-runbook.md`.
+
+The templates are intentionally blank. They are not evidence until a
+human reviewer fills them out, and they are not `RESOLVED` decisions until
+the human reviewer updates the canonical blocker register directly.

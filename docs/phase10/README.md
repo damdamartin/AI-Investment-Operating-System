@@ -10,6 +10,8 @@ Related Previous Phase: `docs/phase9/README.md`
 Primary Blocker Register: `docs/phase7/live-capable-blocker-register.md`
 Related Tasks: `docs/tasks/phase10_claude_worktree_tasks/README.md`
 Round 2 Workbook: `docs/phase10/human-blocker-evidence-workbook.md`
+Human Templates: `docs/phase10/human-evidence-templates/README.md`
+Human Runbook: `docs/phase10/human-evidence-operator-runbook.md`
 
 ## Purpose
 
@@ -81,6 +83,12 @@ Round 2 prepares the human blocker evidence packets for `LCB-001` through
 The workbook is `docs/phase10/human-blocker-evidence-workbook.md`; the
 four-engineer prompt is
 `docs/tasks/phase10_claude_worktree_tasks/ROUND2_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`.
+
+Human operators can use
+`docs/phase10/human-evidence-templates/README.md` and
+`docs/phase10/human-evidence-operator-runbook.md` to create sanitized
+evidence drafts. Those templates remain blank until a human fills them in
+and do not authorize live trading.
 
 ## Round 2 Status
 
