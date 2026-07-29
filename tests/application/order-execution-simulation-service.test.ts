@@ -32,6 +32,7 @@ describe("OrderExecutionSimulationService", () => {
     expect(result.ok).toBe(true);
     expect(result.ok && result.command.idempotencyKey).toBe("approval-1-submit");
     expect(result.ok && result.command.safetyType).toBe("SIMULATED_EXECUTION_COMMAND_ONLY");
+    expect(result.ok && result.command.liveBrokerWriteAllowed).toBe(false);
     expect(result.ok && result.command).not.toHaveProperty("submitOrder");
   });
 
@@ -64,6 +65,26 @@ describe("OrderExecutionSimulationService", () => {
     });
     expect(unknown.blocksDependentActions).toBe(true);
     expect(unknown.safetyType).toBe("SIMULATED_EXECUTION_RECORD_ONLY");
+    expect(accepted.liveBrokerWriteAllowed).toBe(false);
+    expect(rejected.liveBrokerWriteAllowed).toBe(false);
+    expect(partial.liveBrokerWriteAllowed).toBe(false);
+    expect(unknown.liveBrokerWriteAllowed).toBe(false);
+  });
+
+  it("never produces a command or record shaped like a real Toss order payload", () => {
+    const service = new OrderExecutionSimulationService();
+    const command = commandFixture();
+    const record = service.simulate(command, { status: "ACCEPTED", simulatedBrokerOrderRef: "sim-order-1" }, now());
+
+    for (const output of [command, record]) {
+      const serialized = JSON.stringify(output);
+      for (const forbiddenKey of ["submitOrder", "cancelOrder", "replaceOrder", "tossRequest", "brokerCommand"]) {
+        expect(serialized).not.toContain(`"${forbiddenKey}"`);
+      }
+    }
+
+    expect(command).not.toHaveProperty("accountNo");
+    expect(record).not.toHaveProperty("accountNo");
   });
 
   it("creates an outbox event for fake execution handlers", async () => {

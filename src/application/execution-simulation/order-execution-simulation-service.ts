@@ -17,6 +17,7 @@ export interface SimulatedExecutionCommand {
   idempotencyKey: string;
   createdAt: Date;
   safetyType: "SIMULATED_EXECUTION_COMMAND_ONLY";
+  liveBrokerWriteAllowed: false;
 }
 
 export interface SimulatedBrokerResponse {
@@ -44,6 +45,7 @@ export interface SimulatedExecutionRecord {
   simulatedBrokerOrderRef: string | undefined;
   executedAt: Date;
   safetyType: "SIMULATED_EXECUTION_RECORD_ONLY";
+  liveBrokerWriteAllowed: false;
 }
 
 export interface BuildExecutionCommandInput {
@@ -90,7 +92,8 @@ export class OrderExecutionSimulationService {
         currency: priceCurrency(intent.limitPrice.toString()),
         idempotencyKey: input.idempotencyKey,
         createdAt: input.createdAt,
-        safetyType: "SIMULATED_EXECUTION_COMMAND_ONLY"
+        safetyType: "SIMULATED_EXECUTION_COMMAND_ONLY",
+        liveBrokerWriteAllowed: false
       }
     };
   }
@@ -117,7 +120,8 @@ export class OrderExecutionSimulationService {
       blocksDependentActions: response.status === "UNKNOWN",
       simulatedBrokerOrderRef: response.simulatedBrokerOrderRef,
       executedAt,
-      safetyType: "SIMULATED_EXECUTION_RECORD_ONLY"
+      safetyType: "SIMULATED_EXECUTION_RECORD_ONLY",
+      liveBrokerWriteAllowed: false
     };
   }
 
