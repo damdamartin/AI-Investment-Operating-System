@@ -1,0 +1,37 @@
+{
+  "safetyType": "OPERATOR_DASHBOARD_SANITIZED_INPUT",
+  "liveBrokerWriteAllowed": false,
+  "account": {
+    "connection": "READ_ONLY_CONNECTED",
+    "accountRef": "masked",
+    "cash": "hidden",
+    "positions": "hidden",
+    "orderAvailability": "BLOCKED_BY_LCB"
+  },
+  "signals": [
+    {
+      "name": "Paper 후보 1",
+      "status": "PAPER_REVIEW",
+      "rationale": "sanitized strategy score placeholder",
+      "nextAction": "Paper 검토"
+    },
+    {
+      "name": "관심 후보 2",
+      "status": "WATCH_ONLY",
+      "rationale": "news/risk summary placeholder",
+      "nextAction": "관찰"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Toss 자동매매 허용 여부 확인",
+      "body": "LCB-001 증거를 사람이 직접 확인",
+      "tag": "사람 필요"
+    },
+    {
+      "title": "소액 운용 한도 작성",
+      "body": "LCB-006 숫자는 사람이 직접 입력",
+      "tag": "대기"
+    }
+  ]
+}

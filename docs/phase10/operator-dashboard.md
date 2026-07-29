@@ -29,6 +29,8 @@ The dashboard works as a static file. It does not require a dev server.
 
 - shows the current operation mode first: read-only / Paper-ready /
   live-trading locked
+- imports a user-selected sanitized JSON file for account summary,
+  signals, and operator queue placeholders
 - shows account summary placeholders without exposing account identifiers,
   balances, or holdings quantities
 - shows AI candidate placeholders as review candidates, not orders
@@ -38,6 +40,12 @@ The dashboard works as a static file. It does not require a dev server.
 - lets the operator draft sanitized local notes per blocker
 - stores drafts only in browser `localStorage`
 - exports a local JSON draft with `liveBrokerWriteAllowed: false`
+
+Example import file:
+
+```text
+docs/phase10/operator-dashboard.sample.json
+```
 
 ## What It Does Not Do
 

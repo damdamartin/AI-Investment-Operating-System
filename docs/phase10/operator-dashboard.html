@@ -598,6 +598,7 @@
         <nav class="nav" aria-label="Dashboard sections">
           <button type="button" data-view="home" aria-selected="true">운영 홈</button>
           <button type="button" data-view="signals">AI 후보</button>
+          <button type="button" data-view="data">데이터 불러오기</button>
           <button type="button" data-view="safety">안전조건</button>
           <button type="button" data-view="evidence">증거 입력</button>
           <button type="button" data-view="templates">문서 / 템플릿</button>
@@ -702,9 +703,9 @@
             <div class="panel section">
               <div class="section-head">
                 <h3>계좌 요약</h3>
-                <span class="tag">민감값 숨김</span>
+                <span class="tag" id="accountSourceTag">민감값 숨김</span>
               </div>
-              <div class="list">
+              <div class="list" id="accountSummaryList">
                 <div class="row">
                   <div>
                     <strong>계좌 식별자</strong>
@@ -735,7 +736,7 @@
           <div class="panel section">
             <div class="section-head">
               <h3>AI 관심 후보</h3>
-              <span class="tag amber">주문 아님</span>
+              <span class="tag amber" id="signalsSourceTag">주문 아님</span>
             </div>
             <div class="table-wrap">
               <table class="signal-table">
@@ -747,26 +748,7 @@
                     <th>다음 행동</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>전략 후보 A</td>
-                    <td><span class="tag">대기</span></td>
-                    <td>시장/뉴스/리스크 점수 연결 예정</td>
-                    <td>Paper 검토만 가능</td>
-                  </tr>
-                  <tr>
-                    <td>전략 후보 B</td>
-                    <td><span class="tag">대기</span></td>
-                    <td>백테스트와 walk-forward 결과 연결 예정</td>
-                    <td>실주문 불가</td>
-                  </tr>
-                  <tr>
-                    <td>전략 후보 C</td>
-                    <td><span class="tag">대기</span></td>
-                    <td>운영 대시보드 데이터 연결 전 placeholder</td>
-                    <td>증거 채우기 먼저</td>
-                  </tr>
-                </tbody>
+                <tbody id="signalsTableBody"></tbody>
               </table>
             </div>
           </div>
@@ -776,6 +758,68 @@
               아직 실거래 조건이 닫히지 않았기 때문에 매수/매도 버튼은 만들지 않았습니다.
               이 영역은 나중에 전략 점수, 뉴스 분석, Paper 결과가 연결될 자리입니다.
             </p>
+          </div>
+        </section>
+
+        <section class="content hidden" id="dataView">
+          <div class="columns">
+            <div class="panel section">
+              <div class="section-head">
+                <h3>sanitized JSON 불러오기</h3>
+                <span class="tag">브라우저 안에서만 처리</span>
+              </div>
+              <div class="form-grid">
+                <label>
+                  운영 대시보드 JSON
+                  <input id="dashboardDataFile" type="file" accept="application/json,.json" />
+                </label>
+                <p class="help">
+                  이 기능은 사용자가 직접 고른 JSON만 읽습니다. `.env`, `tmp/phase5` 파일을 자동으로
+                  읽지 않고, Toss API를 호출하지 않습니다.
+                </p>
+                <div class="row">
+                  <div>
+                    <strong>불러온 파일</strong>
+                    <span id="loadedDataName">없음</span>
+                  </div>
+                  <span class="tag" id="loadedDataStatus">대기</span>
+                </div>
+                <button class="button" type="button" id="loadExampleButton">예시 데이터 적용</button>
+              </div>
+            </div>
+
+            <div class="panel section">
+              <h3>JSON 형식</h3>
+              <p class="help">
+                실제 값 대신 sanitized 표시만 넣습니다. 계좌번호, 잔고, 보유수량, raw payload는 넣지
+                않습니다.
+              </p>
+              <pre class="help" style="white-space: pre-wrap; background: #f7f9fc; border: 1px solid var(--line); border-radius: 8px; padding: 12px">{
+  "safetyType": "OPERATOR_DASHBOARD_SANITIZED_INPUT",
+  "liveBrokerWriteAllowed": false,
+  "account": {
+    "connection": "READ_ONLY_CONNECTED",
+    "accountRef": "masked",
+    "cash": "hidden",
+    "positions": "hidden"
+  },
+  "signals": [
+    {
+      "name": "전략 후보 A",
+      "status": "PAPER_REVIEW",
+      "rationale": "sanitized summary",
+      "nextAction": "Paper 검토"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "read-only 계좌 evidence 확인",
+      "body": "sanitized receipt만 확인",
+      "tag": "읽기 전용"
+    }
+  ]
+}</pre>
+            </div>
           </div>
         </section>
 
@@ -898,6 +942,10 @@
                 Operator Runbook
                 <span>작성 절차</span>
               </a>
+              <a href="operator-dashboard.sample.json">
+                Dashboard Sample JSON
+                <span>데이터 불러오기 예시</span>
+              </a>
               <a href="../phase7/live-capable-blocker-register.md">
                 Blocker Register
                 <span>최종 사람 결정 기록 위치</span>
@@ -912,6 +960,7 @@
 
     <script>
       const STORAGE_KEY = "aios.phase10.operatorDashboard.v2";
+      const DATA_STORAGE_KEY = "aios.phase10.operatorDashboardData.v1";
 
       const blockers = [
         {
@@ -980,12 +1029,71 @@
         }
       ];
 
-      const tasks = [
+      const defaultTasks = [
         ["Toss 자동매매 허용 여부 확인", "LCB-001과 LCB-005가 최우선입니다.", "사람 필요"],
         ["read-only 계좌 권한 evidence 확인", "계좌번호나 raw payload는 입력하지 않습니다.", "읽기 전용"],
         ["소액 운용 한도 초안 작성", "숫자는 AI가 정하지 않고 사람이 직접 정합니다.", "대기"],
         ["Paper 후보 검토", "실주문이 아니라 시뮬레이션 검토입니다.", "가능"]
       ];
+
+      const defaultSignals = [
+        {
+          name: "전략 후보 A",
+          status: "대기",
+          rationale: "시장/뉴스/리스크 점수 연결 예정",
+          nextAction: "Paper 검토만 가능"
+        },
+        {
+          name: "전략 후보 B",
+          status: "대기",
+          rationale: "백테스트와 walk-forward 결과 연결 예정",
+          nextAction: "실주문 불가"
+        },
+        {
+          name: "전략 후보 C",
+          status: "대기",
+          rationale: "운영 대시보드 데이터 연결 전 placeholder",
+          nextAction: "증거 채우기 먼저"
+        }
+      ];
+
+      const exampleDashboardData = {
+        safetyType: "OPERATOR_DASHBOARD_SANITIZED_INPUT",
+        liveBrokerWriteAllowed: false,
+        account: {
+          connection: "READ_ONLY_CONNECTED",
+          accountRef: "masked",
+          cash: "hidden",
+          positions: "hidden",
+          orderAvailability: "BLOCKED_BY_LCB"
+        },
+        signals: [
+          {
+            name: "Paper 후보 1",
+            status: "PAPER_REVIEW",
+            rationale: "sanitized strategy score placeholder",
+            nextAction: "Paper 검토"
+          },
+          {
+            name: "관심 후보 2",
+            status: "WATCH_ONLY",
+            rationale: "news/risk summary placeholder",
+            nextAction: "관찰"
+          }
+        ],
+        tasks: [
+          {
+            title: "Toss 자동매매 허용 여부 확인",
+            body: "LCB-001 증거를 사람이 직접 확인",
+            tag: "사람 필요"
+          },
+          {
+            title: "소액 운용 한도 작성",
+            body: "LCB-006 숫자는 사람이 직접 입력",
+            tag: "대기"
+          }
+        ]
+      };
 
       const emptyEntry = () => ({
         status: "NOT_STARTED",
@@ -998,6 +1106,7 @@
       });
 
       let state = loadState();
+      let dashboardData = loadDashboardData();
       let selectedId = blockers[0].id;
 
       function loadState() {
@@ -1022,6 +1131,32 @@
         window.setTimeout(() => toast.classList.add("hidden"), 2600);
       }
 
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function loadDashboardData() {
+        try {
+          return JSON.parse(localStorage.getItem(DATA_STORAGE_KEY) || "null");
+        } catch {
+          return null;
+        }
+      }
+
+      function isSafeDashboardData(data) {
+        if (!data || typeof data !== "object") return false;
+        if (data.liveBrokerWriteAllowed !== false) return false;
+        const serialized = JSON.stringify(data);
+        return !/(client_secret|access_token|account_number|bearer\s+|-----BEGIN|rawPayload|raw_payload)/i.test(
+          serialized
+        );
+      }
+
       function statusClass(status) {
         if (status === "READY_FOR_HUMAN_REVIEW") return "amber";
         if (status.startsWith("HUMAN_REVIEWED_APPROVED")) return "green";
@@ -1036,6 +1171,9 @@
       function render() {
         renderProgress();
         renderTasks();
+        renderAccountSummary();
+        renderSignals();
+        renderLoadedDataStatus();
         renderBlockers();
         renderForm();
       }
@@ -1055,19 +1193,80 @@
 
       function renderTasks() {
         const list = document.getElementById("taskList");
-        list.innerHTML = tasks
+        const taskRows = Array.isArray(dashboardData?.tasks)
+          ? dashboardData.tasks.map((task) => [task.title, task.body, task.tag])
+          : defaultTasks;
+        list.innerHTML = taskRows
           .map(
             ([title, body, tag]) => `
               <div class="row">
                 <div>
-                  <strong>${title}</strong>
-                  <span>${body}</span>
+                  <strong>${escapeHtml(title)}</strong>
+                  <span>${escapeHtml(body)}</span>
                 </div>
-                <span class="tag amber">${tag}</span>
+                <span class="tag amber">${escapeHtml(tag)}</span>
               </div>
             `
           )
           .join("");
+      }
+
+      function renderAccountSummary() {
+        const account = dashboardData?.account || {};
+        const connected = account.connection || "READ_ONLY_READY";
+        document.getElementById("accountSourceTag").textContent = dashboardData ? "불러온 sanitized 데이터" : "민감값 숨김";
+        document.getElementById("accountSummaryList").innerHTML = `
+          <div class="row">
+            <div>
+              <strong>계좌 연결</strong>
+              <span>${escapeHtml(connected)}</span>
+            </div>
+            <span class="tag green">read-only</span>
+          </div>
+          <div class="row">
+            <div>
+              <strong>계좌 식별자</strong>
+              <span>${escapeHtml(account.accountRef || "화면에 표시하지 않음")}</span>
+            </div>
+            <span class="tag">masked</span>
+          </div>
+          <div class="row">
+            <div>
+              <strong>잔고 / 보유수량</strong>
+              <span>${escapeHtml(account.cash || "hidden")} / ${escapeHtml(account.positions || "hidden")}</span>
+            </div>
+            <span class="tag">hidden</span>
+          </div>
+          <div class="row">
+            <div>
+              <strong>주문 가능 여부</strong>
+              <span>${escapeHtml(account.orderAvailability || "LCB-001~008 완료 전 차단")}</span>
+            </div>
+            <span class="tag red">blocked</span>
+          </div>
+        `;
+      }
+
+      function renderSignals() {
+        const signals = Array.isArray(dashboardData?.signals) ? dashboardData.signals : defaultSignals;
+        document.getElementById("signalsSourceTag").textContent = dashboardData ? "sanitized input" : "주문 아님";
+        document.getElementById("signalsTableBody").innerHTML = signals
+          .map(
+            (signal) => `
+              <tr>
+                <td>${escapeHtml(signal.name || "-")}</td>
+                <td><span class="tag">${escapeHtml(signal.status || "대기")}</span></td>
+                <td>${escapeHtml(signal.rationale || "-")}</td>
+                <td>${escapeHtml(signal.nextAction || "Paper 검토만 가능")}</td>
+              </tr>
+            `
+          )
+          .join("");
+      }
+
+      function renderLoadedDataStatus() {
+        document.getElementById("loadedDataName").textContent = dashboardData?._sourceName || "없음";
+        document.getElementById("loadedDataStatus").textContent = dashboardData ? "적용됨" : "대기";
       }
 
       function renderBlockers() {
@@ -1079,9 +1278,9 @@
               <div class="blocker">
                 <button type="button" data-blocker-id="${blocker.id}">
                   <div class="id">${blocker.id}</div>
-                  <h4>${blocker.title}</h4>
-                  <p>${blocker.owner}</p>
-                  <span class="tag ${statusClass(entry.status)}" style="margin-top: 10px">${entry.status}</span>
+                  <h4>${escapeHtml(blocker.title)}</h4>
+                  <p>${escapeHtml(blocker.owner)}</p>
+                  <span class="tag ${statusClass(entry.status)}" style="margin-top: 10px">${escapeHtml(entry.status)}</span>
                 </button>
               </div>
             `;
@@ -1166,7 +1365,7 @@
           });
           const view = button.dataset.view;
           document.getElementById("pageTitle").textContent = button.textContent;
-          ["home", "signals", "safety", "evidence", "templates"].forEach((name) => {
+          ["home", "signals", "data", "safety", "evidence", "templates"].forEach((name) => {
             document.getElementById(`${name}View`).classList.toggle("hidden", name !== view);
           });
           render();
@@ -1194,10 +1393,35 @@
 
       document.getElementById("saveButton").addEventListener("click", saveState);
       document.getElementById("downloadButton").addEventListener("click", downloadJson);
+      document.getElementById("dashboardDataFile").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        try {
+          const data = JSON.parse(await file.text());
+          if (!isSafeDashboardData(data)) {
+            showToast("거부됨: sanitized JSON이 아니거나 liveBrokerWriteAllowed가 false가 아닙니다.");
+            return;
+          }
+          dashboardData = { ...data, _sourceName: file.name };
+          localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(dashboardData, null, 2));
+          render();
+          showToast("sanitized 운영 데이터를 불러왔습니다.");
+        } catch {
+          showToast("JSON 파일을 읽지 못했습니다.");
+        }
+      });
+      document.getElementById("loadExampleButton").addEventListener("click", () => {
+        dashboardData = { ...exampleDashboardData, _sourceName: "예시 데이터" };
+        localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(dashboardData, null, 2));
+        render();
+        showToast("예시 데이터를 적용했습니다.");
+      });
       document.getElementById("resetButton").addEventListener("click", () => {
         if (!window.confirm("로컬 입력값을 모두 초기화할까요?")) return;
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(DATA_STORAGE_KEY);
         state = loadState();
+        dashboardData = loadDashboardData();
         selectedId = blockers[0].id;
         render();
         showToast("초기화했습니다.");
