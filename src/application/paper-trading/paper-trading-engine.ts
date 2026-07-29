@@ -1,5 +1,7 @@
 import type { BrokerAccount } from "../../domain/broker/index.js";
-import type { OrderApproval, OrderSide } from "../../domain/orders/index.js";
+import { OrderApproval, type OrderIntent, type OrderIntentStatus, type OrderSide } from "../../domain/orders/index.js";
+import { MoneyCheck } from "../../domain/portfolio/index.js";
+import { RiskCheck } from "../../domain/risk/index.js";
 
 export type PaperOrderStatus =
   | "SUBMITTED"
@@ -30,6 +32,7 @@ export interface PaperOrder {
   submittedAt: Date;
   updatedAt: Date;
   safetyType: "PAPER_ORDER_SIMULATED_ONLY";
+  liveBrokerWriteAllowed: false;
 }
 
 export interface PaperFill {
@@ -74,6 +77,7 @@ export interface PaperTradingResult {
   events: PaperOrderEvent[];
   blocksDependentTrading: boolean;
   safetyType: "PAPER_TRADING_RESULT_SIMULATED_ONLY";
+  liveBrokerWriteAllowed: false;
 }
 
 export class PaperTradingEngine {
@@ -97,7 +101,8 @@ export class PaperTradingEngine {
       rejectionReasons: reasons,
       submittedAt: input.submittedAt,
       updatedAt: input.submittedAt,
-      safetyType: "PAPER_ORDER_SIMULATED_ONLY"
+      safetyType: "PAPER_ORDER_SIMULATED_ONLY",
+      liveBrokerWriteAllowed: false
     };
 
     return {
@@ -113,7 +118,8 @@ export class PaperTradingEngine {
         })
       ],
       blocksDependentTrading: order.status === "UNKNOWN",
-      safetyType: "PAPER_TRADING_RESULT_SIMULATED_ONLY"
+      safetyType: "PAPER_TRADING_RESULT_SIMULATED_ONLY",
+      liveBrokerWriteAllowed: false
     };
   }
 
@@ -194,6 +200,215 @@ export class PaperTradingEngine {
   }
 }
 
+/**
+ * Decision reached by {@link PaperOrderIntentPipeline} for a candidate strategy
+ * decision / order intent.
+ *
+ * - `ACCEPTED`: risk and money checks passed and no live-capable broker account
+ *   was attached. A paper-only order was submitted into the simulated lifecycle.
+ * - `REJECTED`: an actual evaluated gate (risk check, money check, or a
+ *   live-write-capable broker account) actively vetoed the candidate. This is a
+ *   hard stop and must never be silently retried.
+ * - `DEFERRED`: every present reason code reflects a missing input (risk check
+ *   and/or money check were never supplied), not an active veto. The candidate
+ *   simply cannot be decided yet; it is not a permanent rejection.
+ */
+export type PaperOrderIntentDecision = "ACCEPTED" | "REJECTED" | "DEFERRED";
+
+export interface PaperOrderIntentPipelineInput {
+  candidateId: string;
+  approvalId: string;
+  paperOrderId: string;
+  orderIntent: OrderIntent;
+  riskCheck?: RiskCheck | undefined;
+  moneyCheck?: MoneyCheck | undefined;
+  brokerAccount?: BrokerAccount | undefined;
+  evaluatedAt: Date;
+}
+
+/**
+ * Sanitized decision lineage for audit reconstruction. Deliberately contains no
+ * secrets, no raw broker payloads, and no unmasked account identifiers.
+ */
+export interface PaperOrderIntentAuditContext {
+  candidateId: string;
+  orderIntentId: string;
+  approvalId: string;
+  strategyId: string;
+  strategyVersionId: string;
+  assetId: string;
+  symbol: string;
+  side: OrderSide;
+  signalDirection: string;
+  decision: PaperOrderIntentDecision;
+  reasonCodes: string[];
+  riskCheckResult: string | undefined;
+  moneyCheckResult: string | undefined;
+  brokerAccountMaskedRef: string | undefined;
+  evaluatedAt: Date;
+  liveBrokerWriteAllowed: false;
+  safetyType: "PAPER_ORDER_INTENT_AUDIT_CONTEXT_ONLY";
+}
+
+export interface PaperOrderIntentPipelineResult {
+  decision: PaperOrderIntentDecision;
+  reasonCodes: string[];
+  paperTrading: PaperTradingResult;
+  auditContext: PaperOrderIntentAuditContext;
+  liveBrokerWriteAllowed: false;
+  nonBrokerPaperOnly: true;
+  notLiveExecutable: true;
+  safetyType: "PAPER_ORDER_INTENT_PIPELINE_RESULT_ONLY";
+}
+
+/**
+ * Connects a candidate strategy decision / order intent to the paper-trading
+ * lifecycle without ever touching a real broker.
+ *
+ * This pipeline intentionally does NOT reuse the live-oriented
+ * `OrderApprovalEngine` (broker capability checks, verified BrokerAccount
+ * writes, compliance gates) because those gates are specific to the real
+ * broker-write approval path. Paper trading must remain reachable without any
+ * broker capability being verified, and must actively reject any attempt to
+ * attach a live-write-capable broker account. Reusing the live approval gate
+ * here would either force paper trading to depend on live broker readiness or
+ * create a path where a "paper approval" could be mistaken for a live one.
+ * Keeping this pipeline self-contained keeps that impossible by construction:
+ * there is no code path in this file that can produce a
+ * `BrokerWriteCommandGuardInput`, a `SUBMIT_ORDER`/`CANCEL_ORDER`/
+ * `REPLACE_ORDER` command, or any object with `liveBrokerWriteAllowed` set to
+ * anything other than `false`.
+ */
+export class PaperOrderIntentPipeline {
+  constructor(private readonly paperTradingEngine: PaperTradingEngine = new PaperTradingEngine()) {}
+
+  evaluate(input: PaperOrderIntentPipelineInput): PaperOrderIntentPipelineResult {
+    const reasonCodes = paperGateReasonCodes(input);
+    const decision = classifyPaperOrderIntentDecision(reasonCodes);
+
+    const orderIntent = decision === "ACCEPTED"
+      ? advanceIntentToApprovedStatus(input.orderIntent)
+      : advanceIntentToRejectedStatus(input.orderIntent);
+
+    const riskCheck = input.riskCheck ?? deferredRiskCheck(input.orderIntent.id, input.evaluatedAt);
+    const moneyCheck = input.moneyCheck ?? deferredMoneyCheck(input.orderIntent.id, input.evaluatedAt);
+
+    const approval = new OrderApproval({
+      id: input.approvalId,
+      orderIntent,
+      riskCheck,
+      moneyCheck,
+      status: decision === "ACCEPTED" ? "APPROVED" : "REJECTED",
+      reasons: reasonCodes
+    });
+
+    const paperTrading = this.paperTradingEngine.submit({
+      paperOrderId: input.paperOrderId,
+      approval,
+      submittedAt: input.evaluatedAt,
+      brokerAccount: input.brokerAccount
+    });
+
+    const signal = input.orderIntent.signal;
+    const auditContext: PaperOrderIntentAuditContext = {
+      candidateId: input.candidateId,
+      orderIntentId: input.orderIntent.id,
+      approvalId: input.approvalId,
+      strategyId: signal.strategyVersion.strategyId,
+      strategyVersionId: signal.strategyVersion.id,
+      assetId: signal.asset.id,
+      symbol: signal.asset.symbol,
+      side: input.orderIntent.side,
+      signalDirection: signal.direction,
+      decision,
+      reasonCodes,
+      riskCheckResult: input.riskCheck?.result,
+      moneyCheckResult: input.moneyCheck?.result,
+      brokerAccountMaskedRef: input.brokerAccount?.maskedExternalRef(),
+      evaluatedAt: input.evaluatedAt,
+      liveBrokerWriteAllowed: false,
+      safetyType: "PAPER_ORDER_INTENT_AUDIT_CONTEXT_ONLY"
+    };
+
+    return {
+      decision,
+      reasonCodes,
+      paperTrading,
+      auditContext,
+      liveBrokerWriteAllowed: false,
+      nonBrokerPaperOnly: true,
+      notLiveExecutable: true,
+      safetyType: "PAPER_ORDER_INTENT_PIPELINE_RESULT_ONLY"
+    };
+  }
+}
+
+const PAPER_GATE_MISSING_REASON_CODES = new Set(["missing_risk_check", "missing_money_check"]);
+
+function paperGateReasonCodes(input: PaperOrderIntentPipelineInput): string[] {
+  const reasons: string[] = [];
+
+  if (!input.riskCheck) {
+    reasons.push("missing_risk_check");
+  } else if (!input.riskCheck.allowsApproval()) {
+    reasons.push("risk_check_not_passing");
+  }
+
+  if (!input.moneyCheck) {
+    reasons.push("missing_money_check");
+  } else if (!input.moneyCheck.allowsApproval()) {
+    reasons.push("money_check_not_passing");
+  }
+
+  if (input.brokerAccount?.canWriteLive()) {
+    reasons.push("live_broker_account_not_allowed_for_paper_trading");
+  }
+
+  return reasons;
+}
+
+function classifyPaperOrderIntentDecision(reasonCodes: string[]): PaperOrderIntentDecision {
+  if (reasonCodes.length === 0) return "ACCEPTED";
+  const onlyMissingGates = reasonCodes.every((code) => PAPER_GATE_MISSING_REASON_CODES.has(code));
+  return onlyMissingGates ? "DEFERRED" : "REJECTED";
+}
+
+function advanceIntentToApprovedStatus(intent: OrderIntent): OrderIntent {
+  let current = intent;
+  if (current.status === "CREATED") current = current.transitionTo("RISK_CHECKED");
+  if (current.status === "RISK_CHECKED") current = current.transitionTo("MONEY_CHECKED");
+  if (current.status === "MONEY_CHECKED") current = current.transitionTo("APPROVED");
+  return current;
+}
+
+function advanceIntentToRejectedStatus(intent: OrderIntent): OrderIntent {
+  const terminal: OrderIntentStatus[] = ["APPROVED", "REJECTED"];
+  if (terminal.includes(intent.status)) return intent;
+  return intent.transitionTo("REJECTED");
+}
+
+function deferredRiskCheck(orderIntentId: string, checkedAt: Date): RiskCheck {
+  return new RiskCheck({
+    id: `paper-risk-check-deferred-${orderIntentId}`,
+    subjectType: "ORDER_INTENT",
+    subjectId: orderIntentId,
+    result: "BLOCKED",
+    riskLevel: "CRITICAL",
+    failedLimitIds: ["paper_risk_check_not_yet_available"],
+    checkedAt
+  });
+}
+
+function deferredMoneyCheck(orderIntentId: string, checkedAt: Date): MoneyCheck {
+  return new MoneyCheck({
+    id: `paper-money-check-deferred-${orderIntentId}`,
+    orderIntentId,
+    result: "BLOCKED",
+    reasons: ["paper_money_check_not_yet_available"],
+    checkedAt
+  });
+}
+
 function submissionRejectionReasons(input: PaperTradingSubmitInput): string[] {
   const reasons: string[] = [];
 
@@ -209,7 +424,8 @@ function result(order: PaperOrder, fills: PaperFill[], events: PaperOrderEvent[]
     fills,
     events,
     blocksDependentTrading: order.status === "UNKNOWN",
-    safetyType: "PAPER_TRADING_RESULT_SIMULATED_ONLY"
+    safetyType: "PAPER_TRADING_RESULT_SIMULATED_ONLY",
+    liveBrokerWriteAllowed: false
   };
 }
 

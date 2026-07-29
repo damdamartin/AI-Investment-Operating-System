@@ -115,7 +115,8 @@ function execution(status: SimulatedExecutionRecord["status"]): SimulatedExecuti
     blocksDependentActions: status === "UNKNOWN",
     simulatedBrokerOrderRef: "sim-order-1",
     executedAt: now(),
-    safetyType: "SIMULATED_EXECUTION_RECORD_ONLY"
+    safetyType: "SIMULATED_EXECUTION_RECORD_ONLY",
+    liveBrokerWriteAllowed: false
   };
 }
 
