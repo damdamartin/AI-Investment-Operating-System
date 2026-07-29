@@ -30,7 +30,8 @@ import {
   type DashboardActionType,
   type DashboardActorAuthState,
   type DashboardPermission,
-  type ReconciliationReport
+  type ReconciliationReport,
+  type TossWriteAdapter
 } from "../../src/index.js";
 
 function signal(): Signal {
@@ -756,6 +757,78 @@ describe("safety regression harness", () => {
       expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
       expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
       expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+  });
+
+  describe("TossWriteAdapter placeholder contract stays structurally uncallable (Phase 7 pre-merge baseline)", () => {
+    // Phase 7 (P7-002, not yet merged as of this test) is expected to design
+    // a future TossSecuritiesAdapter write contract on top of the existing
+    // `TossWriteAdapter` placeholder in src/adapters/contracts/toss.ts,
+    // whose `submitOrder`/`cancelOrder` parameters are typed `command:
+    // never`. Prior reviews (docs/reviews/Codex_Phase6_Simulation_Safety_Review.md,
+    // docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md) have
+    // repeatedly confirmed by manual grep, each phase, that no concrete
+    // implementation of this interface exists anywhere in src/. That is a
+    // real property, but until now the consolidated safety-regression
+    // harness never asserted it directly the way it already does for AI
+    // output and the dashboard operator surface above. This closes that
+    // narrow gap on the pre-P7-002 baseline, so Phase 2 of this review has a
+    // concrete pre-merge proof to compare against post-merge.
+    //
+    // No implementation file is modified by this block. It only adds a
+    // hand-rolled, throwing stand-in, because the entire point being proven
+    // is that no real implementation should exist.
+    class ThrowingTossWriteAdapter implements TossWriteAdapter {
+      submitOrder(_command: never): Promise<never> {
+        throw new Error(
+          "TossWriteAdapter.submitOrder must never be called; Phase 7 keeps this contract uncallable by design."
+        );
+      }
+      cancelOrder(_command: never): Promise<never> {
+        throw new Error(
+          "TossWriteAdapter.cancelOrder must never be called; Phase 7 keeps this contract uncallable by design."
+        );
+      }
+    }
+
+    it("rejects an order-shaped argument to submitOrder/cancelOrder at compile time (command: never)", () => {
+      const adapter: TossWriteAdapter = new ThrowingTossWriteAdapter();
+      const orderShapedCommand = {
+        assetId: "asset-1",
+        side: "BUY",
+        quantity: "1",
+        orderType: "LIMIT"
+      };
+
+      // @ts-expect-error - TossWriteAdapter.submitOrder's parameter is typed
+      // `never`; no order-shaped value is assignable to it without an
+      // explicit `as never` cast. If a future change ever widens this
+      // parameter type to something callable, this directive becomes
+      // "unused" and `npm run typecheck` fails, catching the regression at
+      // the exact boundary Phase 7 must not cross. TypeScript's `@ts-expect-
+      // error` only suppresses the type-check report, not the emitted JS -
+      // the statement still executes at runtime, so this stand-in must
+      // still throw rather than do anything resembling a broker write.
+      expect(() => adapter.submitOrder(orderShapedCommand)).toThrow(/must never be called/);
+
+      // @ts-expect-error - same proof for cancelOrder.
+      expect(() => adapter.cancelOrder(orderShapedCommand)).toThrow(/must never be called/);
+    });
+
+    it("throws rather than silently succeeding if a caller forces a call through an explicit `as never` cast", () => {
+      const adapter: TossWriteAdapter = new ThrowingTossWriteAdapter();
+
+      // A sufficiently determined caller could still bypass the type
+      // system with `as never`. Even then, the placeholder must refuse to
+      // do anything resembling a broker write - it must throw, never
+      // resolve, and never return a value that looks like a broker
+      // response.
+      expect(() => adapter.submitOrder(undefined as never)).toThrow(
+        /must never be called/
+      );
+      expect(() => adapter.cancelOrder(undefined as never)).toThrow(
+        /must never be called/
+      );
     });
   });
 });
