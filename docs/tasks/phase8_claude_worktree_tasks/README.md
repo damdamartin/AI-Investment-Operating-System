@@ -18,13 +18,25 @@ dashboard/readiness status as authorization.
 
 | Task | Title | Recommended Branch | Status |
 | --- | --- | --- | --- |
-| [P8-001](P8-001_operations_status_api.md) | Operations Status API Read Model | `phase8/p8-001-operations-status-api` | Draft |
-| [P8-002](P8-002_deployment_readiness_gate.md) | Deployment Readiness Gate | `phase8/p8-002-deployment-readiness-gate` | Draft |
-| [P8-003](P8-003_backup_restore_and_rollback_drills.md) | Backup, Restore, and Rollback Drills | `phase8/p8-003-backup-restore-rollback-drills` | Draft |
-| [P8-004](P8-004_phase8_integration_review.md) | Phase 8 Integration Review | `phase8/p8-004-integration-review` | Draft |
+| [P8-001](P8-001_operations_status_api.md) | Operations Status API Read Model | `phase8/p8-001-operations-status-api` | Merged (`8cf1af1`) |
+| [P8-002](P8-002_deployment_readiness_gate.md) | Deployment Readiness Gate | `phase8/p8-002-deployment-readiness-gate` | Merged (`9ae7056`) |
+| [P8-003](P8-003_backup_restore_and_rollback_drills.md) | Backup, Restore, and Rollback Drills | `phase8/p8-003-backup-restore-rollback-drills` | Merged (`26d3e45`) |
+| [P8-004](P8-004_phase8_integration_review.md) | Phase 8 Integration Review | `phase8/p8-004-integration-review` | Complete — see `docs/reviews/Codex_Phase8_Operations_Readiness_Review.md` |
 
 Use `PHASE8_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md` to start the four
 parallel Claude Code engineers.
+
+P8-001, P8-002, and P8-003 are merged into local `main` (tip `26d3e45`, not
+pushed to GitHub). P8-004's integration review
+(`docs/reviews/Codex_Phase8_Operations_Readiness_Review.md`) reviewed all
+three together and found Phase 8 complete as an operations-readiness
+package: no real broker write path, real network call, real cloud
+deployment command, or `liveBrokerWriteAllowed: true` runtime value exists
+anywhere in the merged code; `.env`/`tmp/phase5` remain untouched; and
+`npm run check` passes (87 test files, 818 tests). This completion is
+operational readiness evidence only — it is not approval for live trading
+or for a real deployment. See the review's "Whether Phase 8 Is Complete,
+Blocked, or Needs Another Round" section for full reasoning.
 
 ## Required Final Verification
 

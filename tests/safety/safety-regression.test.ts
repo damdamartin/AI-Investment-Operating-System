@@ -6,21 +6,28 @@ import {
   BrokerOrder,
   BrokerWriteCommandGuard,
   buildAIAnalysisRecord,
+  createPhase6SchedulerJobCatalog,
   Currency,
   DashboardSensitiveControlGate,
   DeploymentEnvironmentSkeletonService,
   DomainValidationError,
   EngineScoreSet,
+  evaluateBackupRestoreDrill,
+  evaluateDeploymentReadiness,
   KillSwitchControlService,
   Market,
   Money,
   MoneyCheck,
+  OperationsStatusReadModel,
   OrderApproval,
   OrderApprovalEngine,
   OrderIntent,
   PortfolioBrokerAccountLink,
   Price,
   Quantity,
+  REQUIRED_DEPLOYMENT_RUNBOOK_IDS,
+  REQUIRED_DEPLOYMENT_SECRET_NAMES,
+  REQUIRED_ROLLBACK_REHEARSAL_STEPS,
   RestoreSafetyGate,
   RiskCheck,
   RiskEngine,
@@ -28,11 +35,19 @@ import {
   StrategyVersion,
   TossCapabilityRegistry,
   validateClaudeAnalysis,
+  type BackupRestoreDrillInput,
   type ClaudeAnalysisRequest,
   type DashboardActionType,
   type DashboardActorAuthState,
   type DashboardPermission,
+  type DashboardReadOnlyStatus,
+  type DeploymentReadinessInput,
+  type EvidenceReference,
+  type OperationsStatusReadModelInput,
+  type Phase6OperatorSafetyStatus,
   type ReconciliationReport,
+  type RollbackRehearsalStepRecord,
+  type SmallCapitalReadinessReport,
   type TossWriteAdapter
 } from "../../src/index.js";
 
@@ -907,6 +922,267 @@ describe("safety regression harness", () => {
       const guardResult = new BrokerWriteCommandGuard().evaluate({
         commandType: "SUBMIT_ORDER",
         aiContext: result
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+  });
+
+  describe("P8-001/P8-002/P8-003 outputs cannot themselves satisfy BrokerWriteCommandGuard (Phase 8 post-merge cross-module proof)", () => {
+    // Phase 8 (P8-001/P8-002/P8-003) is now merged. Each new module already
+    // has its own per-module proof that its output contains no
+    // command-shaped key (operations-status-read-model.test.ts's "never
+    // exposes a command-shaped key anywhere in the built summary",
+    // backup-restore-drill.test.ts's "does not expose any corrective
+    // trading, broker order, or live-enable commands"), but until now none
+    // of the three new outputs had been fed through the real
+    // `BrokerWriteCommandGuard` at this consolidated harness level, the way
+    // the Phase 1 block above already does for the two pre-existing
+    // evaluators (`DeploymentEnvironmentSkeletonService`,
+    // `RestoreSafetyGate`) these three modules build on top of, and the way
+    // the "Dashboard operator surface" and "AI output" blocks above do for
+    // their own surfaces. This closes that gap, using each module's own
+    // cleanest possible ("fully passing") output -- the case most likely to
+    // be mistaken for an authorization, if any case were.
+
+    const NOW = new Date("2026-07-29T00:00:00Z");
+
+    it("does not let a clean OperationsStatusReadModel.buildStatus() summary satisfy BrokerWriteCommandGuard on its own", () => {
+      const dashboardStatus: DashboardReadOnlyStatus = {
+        system: "OK",
+        trading: "ENABLED",
+        broker: "OK",
+        dataFreshness: "FRESH",
+        reconciliation: "CLEAN",
+        aiHealth: "GREEN",
+        openAlertCount: 0,
+        portfolio: { portfolioId: "portfolio-1", brokerAccounts: [], cashSummary: [] },
+        strategies: { activeStrategyCount: 1, candidateStrategyCount: 0, blockedStrategyCount: 0 },
+        risk: {
+          dailyLossLimitBreached: false,
+          monthlyLossLimitBreached: false,
+          maxDrawdownBreached: false,
+          openRiskIssueCount: 0
+        },
+        generatedAt: NOW,
+        safetyType: "DASHBOARD_READ_ONLY_STATUS"
+      };
+
+      const phase6SafetyStatus: Phase6OperatorSafetyStatus = {
+        paperOrderIntent: {
+          decision: "ACCEPTED",
+          paperOrderStatus: "ACCEPTED",
+          reasonCodes: [],
+          blocksDependentTrading: false,
+          killSwitchBlocksPaperExecution: false,
+          nonBrokerPaperOnly: true,
+          liveBrokerWriteAllowed: false,
+          safetyType: "DASHBOARD_PAPER_ORDER_INTENT_STATUS_VIEW"
+        },
+        reconciliationLiveReadiness: {
+          severity: "NONE",
+          tradingSafetyState: "CLEAR",
+          blocksDependentTrading: false,
+          liveReadinessBlocked: false,
+          liveReadinessReasonCodes: [],
+          liveBrokerWriteAllowed: false,
+          safetyType: "DASHBOARD_RECONCILIATION_LIVE_READINESS_VIEW"
+        },
+        riskVeto: { result: "PASS", riskLevel: "LOW", vetoActive: false, reasonCodes: [], safetyType: "DASHBOARD_RISK_VETO_STATUS_VIEW" },
+        killSwitchGate: { allowed: true, blocksNewOrders: false, reasonCodes: [], safetyType: "DASHBOARD_KILL_SWITCH_GATE_STATUS_VIEW" },
+        approvalGuard: {
+          approvalStatus: "APPROVED",
+          approvalReasonCodes: [],
+          brokerWriteGuardAllowed: true,
+          brokerWriteGuardReasonCodes: [],
+          liveBrokerWriteAllowed: false,
+          safetyType: "DASHBOARD_APPROVAL_GUARD_STATUS_VIEW"
+        },
+        auditCoverage: { auditContextPresent: true, auditTrailRecorded: true, safetyType: "DASHBOARD_AUDIT_COVERAGE_STATUS_VIEW" },
+        paperSimulationReady: true,
+        liveReadinessBlocked: false,
+        liveBrokerWriteAllowed: false,
+        generatedAt: NOW,
+        safetyType: "DASHBOARD_PHASE6_OPERATOR_SAFETY_STATUS"
+      };
+
+      const smallCapitalReadiness: SmallCapitalReadinessReport = {
+        // Deliberately the most "authorization-looking" value this evaluator
+        // can produce, to prove even that case cannot satisfy the guard.
+        readyForSmallCapitalLive: true,
+        blockingReasonCodes: [],
+        warnings: [],
+        liveBrokerWriteAllowed: false,
+        generatedAt: NOW,
+        safetyType: "SMALL_CAPITAL_READINESS_REPORT_EVALUATION_ONLY"
+      };
+
+      const input: OperationsStatusReadModelInput = {
+        dashboardStatus,
+        phase6SafetyStatus,
+        smallCapitalReadiness,
+        openAlerts: [],
+        schedulerDefinitions: createPhase6SchedulerJobCatalog(),
+        schedulerRuns: [],
+        generatedAt: NOW
+      };
+
+      const summary = new OperationsStatusReadModel().buildStatus(input);
+
+      expect(summary.systemHealth).toBe("OK");
+      expect(summary.smallCapitalReadiness.readyForSmallCapitalLive).toBe(true);
+      expect(summary.liveBrokerWriteAllowed).toBe(false);
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: summary
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+
+    it("does not let a clean evaluateDeploymentReadiness() report (readyToDeploy: true) satisfy BrokerWriteCommandGuard on its own", () => {
+      const input: DeploymentReadinessInput = {
+        now: NOW,
+        targetEnvironment: "staging",
+        liveTradingSignal: { liveTradingEnabled: false, appEnv: "staging" },
+        runbookReferences: REQUIRED_DEPLOYMENT_RUNBOOK_IDS.map((runbookId) => ({
+          runbookId,
+          reference: `docs/runbooks/Incident_Runbooks.md#${runbookId.replace(/_/g, "-")}`,
+          exists: true
+        })),
+        rollbackPlanReference: { reference: "docs/phase8/rollback-drill-runbook.md", exists: true },
+        backupRestoreGateReference: { reference: "docs/phase8/backup-restore-drill.md", exists: true },
+        observabilityAlertingReference: { reference: "docs/phase8/operations-status-api.md", exists: true },
+        secretReferences: REQUIRED_DEPLOYMENT_SECRET_NAMES.map((name) => ({
+          name,
+          reference: `secret-ref:${name.toLowerCase().replace(/_/g, "-")}-staging`
+        }))
+      };
+
+      const report = evaluateDeploymentReadiness(input);
+
+      expect(report.readyToDeploy).toBe(true);
+      expect(report.blockingReasonCodes).toEqual([]);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: report
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+
+    it("does not let a clean evaluateBackupRestoreDrill() report (resumeAllowed: true) satisfy BrokerWriteCommandGuard on its own", () => {
+      const evidence = (locator: string): EvidenceReference => ({
+        description: "regression coverage evidence",
+        locator,
+        capturedAt: NOW
+      });
+
+      const steps: RollbackRehearsalStepRecord[] = REQUIRED_ROLLBACK_REHEARSAL_STEPS.map((stepId) => ({
+        stepId,
+        rehearsed: true,
+        evidence: evidence(`rollback-rehearsal://${stepId}`)
+      }));
+
+      const input: BackupRestoreDrillInput = {
+        drillId: "regression-drill-1",
+        now: NOW,
+        requestedResumeMode: "PAPER",
+        backupManifest: {
+          manifestVerified: true,
+          manifestId: "manifest-regression-1",
+          backupCompletedAt: NOW,
+          encryptionVerified: true,
+          storageSeparateFromPrimary: true,
+          retentionPolicyDocumented: true,
+          evidence: evidence("backup-manifest://manifest-regression-1")
+        },
+        schemaConfigVersion: {
+          schemaVersionVerified: true,
+          expectedSchemaVersion: "v1",
+          restoredSchemaVersion: "v1",
+          configVersionsVerified: true,
+          expectedConfigVersionIds: ["risk-v1"],
+          activeConfigVersionIds: ["risk-v1"],
+          evidence: evidence("config-version-report://regression-drill-1")
+        },
+        auditContinuity: {
+          continuityVerified: true,
+          lastAuditRecordIdBeforeRestore: "audit-1",
+          firstAuditRecordIdAfterRestore: "audit-2",
+          gapDetected: false,
+          evidence: evidence("audit-continuity-report://regression-drill-1")
+        },
+        secretsHandledSeparately: {
+          confirmedNotInBackupArtifact: true,
+          secretsManagerReference: "secret-manager://toss/api-credentials",
+          rotatedOrValidatedSeparately: true,
+          evidence: evidence("secret-rotation-ticket://SEC-REGRESSION-1")
+        },
+        reconciliation: {
+          liveReadinessBlocked: false,
+          stale: false,
+          tradingSafetyState: "CLEAR",
+          reconciledAgainstBrokerSnapshot: true,
+          reasonCodes: [],
+          evidence: evidence("reconciliation-workflow-report://regression-drill-1")
+        },
+        dataQuality: {
+          status: "GREEN",
+          blocksTrading: false,
+          reasonCodes: [],
+          evidence: evidence("data-quality-report://regression-drill-1")
+        },
+        killSwitch: {
+          allowed: true,
+          blocksNewOrders: false,
+          reasonCodes: [],
+          evidence: evidence("kill-switch-state://GLOBAL")
+        },
+        operatorApproval: {
+          approved: true,
+          approvedByName: "Regression Operator",
+          approvedByRole: "OPERATOR",
+          approvedAt: NOW,
+          evidence: evidence("approval-record://regression-drill-1")
+        },
+        rollbackRehearsal: { steps }
+      };
+
+      const report = evaluateBackupRestoreDrill(input);
+
+      expect(report.status).toBe("READY");
+      expect(report.resumeAllowed).toBe(true);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.correctiveTradingAllowed).toBe(false);
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: report
       });
 
       expect(guardResult.allowed).toBe(false);
