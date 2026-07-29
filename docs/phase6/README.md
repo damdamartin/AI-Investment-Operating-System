@@ -44,6 +44,7 @@ Claude Code parallel task instructions live in:
 
 - `docs/tasks/phase6_claude_worktree_tasks/README.md`
 - `docs/tasks/phase6_claude_worktree_tasks/PHASE6_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`
+- `docs/tasks/phase6_claude_worktree_tasks/ROUND2_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`
 
 ## Phase 6 Completion Target
 
@@ -82,3 +83,18 @@ confirms all six completion-target items above:
 Live trading is not authorized. See the review's "Remaining Blockers
 Before Any Future Live-Capable Design Phase" for what a future round would
 still need before any live-capable design work could even begin.
+
+## Round 2 Plan
+
+Round 2 focuses on operational readiness around the paper/simulation core:
+
+- operator dashboard read model
+- sanitized alerts and reports
+- scheduler-safe no-write jobs
+- operator runbooks and checklists
+- integration safety review
+
+Round 2 still does not authorize live trading. Dashboard, alert, report,
+and scheduler outputs must remain no-write and must not trigger broker
+orders, cancellations, replacements, transfers, withdrawals, or
+money-moving currency conversion.
