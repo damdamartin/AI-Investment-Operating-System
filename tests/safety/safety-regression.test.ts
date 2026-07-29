@@ -8,6 +8,7 @@ import {
   buildAIAnalysisRecord,
   Currency,
   DashboardSensitiveControlGate,
+  DeploymentEnvironmentSkeletonService,
   DomainValidationError,
   EngineScoreSet,
   KillSwitchControlService,
@@ -20,6 +21,7 @@ import {
   PortfolioBrokerAccountLink,
   Price,
   Quantity,
+  RestoreSafetyGate,
   RiskCheck,
   RiskEngine,
   Signal,
@@ -829,6 +831,92 @@ describe("safety regression harness", () => {
       expect(() => adapter.cancelOrder(undefined as never)).toThrow(
         /must never be called/
       );
+    });
+  });
+
+  describe("Pre-existing operational evaluators that Phase 8 will extend cannot themselves satisfy BrokerWriteCommandGuard (Phase 8 pre-merge baseline)", () => {
+    // Phase 8 (P8-001/P8-002/P8-003, not yet merged as of this test) is
+    // expected to build an operations status read model, a deployment
+    // readiness gate, and a backup/restore/rollback drill evaluator on top
+    // of evaluators that already exist in this codebase:
+    // `DeploymentEnvironmentSkeletonService`
+    // (src/application/deployment/deployment-environment-skeleton.ts) and
+    // `RestoreSafetyGate` (src/application/backup-restore/restore-safety-gate.ts).
+    // Both already produce "everything looks fine" results today under
+    // clean input (`validate().ok: true`, `evaluate().tradingResumeAllowed:
+    // true`) — the same shape of property the "Dashboard operator surface"
+    // block and the "AI output" block above already prove, at this
+    // consolidated harness level, cannot substitute for a real
+    // BrokerWriteCommandGuard authorization. Until now, neither
+    // deployment-skeleton nor restore-safety-gate output had been
+    // cross-checked against BrokerWriteCommandGuard here — only per-module
+    // unit tests exist
+    // (tests/application/deployment-environment-skeleton.test.ts,
+    // tests/application/restore-safety-gate.test.ts), and those do not
+    // touch BrokerWriteCommandGuard at all. This closes that narrow gap on
+    // the pre-P8-002/P8-003 baseline, so Phase 2 of the Phase 8 review has
+    // a concrete pre-merge proof to compare the merged deployment-readiness
+    // gate and backup-restore drill evaluator outputs against (both are
+    // expected to wrap/extend these same two evaluators, per P8-002's and
+    // P8-003's task docs).
+
+    it("does not let a clean DeploymentEnvironmentSkeletonService.validate() result satisfy BrokerWriteCommandGuard on its own", () => {
+      const service = new DeploymentEnvironmentSkeletonService();
+      const validation = service.validate();
+
+      expect(validation.ok).toBe(true);
+      expect(validation.safetyType).toBe("DEPLOYMENT_SKELETON_VALIDATION_ONLY");
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: validation
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+
+    it("does not let a clean RestoreSafetyGate.evaluate() result (tradingResumeAllowed: true) satisfy BrokerWriteCommandGuard on its own", () => {
+      const gate = new RestoreSafetyGate();
+      const result = gate.evaluate({
+        restoreId: "restore-1",
+        checklist: {
+          backupManifestVerified: true,
+          schemaVersionVerified: true,
+          configVersionsVerified: true,
+          auditContinuityVerified: true,
+          secretsHandledSeparately: true,
+          reconciliationClean: true,
+          dataQualityAllowsTrading: true,
+          killSwitchAvailable: true,
+          operatorApprovalRecorded: true
+        },
+        checkedAt: new Date("2026-01-01T00:00:00Z")
+      });
+
+      expect(result.status).toBe("READY");
+      expect(result.tradingResumeAllowed).toBe(true);
+      expect(result.safetyType).toBe("RESTORE_SAFETY_GATE_DECISION_ONLY");
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: result
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
     });
   });
 });
