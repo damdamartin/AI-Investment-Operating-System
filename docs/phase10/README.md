@@ -1,9 +1,10 @@
 # Phase 10 Small-Capital Live Operation Readiness
 
-Version: 0.2.0
-Status: Round 1 Complete (readiness package only — not live-trading approval)
+Version: 0.3.0
+Status: Round 1 Complete, Round 2 Complete (evidence packets only — not live-trading approval)
 Last Updated: 2026-07-29
 Round 1 Review: `docs/reviews/Codex_Phase10_Live_Operation_Readiness_Review.md`
+Round 2 Review: `docs/reviews/Codex_Phase10_Round2_Human_Blocker_Evidence_Review.md`
 Related Roadmap: `docs/99_Development_Roadmap.md`
 Related Previous Phase: `docs/phase9/README.md`
 Primary Blocker Register: `docs/phase7/live-capable-blocker-register.md`
@@ -80,3 +81,21 @@ Round 2 prepares the human blocker evidence packets for `LCB-001` through
 The workbook is `docs/phase10/human-blocker-evidence-workbook.md`; the
 four-engineer prompt is
 `docs/tasks/phase10_claude_worktree_tasks/ROUND2_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md`.
+
+## Round 2 Status
+
+Complete. P10-005 (Toss/compliance packet, `LCB-001`/`LCB-005`), P10-006
+(account/provisioning packet, `LCB-002`/`LCB-003`), P10-007 (owner/risk
+packet, `LCB-004`/`LCB-006`), and P10-008 (live-safety/review packet,
+`LCB-007`/`LCB-008`, plus this round's integration review) are merged
+into local `main`. `npm run check` passes on the merged tree (96 test
+files, 1131 tests, 0 failures, in the P10-008 engineer's worktree after
+merging main; 95 files / 1103 tests on `main` alone before that merge).
+No callable broker-write path was introduced by any round 2 task.
+`docs/phase7/live-capable-blocker-register.md` was not touched —
+`LCB-001` through `LCB-008` remain unresolved and human-only. All four
+evidence packets are sanitized, evidence-only, use only the workbook's
+five allowed decision values, and each states explicitly that it is not
+live-trading authorization. Full detail, including the consolidated list
+of what a human operator must still do for every `LCB-*` blocker:
+`docs/reviews/Codex_Phase10_Round2_Human_Blocker_Evidence_Review.md`.
