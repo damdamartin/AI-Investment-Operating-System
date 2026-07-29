@@ -1,11 +1,12 @@
 # Phase 9 Small-Capital Live Trading Preparation
 
-Version: 0.1.0
-Status: Draft
+Version: 0.2.0
+Status: Complete
 Last Updated: 2026-07-29
 Related Roadmap: `docs/99_Development_Roadmap.md`
 Related Tasks: `docs/tasks/phase9_claude_worktree_tasks/README.md`
 Primary Blocker Register: `docs/phase7/live-capable-blocker-register.md`
+Related Review: `docs/reviews/Codex_Phase9_Small_Capital_Preparation_Review.md`
 
 ## Purpose
 
@@ -71,3 +72,42 @@ Phase 9 round 1 can be considered complete only when:
 Phase 9 round 1 completion is not approval for live trading. It only
 creates the guardrails and evidence formats that humans will use before a
 later, separately reviewed implementation phase.
+
+## Status
+
+Complete. P9-001 (`src/application/live-readiness/live-blocker-evidence-intake.ts`,
+`docs/phase9/live-blocker-evidence-intake.md`), P9-002
+(`src/adapters/toss-write-preflight.ts`,
+`docs/phase9/toss-write-preflight-contract-guard.md`), and P9-003
+(`src/application/live-readiness/small-capital-enablement-gate.ts`,
+`docs/phase9/small-capital-enablement-gate.md`,
+`docs/phase9/small-capital-go-no-go-checklist.md`) are merged into local
+`main` (tip `3d977aa`, not pushed to GitHub). P9-004
+(`docs/reviews/Codex_Phase9_Small_Capital_Preparation_Review.md`)
+reviewed all three together and found every exit criterion above
+satisfied: all eight `LCB-*` blockers are represented in a
+machine-checkable evidence-intake shape, evidence validators fail closed
+on missing human-reviewer fields and reject secret/account/payload-like
+content, the future write-adapter preflight remains no-write and cannot
+call a broker, small-capital enablement remains structurally separated
+from live-trading authorization even under a maximally clean input, no
+runtime output enables live broker writes (`liveBrokerWriteAllowed` is a
+hardcoded `false` literal everywhere it appears), `.env`/`tmp/phase5`
+remain unread, and `npm run check` passes (90 test files, 914 tests).
+
+As stated above, this completion is preparation-evidence readiness only.
+It is not approval for live trading. The human-only next steps remain
+exactly those already listed in
+`docs/phase7/live-capable-blocker-register.md` (`LCB-001` through
+`LCB-008`, none `RESOLVED`) — Phase 9 round 1 does not touch that
+register and introduces no new blocker of its own kind. One concrete,
+non-blocking follow-up item was surfaced by the review: P9-003's
+locally-defined `LiveBlockerEvidenceSummaryEntry` evidence-status
+vocabulary (`NOT_STARTED`/`READY_FOR_HUMAN_REVIEW`/`HUMAN_REVIEWED`)
+does not exactly match P9-001's real
+`LiveBlockerEvidenceStatus`/`LiveBlockerEvidenceRegisterBlockerStatus`
+vocabulary (`REJECTED`/`READY_FOR_HUMAN_REVIEW`/`HUMAN_REVIEWED`/
+`MISSING`/`DUPLICATE`) — both fail closed independently, so this is not
+a safety gap, but a future integration task will need explicit glue
+code to map P9-001's real evidence-register output into P9-003's input
+shape.

@@ -1,23 +1,42 @@
 # Codex Phase 9 Small-Capital Preparation Review
 
-Version: 0.1.0
-Status: Draft (Phase 1 of 2 — scaffold only)
-Review Date: PENDING — awaiting P9-001/P9-002/P9-003 merge
+Version: 1.0.0
+Status: Complete
+Review Date: 2026-07-29
 Task: P9-004 Phase 9 Integration Review
 Assigned Engineer: Engineer 4
 
 ## Purpose
 
-This document will record the Phase 9 round 1 integration and
+This document records the Phase 9 round 1 integration and
 small-capital-preparation-safety review after P9-001 (live blocker
 evidence intake), P9-002 (Toss write preflight contract guard), and
-P9-003 (small-capital enablement gate) are merged into local `main`. It
+P9-003 (small-capital enablement gate) were merged into local `main`. It
 follows the same two-phase pattern used for
 `docs/reviews/Codex_Phase7_Live_Capable_Design_Readiness_Review.md` and
 `docs/reviews/Codex_Phase8_Operations_Readiness_Review.md`: Phase 1
-(this content) establishes a pre-merge baseline (source scans, a
-regression-gap check, and this scaffold); Phase 2 performs the full
-integration review once P9-001/P9-002/P9-003 exist and are merged.
+established a pre-merge baseline (source scans, a regression-gap check,
+and a scaffold); Phase 2 (this content) performs the full integration
+review now that P9-001/P9-002/P9-003 exist and are merged.
+
+Merge commits reviewed (local `main`, never pushed to GitHub):
+
+- `254a963` — Merge Phase 9 Engineer 1: P9-001 live blocker evidence
+  intake
+- `abe6d64` — Merge Phase 9 Engineer 2: P9-002 Toss write preflight
+  contract guard
+- `3d977aa` — Merge Phase 9 Engineer 3: P9-003 small-capital enablement
+  gate (this merge had one real, expected conflict in
+  `src/application/live-readiness/index.ts` — both Engineer 1 and
+  Engineer 3 added a barrel-export line; the orchestrator resolved it by
+  keeping both lines in alphabetical order, nothing else changed)
+
+Local `main` tip at review time: `3d977aa`. This review was produced from
+`phase9/p9-004-integration-review` after merging local `main` into it
+(`git merge main`, merge commit `cb1f69f`, clean — no conflicts on this
+branch). Every claim below was checked directly against the merged source
+in this worktree — the three new source files and their test files — not
+inferred from the orchestrator's summary alone.
 
 **This document does not authorize live trading, order creation, order
 cancellation, order modification, transfer, withdrawal, currency
@@ -31,23 +50,167 @@ human-only decision in every phase.**
 - Phase 1 (scaffold, baseline source scans, pre-merge regression-gap
   check): complete.
 - Phase 2 (full integration review after P9-001/P9-002/P9-003 merge):
-  PENDING — awaiting P9-001/P9-002/P9-003 merge.
+  complete.
 
 ## Summary
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+P9-001, P9-002, and P9-003 merged into local `main` cleanly (merge
+commits `254a963`, `abe6d64`, `3d977aa`; tip `3d977aa`; one expected
+barrel-export conflict in `src/application/live-readiness/index.ts`,
+resolved by the orchestrator by keeping both new export lines), and
+merged into this review branch with no conflicts (`git merge main`,
+`ort` strategy, merge commit `cb1f69f`). `npm run check` passes cleanly
+on the merged branch: typecheck clean, 90 test files, 914 tests, all
+passing (913 from merged `main` plus 1 this branch already carried
+across its own Phase 1, in `tests/safety/safety-regression.test.ts`).
 
-## What Changed in P9-001 (Live Blocker Evidence Intake)
+All three branches add pure, side-effect-free evaluators/validators on
+top of the existing Phase 5/6/7/8 safety chain, exactly matching their
+task docs' scope:
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+- **P9-001** (`src/application/live-readiness/live-blocker-evidence-intake.ts`)
+  is a pure validator for sanitized `LCB-001`..`LCB-008` evidence
+  records. All eight blocker ids are represented in a fixed, frozen
+  catalog (`LIVE_BLOCKER_IDS`, `LIVE_BLOCKER_CATALOG`). The literal
+  string `"RESOLVED"` does not appear anywhere in either status type
+  this module can return (`LiveBlockerEvidenceStatus`:
+  `"REJECTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"`;
+  `LiveBlockerEvidenceRegisterBlockerStatus` additionally adds
+  `"MISSING"`/`"DUPLICATE"`) — confirmed by reading both type
+  definitions directly (source lines 258 and 398) and by a dedicated
+  test, "never produces the literal status RESOLVED under any input"
+  (`tests/application/live-blocker-evidence-intake.test.ts:70-88`), that
+  uses a `@ts-expect-error` cast to try to smuggle `result: "RESOLVED"`
+  through the type system and confirms `review.status` is never
+  `"RESOLVED"`. `LiveBlockerEvidenceRegisterReview.blockerRegisterResolutionAllowed`
+  is a hardcoded `false` literal (source line 435), and a second test
+  ("never exposes a RESOLVED status or a resolution-allowed flag
+  anywhere in the register review", line 317) confirms the serialized
+  JSON of a register review never contains the substring `"RESOLVED"`.
+  `aiGeneratedSummary` is a distinct, optional field that no check
+  reads when deciding `humanReviewed` status (confirmed by reading
+  `LiveBlockerEvidenceRecordValidator.review` directly: the field is
+  only scanned for prohibited content, never consulted for the
+  `status` branch). Reviewer identity fields are checked against a
+  disallowed-token pattern (`ai|artificial-intelligence|claude|chatgpt|
+  gpt-\d*|codex|anthropic|openai|copilot|assistant|bot|automated|algorithm`)
+  and rejected with `human_reviewer_name_looks_non_human` /
+  `human_reviewer_role_looks_non_human` reason codes. Every free-text
+  field (evidence source references, limitations, reviewer name/role,
+  AI summary) is scanned for secret-like, account-identifier-like, raw
+  JSON/HTML-payload-like, and HTTP-header-like content, and every match
+  is a blocking `reasonCode`, never a warning (confirmed by reading
+  `scanForProhibitedContent` directly — it only ever pushes to
+  `reasonCodes`, never to `warnings`). The module never imports `fs`,
+  never references a path for
+  `docs/phase7/live-capable-blocker-register.md`, and performs no
+  read/write of any kind against that file (grep-confirmed: zero
+  filesystem imports in the source file).
+- **P9-002** (`src/adapters/toss-write-preflight.ts`) is a pure,
+  synchronous `evaluateTossWritePreflight` function. Fed a fully empty
+  input, it returns `ready: false` with all nine `missing_*` reason
+  codes populated (`missing_evaluation_time`,
+  `missing_live_blocker_evidence`,
+  `missing_broker_write_command_guard_result`,
+  `missing_kill_switch_recheck`, `missing_reconciliation_state`,
+  `missing_idempotency_policy`, `missing_redaction_policy`,
+  `missing_error_normalization_policy`, `missing_raw_payload_policy`)
+  and never throws — confirmed by reading each `*Reasons` helper
+  function directly: every one of the nine checks returns an array
+  literal starting with a `missing_*` code when its corresponding input
+  is absent, and no branch anywhere in the file returns an empty
+  `blockingReasons` array from undefined input. `liveBrokerWriteAllowed`
+  is a hardcoded `false` literal in the single return statement (source
+  line 210), never computed from `ready` or any other field — confirmed
+  by reading the return statement directly, and by tests covering both
+  a `ready: true`-shaped clean input and the fully-empty `ready: false`
+  input, both asserting `liveBrokerWriteAllowed === false`.
+  `git diff 1ed644d..3d977aa -- src/adapters/toss-write-contract.ts src/application/broker-write-guard/broker-write-command-guard.ts`
+  returns zero lines — confirmed directly, not just per the task
+  summary — both files are consumed only as read-only, type-only
+  imports (`import type { ... } from "./toss-write-contract.js"` /
+  `"../application/broker-write-guard/broker-write-command-guard.js"`).
+  No barrel-export line was added for this module (it follows the
+  sibling `toss-write-contract.ts` convention of direct relative-path
+  imports — confirmed: `src/adapters/contracts/index.ts` and
+  `src/index.ts` show no new export line for this file in the merge
+  diff). Grep-confirmed directly across the entire file: zero `fetch`,
+  `axios`, `undici`, `process.env`, or HTTP-client references — the
+  only appearances of those words are in the module's own doc-comment
+  prohibition list (lines 37-41).
+- **P9-003** (`src/application/live-readiness/small-capital-enablement-gate.ts`)
+  is a pure `evaluateSmallCapitalEnablementGate` function composing
+  Phase 7 small-capital readiness, Phase 8 operations/deployment/backup
+  readiness, and a Phase 9 live-blocker evidence summary into one
+  report. `readyForLiveBrokerWrites` and `liveBrokerWriteAllowed` are
+  typed as the TypeScript literal type `false` (not `boolean`) on
+  `SmallCapitalEnablementGateReport` (source lines 258, 264) and written
+  as bare literals at the single return site (lines 315, 317) — enforced
+  at compile time, not just at runtime. A "maximally clean input" test
+  (`tests/application/small-capital-enablement-gate.test.ts:350-368`)
+  constructs every upstream signal passing and all 8 `LCB-*` blockers
+  `HUMAN_REVIEWED` with reviewer name and date, confirms
+  `readyForSmallCapitalPreparation: true`, and then confirms
+  `readyForLiveBrokerWrites`/`liveBrokerWriteAllowed` are still `false`,
+  including a `JSON.stringify(report)` scan for `"readyForLiveBrokerWrites":true`
+  and `"liveBrokerWriteAllowed":true` substrings. A companion test
+  (line 370) hand-mutates a report copy to `true` for both fields and
+  confirms re-running the evaluator on the same clean input always
+  re-derives literal `false`, demonstrating the guarantee is about the
+  evaluator's own output, not merely an unenforced convention on the
+  type. The module never constructs, mutates, or "upgrades" a
+  `LiveBlockerEvidenceSummaryEntry.status` to `"HUMAN_REVIEWED"` — that
+  value can only arrive as caller-supplied input (confirmed by reading
+  `evaluateLiveBlockerEvidenceView` directly: it only ever reads
+  `entry.status`, never writes it). Every upstream report's own
+  `liveBrokerWriteAllowed` (and, for the backup/restore report,
+  `correctiveTradingAllowed`) is defensively re-checked at runtime
+  (`(report.liveBrokerWriteAllowed as unknown) !== false`) and treated
+  as a blocking condition if tampered, even though this can never make
+  *this* report's own literals `true` either way — confirmed by reading
+  all four `evaluate*View` helper functions and by four dedicated
+  "flags a tampered ... report" tests.
 
-## What Changed in P9-002 (Toss Write Preflight Contract Guard)
-
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
-
-## What Changed in P9-003 (Small-Capital Enablement Gate)
-
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+  **Evidence-vocabulary compatibility note (flagged per the
+  orchestrator's request):** P9-003 deliberately does not import
+  P9-001's actual `LiveBlockerEvidenceRecord`/`LiveBlockerEvidenceStatus`
+  types (both were built independently and concurrently; the module's
+  own doc comment explains this was to keep the task mergeable in
+  either order and avoid an import-cycle risk). Instead it defines a
+  local `LiveBlockerEvidenceSummaryEntry` type with
+  `status: "NOT_STARTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"`
+  (3 values). P9-001's actual record-level status vocabulary
+  (`LiveBlockerEvidenceStatus`) is `"REJECTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"`
+  (3 values, but with `REJECTED` instead of `NOT_STARTED`), and its
+  register-level vocabulary
+  (`LiveBlockerEvidenceRegisterBlockerStatus`) additionally adds
+  `"MISSING"`/`"DUPLICATE"` (5 values total). These are genuinely
+  different vocabularies: P9-001 has no `NOT_STARTED` value (a record
+  simply does not exist yet, which its register reviewer reports as
+  `MISSING`), and P9-003 has no `REJECTED`/`MISSING`/`DUPLICATE`
+  values (an entry with an unrecognized status is rejected outright via
+  `live_blocker_evidence_invalid_status_<slug>`, and no entry at all
+  for a required blocker id is reported via `missing_blocker_evidence_summary`
+  / `live_blocker_evidence_missing_<slug>`). **This does not create a
+  safety gap**, because P9-003 fails closed on any status value outside
+  its own 3-value set (an unrecognized status, including a raw
+  passthrough of P9-001's `"REJECTED"`, is rejected as
+  `live_blocker_evidence_invalid_status_<slug>` and counted in
+  `humanReviewMissingReasonCodes`, never silently treated as reviewed)
+  and fails closed on a missing entry. But it does mean **a future
+  integration task will need explicit glue/mapping code** to convert a
+  real P9-001 `LiveBlockerEvidenceRegisterReview.blockers[]` array into
+  P9-003's `LiveBlockerEvidenceSummaryEntry[]` input shape — at minimum
+  mapping P9-001's `MISSING` and `REJECTED` (and, arguably,
+  `DUPLICATE`) statuses to something P9-003 can safely interpret (most
+  naturally: omit the entry entirely, so P9-003 reports it as missing,
+  or explicitly map it to `NOT_STARTED`, never to `HUMAN_REVIEWED`).
+  Until that glue code exists, P9-003's `liveBlockerEvidence` input must
+  be hand-constructed or supplied by some other adapter — it cannot yet
+  be wired directly to P9-001's real output. Flagging this as a
+  concrete follow-up item, not a blocker for Phase 9 round 1's own exit
+  criteria (which only requires the two modules to each individually
+  fail closed, which both do).
 
 ## Baseline Source Scan Results
 
@@ -359,7 +522,131 @@ finding to flag in Phase 2.
 
 ## Post-Merge Source Scan Results
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+Commands run (from
+`/Users/mac/Documents/Codex/aios-phase9-worktrees/eng4`, branch
+`phase9/p9-004-integration-review`, after `git merge main`, merged tip
+`3d977aa`, merge commit into this branch `cb1f69f`):
+
+```bash
+rg -n "submitOrder|cancelOrder|replaceOrder|placeOrder|TossSecuritiesAdapter|liveBrokerWriteAllowed: true|fetch\(|axios|undici" src tests docs/phase9
+rg -n "\.env|tmp/phase5|client_secret|access_token|account_number" src tests docs/phase9
+```
+
+Scan 1 returned 114 total matches (versus 102 in the Phase 1 baseline).
+Scan 2 returned 118 total matches (versus 111 in the Phase 1 baseline).
+Diffing with a sorted, line-content set comparison (`comm -13`/`comm -23`
+on sorted baseline vs. sorted post-merge output, not a raw ordered
+`diff`, since `rg`'s file-traversal order is not guaranteed stable
+between runs) against the Phase 1 baseline yields:
+
+- **Scan 1: 12 matches genuinely new** from the P9-001/P9-002/P9-003
+  merge. 0 matches removed.
+- **Scan 2: 7 matches genuinely new** from the P9-001/P9-002/P9-003
+  merge. 0 matches removed.
+
+### The 12 Matches Genuinely New From Scan 1
+
+```text
+docs/phase9/small-capital-enablement-gate.md:30:- must never set `liveBrokerWriteAllowed: true` in any runtime path
+docs/phase9/small-capital-go-no-go-checklist.md:143:- No `TossSecuritiesAdapter` write implementation exists.
+docs/phase9/toss-write-preflight-contract-guard.md:167:  `TossSecuritiesAdapter` or any write method.
+docs/phase9/toss-write-preflight-contract-guard.md:21:before a **future, separately reviewed** `TossSecuritiesAdapter` write
+src/adapters/toss-write-preflight.ts:34: *   ever produces `liveBrokerWriteAllowed: true`.
+src/adapters/toss-write-preflight.ts:37: * - no `fetch`, HTTP client, axios, undici, or any network code;
+src/adapters/toss-write-preflight.ts:41: * - no `liveBrokerWriteAllowed: true` anywhere;
+src/adapters/toss-write-preflight.ts:8: * `TossSecuritiesAdapter` write implementation could legitimately become
+tests/adapters/toss-write-preflight.test.ts:460:      // adapter method such as submitOrder/cancelOrder/replaceOrder.
+tests/application/small-capital-enablement-gate.test.ts:375:        liveBrokerWriteAllowed: true
+tests/application/small-capital-enablement-gate.test.ts:414:      const tamperedPhase7 = { ...cleanPhase7Report(), liveBrokerWriteAllowed: true as unknown as false };
+tests/application/small-capital-enablement-gate.test.ts:477:        operations: { ...cleanOperationsSignal(), liveBrokerWriteAllowed: true }
+```
+
+**Interpretation — every match accepted:**
+
+- `docs/phase9/small-capital-enablement-gate.md:30`,
+  `docs/phase9/small-capital-go-no-go-checklist.md:143`,
+  `docs/phase9/toss-write-preflight-contract-guard.md:21,167` — all four
+  are prohibition-statement or design-scope prose (confirmed by reading
+  each in context: "must never set `liveBrokerWriteAllowed: true` in
+  any runtime path", "No `TossSecuritiesAdapter` write implementation
+  exists", and two references describing the *future, not-yet-built*
+  adapter this preflight checks prerequisites for). None is code.
+- `src/adapters/toss-write-preflight.ts:8,34,37,41` — all four are the
+  module's own doc-comment prohibition list, read in full context above
+  ("What Changed in P9-002"). Confirmed by direct reading: no `fetch`,
+  `axios`, `undici`, or HTTP-client code exists anywhere else in this
+  431-line file.
+- `tests/adapters/toss-write-preflight.test.ts:460` — a code comment
+  referencing the forbidden method names by way of explaining what the
+  file structurally cannot construct, not a call to any of them.
+- `tests/application/small-capital-enablement-gate.test.ts:375,414,477`
+  — all three are safety assertions, read in full context: line 375 is
+  inside "cannot be forced to true even by a hand-constructed object
+  that violates the report's own type" — a caller-side object spread
+  that mutates a *copy* of the evaluator's output to prove the
+  evaluator itself never produces that value (the test re-runs the
+  evaluator on the same clean input immediately after and asserts it
+  is still `false`); lines 414 and 477 are inside "flags a tampered
+  Phase 7 report" / "flags a tampered operations signal" tests that
+  hand-construct an upstream report with `liveBrokerWriteAllowed: true`
+  specifically to prove P9-003's defensive re-check
+  (`phase7_report_live_broker_write_allowed_not_false` /
+  `phase8_operations_report_live_broker_write_allowed_not_false`)
+  catches it and still returns `liveBrokerWriteAllowed: false` on its
+  own report. None of the three is a runtime value the evaluator itself
+  produces.
+
+### The 7 Matches Genuinely New From Scan 2
+
+```text
+docs/phase9/small-capital-enablement-gate.md:313:- It does not read `.env`, `tmp/phase5`, or any real secret value; this
+docs/phase9/toss-write-preflight-contract-guard.md:169:- It does not read `.env`, `tmp/phase5`, or any secret/credential material.
+docs/phase9/toss-write-preflight-contract-guard.md:170:- It does not read `process.env`.
+src/adapters/toss-write-preflight.ts:39: * - no `process.env` read;
+src/adapters/toss-write-preflight.ts:40: * - no `.env` or `tmp/phase5` read;
+tests/adapters/toss-write-preflight.test.ts:20:// reads no .env or tmp/phase5 file, and never sets `liveBrokerWriteAllowed`
+tests/application/live-blocker-evidence-intake.test.ts:203:          evidenceSourceReferences: ["Note: client_secret was used to authenticate the developer console session."]
+```
+
+**Interpretation — every match accepted:**
+
+- `docs/phase9/small-capital-enablement-gate.md:313`,
+  `docs/phase9/toss-write-preflight-contract-guard.md:169-170` — three
+  prohibition-statement prose lines, confirmed by reading each in
+  context.
+- `src/adapters/toss-write-preflight.ts:39-40` and
+  `tests/adapters/toss-write-preflight.test.ts:20` — the module's own
+  doc-comment prohibition and a matching test-file comment restating it.
+  Grep-confirmed: zero `process.env`, `.env`, or `tmp/phase5` reads
+  anywhere else in either file.
+- `tests/application/live-blocker-evidence-intake.test.ts:203` — a test
+  fixture string, `"Note: client_secret was used to authenticate the
+  developer console session."`, deliberately constructed to prove
+  `LiveBlockerEvidenceRecordValidator` rejects an evidence source
+  reference that merely *mentions* the word `client_secret` in prose
+  (not a real secret value) with `evidence_may_contain_secret_evidence_source_reference_0`.
+  A redaction/rejection test, not a real secret.
+
+### Overall Post-Merge Interpretation
+
+**None of the 12 (Scan 1) + 7 (Scan 2) = 19 genuinely new matches is a
+callable broker-write path, a real network call to a Toss order
+endpoint, a real secret value, or a `liveBrokerWriteAllowed: true`
+runtime value produced by any evaluator.** Every one is a prohibition
+statement, a doc-comment restating a prohibition, a safety assertion
+proving a tampering/smuggling attempt is caught, or a redaction-test
+fixture using fake/mock secret-shaped text. This matches the same
+discipline applied to the Phase 1 baseline and to the Phase 7 and
+Phase 8 reviews' own post-merge scans. `.env` remains absent from this
+worktree (confirmed by `ls -la .env` returning "No such file or
+directory" — existence check only). `tmp/phase5/` now exists as an
+**empty** directory (0 files; confirmed by `ls -la tmp/phase5/`),
+created as a harmless side effect of running the existing Phase 5
+script test suite during `npm run check` (several of those pre-existing
+tests spawn local scripts that create and immediately clean up files
+under this git-ignored path) — it was not read, printed, or inspected
+beyond this existence/emptiness check, and it is `.gitignore`d
+(`tmp/`) and was not staged or committed.
 
 ## Phase 1 Regression-Gap Check (Pre-Merge Baseline)
 
@@ -456,54 +743,234 @@ Result: 26 tests passed (25 pre-existing + 1 new), 0 failed. Full
 
 ## Whether All Eight LCB-* Blockers Are Represented
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**Yes, in all three modules.** P9-001's `LIVE_BLOCKER_IDS` and
+`LIVE_BLOCKER_CATALOG` are frozen constants listing exactly `LCB-001`
+through `LCB-008`, matching `docs/phase7/live-capable-blocker-register.md`'s
+summary table titles and human-owner roles verbatim in spirit (own
+paraphrase, not a copy). `LiveBlockerEvidenceRegisterReviewer.review()`
+always returns a `blockers[]` array of exactly these 8 ids, in this
+fixed order, even when zero evidence records are supplied (each becomes
+`status: "MISSING"`) — confirmed by reading
+`LiveBlockerEvidenceRegisterReviewer.review` directly:
+`blockers = LIVE_BLOCKER_IDS.map(...)` always iterates the full frozen
+list, never a caller-supplied subset. P9-002's
+`TOSS_WRITE_PREFLIGHT_REQUIRED_LIVE_BLOCKER_IDS` is the same frozen
+8-id list, and `liveBlockerEvidenceReasons` iterates it unconditionally,
+producing a `<blockerId>_missing` reason for any absent entry.
+P9-003's `REQUIRED_LIVE_CAPABLE_BLOCKER_IDS` is again the same frozen
+8-id list, and `evaluateLiveBlockerEvidenceView` iterates it
+unconditionally. All three lists were compared line-by-line and are
+identical in content (`LCB-001`..`LCB-008`) and order.
 
 ## Whether Any Task Incorrectly Marked A Human-Only Blocker Resolved
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**No.** The literal string `"RESOLVED"` does not appear as a producible
+value in any of the three new modules:
+
+- P9-001: `LiveBlockerEvidenceStatus` and
+  `LiveBlockerEvidenceRegisterBlockerStatus` both deliberately exclude
+  it (confirmed by reading both type definitions); a dedicated test
+  tries to smuggle it through via `@ts-expect-error` and fails;
+  `blockerRegisterResolutionAllowed: false` is a hardcoded literal on
+  every register-level report; the module never reads or writes
+  `docs/phase7/live-capable-blocker-register.md`.
+- P9-002: has no status vocabulary that includes "resolved" at all —
+  its only output is `ready: boolean` plus `blockingReasons`, neither
+  of which can encode a blocker resolution.
+- P9-003: `LiveBlockerReviewStatus` is
+  `"NOT_STARTED" | "READY_FOR_HUMAN_REVIEW" | "HUMAN_REVIEWED"` —
+  no `"RESOLVED"` member, and no code path in the module can construct
+  or upgrade an entry's `status` to `"HUMAN_REVIEWED"`; that value can
+  only arrive as caller-supplied input.
+
+No task edited `docs/phase7/live-capable-blocker-register.md` itself
+(confirmed: `git diff 1ed644d..3d977aa -- docs/phase7/live-capable-blocker-register.md`
+returns zero lines) — the file this review's own instructions and every
+task doc treat as the sole place a human may ever record a `RESOLVED`
+decision was not touched by any of the three merges.
 
 ## Whether Evidence Validators Reject Secrets/Raw Broker Identifiers
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**Yes.** P9-001's `scanForProhibitedContent` runs four independent
+pattern checks (secret-like: tokens/keys/passwords/bearer values;
+account-identifier-like: 6+ digit runs; raw-payload-like: JSON/HTML/HTTP
+response shapes; request-header-like: `x-*`/cookie/set-cookie headers)
+against every free-text field on a record (evidence source references,
+limitations, reviewer name, reviewer role, AI summary), and every match
+produces a blocking `reasonCode`, never a warning — confirmed by reading
+the function directly and by the test-fixture evidence
+(`tests/application/live-blocker-evidence-intake.test.ts:203`, `"...
+client_secret was used..."`) that the post-merge scan surfaced and this
+review independently verified is a rejection-test fixture. P9-002's
+`rawPayloadPolicyReasons` defensively re-checks
+`policy.rawPayloadStorageAllowed` at runtime even though it is typed as
+the literal `false` (guarding against an `as`-cast bypass). P9-003 does
+not itself accept free-text evidence content (it consumes a narrow,
+already-summarized `LiveBlockerEvidenceSummaryEntry` shape with no
+free-text fields beyond a reviewer name), so raw-secret rejection at
+that layer is P9-001's responsibility by design, and P9-001 covers it.
 
 ## Whether Future Write Preflight Remains No-Write
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**Yes.** `src/adapters/toss-write-preflight.ts` contains zero `fetch`,
+`axios`, `undici`, HTTP-client, `process.env`, or request-body-builder
+code anywhere in its 442 lines (grep-confirmed directly; the only
+appearances of those words are in the module's own doc-comment
+prohibition list). `evaluateTossWritePreflight` is synchronous, takes
+plain data, and returns plain data; it never constructs, returns, or
+references anything resembling a callable adapter. `src/adapters/toss-write-contract.ts`
+(the existing compile-time-uncallable `command: never` contract) is
+untouched by this merge (`git diff` confirms zero lines changed), and
+P9-002 does not weaken, bypass, or reimplement `BrokerWriteCommandGuard`
+— it only ever consumes a caller-supplied `BrokerWriteCommandGuardResult`
+as read-only input and adds its own additional checks on top
+(`guard_result_not_allowed`, `guard_result_has_reason_codes`, etc.),
+never relaxing what the guard itself requires.
 
 ## Whether Small-Capital Enablement Remains Evidence-Only
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**Yes.** `readyForLiveBrokerWrites` and `liveBrokerWriteAllowed` on
+`SmallCapitalEnablementGateReport` are typed as the TypeScript literal
+type `false`, not `boolean`, and written as bare literals at the single
+return site — there is no branch, ternary, ambient default, or expression
+anywhere in the 597-line file that can produce `true` for either field
+(confirmed by reading the full return statement and every helper
+function that contributes to it). The "maximally clean input" test
+proves this holds even when every upstream signal is clean and all 8
+`LCB-*` blockers are `HUMAN_REVIEWED`. `SMALL_CAPITAL_ENABLEMENT_GATE_EVIDENCE_STATEMENT`
+is a verbatim, human-readable restatement of this same guarantee,
+attached to every report as data (`evidenceOnlyStatement`), not only as
+documentation — so a caller reading only the JSON output still sees the
+statement. The module never marks a live-blocker evidence entry
+reviewed on a human's behalf (see the vocabulary-compatibility note
+above) and never derives `readyForLiveBrokerWrites` from
+`readyForSmallCapitalPreparation`.
 
 ## Whether Any Task Introduced Network Calls Or Callable Broker-Write Code
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**No.** Across all three new source files
+(`src/application/live-readiness/live-blocker-evidence-intake.ts`,
+`src/adapters/toss-write-preflight.ts`,
+`src/application/live-readiness/small-capital-enablement-gate.ts`) there
+is zero `fetch`, `axios`, `undici`, `process.env`, filesystem (`fs`),
+`child_process`, or cloud-CLI reference of any kind (grep-confirmed
+directly against each file, not merely accepted by pattern-category from
+the scan). None of the three exports a callable `submitOrder`,
+`cancelOrder`, `replaceOrder`, or any other order-mutating method — all
+three are pure evaluators/validators returning plain report objects.
+`src/adapters/toss-write-contract.ts` and
+`src/application/broker-write-guard/broker-write-command-guard.ts`, the
+two files where a callable write path or a weakened guard would most
+plausibly appear, are both confirmed byte-for-byte unchanged by this
+merge (`git diff 1ed644d..3d977aa` on each returns zero lines).
 
 ## Whether Phase 9 Round 1 Is Complete, Blocked, Or Needs Another Round
 
-PENDING — awaiting P9-001/P9-002/P9-003 merge.
+**Go — Phase 9 round 1 is complete as an evidence-and-gate preparation
+package.** Every exit criterion in `docs/phase9/README.md` is satisfied
+by the merged code:
 
-## Required Checks (Phase 1)
+- Every `LCB-*` blocker has a machine-checkable evidence-intake shape
+  (P9-001) — confirmed above.
+- Evidence validators fail closed on missing human-reviewer fields and
+  reject secret/account/payload/header-like content as blocking, never
+  advisory (P9-001) — confirmed above.
+- The future write-adapter preflight remains no-write and cannot call a
+  broker; it does not weaken `BrokerWriteCommandGuard` (P9-002) —
+  confirmed above.
+- Small-capital enablement remains structurally separated from
+  live-trading authorization, even under a maximally clean input
+  (P9-003) — confirmed above.
+- No runtime output enables live broker writes: `liveBrokerWriteAllowed`
+  is a hardcoded `false` literal everywhere it appears across all three
+  new modules, and every genuinely new source-scan match is a
+  prohibition, doc-comment, or safety assertion, never a real value or
+  callable path.
+- `npm run check` passes: 90 test files, 914 tests, 0 failures.
+
+**This completion is preparation-evidence readiness only. It is not
+approval for live trading, for any real Toss API call, or for enabling
+`liveBrokerWriteAllowed` anywhere.** The human-only next steps remain
+exactly those already listed in
+`docs/phase7/live-capable-blocker-register.md` — all eight `LCB-001`
+through `LCB-008` entries remain not-`RESOLVED` in that register (Phase
+9 does not touch that register's `Current Status` field at all; the
+register itself was confirmed byte-for-byte unchanged by this merge).
+The one concrete, non-blocking follow-up item this review surfaces is
+the P9-001/P9-003 evidence-vocabulary reconciliation noted above — a
+future integration task, not a re-run of Phase 9 round 1.
+
+### LCB-001..008 Status Summary (unchanged by Phase 9, per the canonical register)
+
+All eight remain exactly as recorded in
+`docs/phase7/live-capable-blocker-register.md` (untouched by this
+phase): `LCB-001` UNVERIFIED, `LCB-002` NOT_STARTED, `LCB-003`
+NOT_STARTED, `LCB-004` NOT_STARTED, `LCB-005` UNVERIFIED, `LCB-006`
+NOT_STARTED, `LCB-007` EVIDENCE_PENDING, `LCB-008` BLOCKED. None is
+`RESOLVED`. Phase 9 round 1 gives a human reviewer the machine-checkable
+tools (P9-001 evidence intake, P9-002 preflight, P9-003 enablement gate)
+to eventually work these blockers — it does not itself advance any of
+their statuses, and no code in this repository can.
+
+### Remaining Human-Only Blockers
+
+Unchanged from Phase 7/8, restated here for continuity: a human must
+still (1) obtain and record Toss's actual written position on automated
+trading permission (`LCB-001`); (2) perform and record sanitized
+account-permission verification (`LCB-002`); (3) document and review a
+real production credential-provisioning process (`LCB-003`); (4) record
+an explicit, human-signed live-trading-progression approval with
+residual-risk acknowledgment (`LCB-004`, permanent per Rule 12); (5)
+complete and record the six-item compliance/legal review
+(`LCB-005`); (6) set and sign off on numeric/procedural small-capital
+operating limits (`LCB-006`); (7) produce a live-context
+rollback/incident procedure once a real adapter exists (`LCB-007`,
+partially evidence-pending); and (8) commission an independent human
+code review of a real write adapter once one is built in a later,
+separately scoped phase (`LCB-008`, structurally `BLOCKED` until then).
+No AI agent, including this review, can satisfy any of these on a
+human's behalf.
+
+## Required Checks (Phase 2)
 
 ```bash
 npm run check
 ```
 
-Result recorded at Phase 1 commit time: see the phase-1 commit message
-and worktree state. This document does not claim a Phase 2 result here;
-Phase 2 will re-run `npm run check` against the merged branch and record
-that result separately in the sections above.
+Result: **PASS.** Typecheck clean. 90 test files, 914 tests, 0
+failures. Full output captured during this review session (foreground
+run, no backgrounding).
 
-## What Phase 1 Of This Review Does Not Do
+## What This Review Does Not Do
 
-- It does not review, summarize, or characterize any content from
-  P9-001, P9-002, or P9-003 — none of those branches exist yet from this
-  worktree's point of view.
+- It does not authorize live trading, a real Toss API call, a real
+  cloud deployment, or production capital use.
 - It does not resolve, advance, or change the status of any `LCB-001`
   through `LCB-008` entry in
-  `docs/phase7/live-capable-blocker-register.md`.
+  `docs/phase7/live-capable-blocker-register.md` — confirmed that file
+  is byte-for-byte unchanged by this merge.
 - It does not mark any compliance item or human approval as resolved.
-- It does not modify `docs/tasks/phase9_claude_worktree_tasks/README.md`
-  or `docs/phase9/README.md` — those are reserved for Phase 2, and even
+- It does not read, print, or inspect any real `.env` file or real
+  `tmp/phase5/` receipt file — `.env` remains absent from this worktree;
+  `tmp/phase5/` exists only as an empty, git-ignored directory created
+  as a harmless side effect of running the pre-existing Phase 5 script
+  test suite, confirmed empty and untouched beyond an existence/emptiness
+  check.
+- It does not perform any real Toss API call, real cloud deployment
+  command, or real broker write, and adds no real network call to any
+  test.
+
+## What Phase 1 Of This Review Did Not Do
+
+- It did not review, summarize, or characterize any content from
+  P9-001, P9-002, or P9-003 — none of those branches existed yet from
+  that worktree's point of view at the time.
+- It did not resolve, advance, or change the status of any `LCB-001`
+  through `LCB-008` entry in
+  `docs/phase7/live-capable-blocker-register.md`.
+- It did not mark any compliance item or human approval as resolved.
+- It did not modify `docs/tasks/phase9_claude_worktree_tasks/README.md`
+  or `docs/phase9/README.md` — those were reserved for Phase 2, and even
   then only for status/link updates.
 - It does not read, print, or inspect any real `.env` file or real
   `tmp/phase5/` receipt file — both were confirmed absent from this
