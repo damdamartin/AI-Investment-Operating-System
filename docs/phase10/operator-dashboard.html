@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Investment OS Phase 10 Operator Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fa;
+        --panel: #ffffff;
+        --panel-2: #f0f3f7;
+        --text: #1d2430;
+        --muted: #637083;
+        --line: #d8dee8;
+        --strong: #0f1722;
+        --blue: #1f66d1;
+        --green: #087a4b;
+        --amber: #9a5b00;
+        --red: #b42318;
+        --shadow: 0 10px 26px rgba(18, 31, 49, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+      }
+
+      .side {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 20px 16px;
+        border-right: 1px solid var(--line);
+        background: #111827;
+        color: #f8fafc;
+      }
+
+      .brand {
+        margin-bottom: 22px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .brand p {
+        margin: 8px 0 0;
+        color: #cbd5e1;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      .nav button {
+        width: 100%;
+        min-height: 40px;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 11px;
+        background: transparent;
+        color: #cbd5e1;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .nav button[aria-selected="true"] {
+        background: #243042;
+        color: #ffffff;
+      }
+
+      .side-status {
+        margin-top: 24px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .side-status .label {
+        color: #cbd5e1;
+        font-size: 12px;
+      }
+
+      .side-status .value {
+        margin-top: 6px;
+        color: #fecaca;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(247, 248, 250, 0.92);
+        backdrop-filter: blur(12px);
+      }
+
+      .topbar h2 {
+        margin: 0;
+        font-size: 22px;
+        color: var(--strong);
+      }
+
+      .topbar p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .button {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 12px;
+        background: var(--panel);
+        color: var(--text);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .button.primary {
+        border-color: #1559bb;
+        background: var(--blue);
+        color: #ffffff;
+      }
+
+      .button.danger {
+        border-color: #f4b5ad;
+        color: var(--red);
+      }
+
+      .content {
+        padding: 24px 28px 36px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .band {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        padding: 16px;
+        min-height: 104px;
+      }
+
+      .metric .num {
+        margin-top: 8px;
+        font-size: 30px;
+        font-weight: 800;
+        color: var(--strong);
+      }
+
+      .metric .caption {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .alert {
+        padding: 16px 18px;
+        border-color: #f2c2bd;
+        background: #fff7f6;
+        color: #661c14;
+      }
+
+      .alert strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--red);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .blocker-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .blocker {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr) 176px;
+        gap: 14px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .blocker-id {
+        font-weight: 800;
+        color: var(--strong);
+      }
+
+      .blocker-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .blocker-owner {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .status.not-started,
+      .status.needs {
+        background: #fff4df;
+        color: var(--amber);
+      }
+
+      .status.ready {
+        background: #eaf2ff;
+        color: var(--blue);
+      }
+
+      .status.reviewed {
+        background: #e8f6ef;
+        color: var(--green);
+      }
+
+      .status.rejected,
+      .status.unverified {
+        background: #fff0ee;
+        color: var(--red);
+      }
+
+      .detail {
+        padding: 18px;
+      }
+
+      .detail h3 {
+        margin: 0 0 4px;
+        color: var(--strong);
+        font-size: 18px;
+      }
+
+      .detail .meta {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--strong);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: #ffffff;
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .template-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .template-links a {
+        display: block;
+        min-height: 54px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--panel);
+        font-weight: 700;
+      }
+
+      .template-links span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .table-wrap {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+
+      th,
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 800;
+        background: var(--panel-2);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 10;
+        max-width: 360px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        background: #111827;
+        color: #ffffff;
+        box-shadow: var(--shadow);
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          position: relative;
+          height: auto;
+        }
+
+        .summary,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .topbar {
+          align-items: stretch;
+          flex-direction: column;
+          padding: 16px;
+        }
+
+        .content {
+          padding: 16px;
+        }
+
+        .blocker {
+          grid-template-columns: 1fr;
+        }
+
+        .template-links {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side">
+        <div class="brand">
+          <h1>AI Investment OS</h1>
+          <p>Phase 10 human evidence dashboard</p>
+        </div>
+        <nav class="nav" aria-label="Dashboard sections">
+          <button type="button" data-view="overview" aria-selected="true">상태 개요</button>
+          <button type="button" data-view="evidence">증거 입력</button>
+          <button type="button" data-view="templates">템플릿 열기</button>
+          <button type="button" data-view="export">내보내기</button>
+        </nav>
+        <div class="side-status">
+          <div class="label">실거래 상태</div>
+          <div class="value">차단됨</div>
+          <div class="hint">주문, 취소, 정정, 이체, 환전 기능 없음</div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <h2 id="pageTitle">상태 개요</h2>
+            <p>LCB-001부터 LCB-008까지 사람이 채워야 할 증거를 한 화면에서 봅니다.</p>
+          </div>
+          <div class="actions">
+            <button class="button" type="button" id="saveButton">저장</button>
+            <button class="button" type="button" id="downloadButton">JSON 내보내기</button>
+            <button class="button danger" type="button" id="resetButton">초기화</button>
+          </div>
+        </header>
+
+        <section class="content" id="overviewView">
+          <div class="band alert">
+            <strong>아직 실거래 불가</strong>
+            이 화면은 사람이 검토할 증거를 정리하는 도구입니다. Toss 주문 생성, 주문취소,
+            주문정정, 이체, 환전, 실제 API 호출 기능은 없습니다.
+          </div>
+
+          <div class="summary">
+            <div class="band metric">
+              <div class="caption">전체 blocker</div>
+              <div class="num">8</div>
+              <div class="caption">LCB-001 ~ LCB-008</div>
+            </div>
+            <div class="band metric">
+              <div class="caption">사람 검토 완료</div>
+              <div class="num" id="reviewedCount">0</div>
+              <div class="caption">브라우저 로컬 입력 기준</div>
+            </div>
+            <div class="band metric">
+              <div class="caption">아직 남음</div>
+              <div class="num" id="remainingCount">8</div>
+              <div class="caption">완료 전 실거래 차단</div>
+            </div>
+            <div class="band metric">
+              <div class="caption">liveBrokerWriteAllowed</div>
+              <div class="num">false</div>
+              <div class="caption">항상 false로 표시</div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div>
+              <div class="blocker-list" id="blockerList"></div>
+            </div>
+            <aside class="band detail">
+              <h3 id="selectedTitle">LCB-001</h3>
+              <p class="meta" id="selectedMeta"></p>
+              <div id="selectedDescription" class="hint"></div>
+              <hr />
+              <p class="hint">
+                각 항목을 누르면 오른쪽에 설명이 보입니다. 실제 결정은 사람이 템플릿을
+                채운 뒤 blocker register를 직접 업데이트해야 합니다.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="content hidden" id="evidenceView">
+          <div class="band detail">
+            <h3>증거 입력</h3>
+            <p class="meta">
+              입력값은 이 브라우저의 localStorage에만 저장됩니다. 민감정보는 입력하지 마세요.
+            </p>
+            <div class="form-grid">
+              <label>
+                Blocker 선택
+                <select id="blockerSelect"></select>
+              </label>
+              <label>
+                상태
+                <select id="statusSelect">
+                  <option value="NOT_STARTED">NOT_STARTED</option>
+                  <option value="READY_FOR_HUMAN_REVIEW">READY_FOR_HUMAN_REVIEW</option>
+                  <option value="HUMAN_REVIEWED_APPROVED_WITH_LIMITATIONS">
+                    HUMAN_REVIEWED_APPROVED_WITH_LIMITATIONS
+                  </option>
+                  <option value="HUMAN_REVIEWED_REJECTED">HUMAN_REVIEWED_REJECTED</option>
+                  <option value="HUMAN_REVIEWED_UNVERIFIED">HUMAN_REVIEWED_UNVERIFIED</option>
+                  <option value="NEEDS_MORE_EVIDENCE">NEEDS_MORE_EVIDENCE</option>
+                </select>
+              </label>
+              <label>
+                사람 reviewer 이름
+                <input id="reviewerName" autocomplete="off" placeholder="사람 이름만 입력" />
+              </label>
+              <label>
+                reviewer 역할
+                <input id="reviewerRole" autocomplete="off" placeholder="예: compliance reviewer" />
+              </label>
+              <label>
+                검토일
+                <input id="reviewDate" type="date" />
+              </label>
+              <label>
+                증거 출처 요약
+                <textarea id="sourceSummary" placeholder="링크, 문서명, support ticket reference 등 민감정보 없는 요약"></textarea>
+              </label>
+              <label>
+                제한사항 / 남은 질문
+                <textarea id="limitations" placeholder="불확실하면 그대로 적고 상태를 NEEDS_MORE_EVIDENCE로 유지"></textarea>
+              </label>
+              <label>
+                사람 결정 문장
+                <textarea id="humanDecision" placeholder="AI 문장이 아니라 사람이 직접 작성"></textarea>
+              </label>
+              <div class="hint">
+                금지: API 키, client secret, token, 계좌번호, 잔고, 보유수량, raw broker payload,
+                .env 내용, tmp/phase5 receipt 내용.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="content hidden" id="templatesView">
+          <div class="band detail">
+            <h3>템플릿 열기</h3>
+            <p class="meta">각 파일은 빈 양식입니다. 사람이 직접 채운 별도 사본을 만들어 사용하세요.</p>
+            <div class="template-links">
+              <a href="human-evidence-templates/toss-compliance-template.md">
+                Toss / Compliance
+                <span>LCB-001, LCB-005</span>
+              </a>
+              <a href="human-evidence-templates/account-provisioning-template.md">
+                Account / Provisioning
+                <span>LCB-002, LCB-003</span>
+              </a>
+              <a href="human-evidence-templates/owner-risk-template.md">
+                Owner / Risk
+                <span>LCB-004, LCB-006</span>
+              </a>
+              <a href="human-evidence-templates/live-safety-review-template.md">
+                Live Safety / Review
+                <span>LCB-007, LCB-008</span>
+              </a>
+              <a href="human-evidence-operator-runbook.md">
+                Operator Runbook
+                <span>작성 절차</span>
+              </a>
+              <a href="../phase7/live-capable-blocker-register.md">
+                Blocker Register
+                <span>최종 사람 결정 기록 위치</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section class="content hidden" id="exportView">
+          <div class="band detail">
+            <h3>내보내기 미리보기</h3>
+            <p class="meta">
+              아래 JSON은 브라우저 로컬 입력의 sanitized draft입니다. 이것만으로 승인되지 않습니다.
+            </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>상태</th>
+                    <th>Reviewer</th>
+                    <th>검토일</th>
+                    <th>제한사항</th>
+                  </tr>
+                </thead>
+                <tbody id="exportRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <script>
+      const STORAGE_KEY = "aios.phase10.operatorEvidenceDraft.v1";
+
+      const blockers = [
+        {
+          id: "LCB-001",
+          title: "Toss 자동매매 권한",
+          owner: "Compliance/legal reviewer",
+          template: "toss-compliance-template.md",
+          description:
+            "Toss가 API 기반 자동매매를 허용하는지 사람이 공식 문서나 support confirmation으로 확인해야 합니다."
+        },
+        {
+          id: "LCB-002",
+          title: "계좌 권한과 기능",
+          owner: "Operator + compliance reviewer",
+          template: "account-provisioning-template.md",
+          description:
+            "read-only 계좌/권한 검증 결과와 broker account blocking condition 8개를 사람이 확인해야 합니다."
+        },
+        {
+          id: "LCB-003",
+          title: "프로덕션 credential 프로비저닝",
+          owner: "Infrastructure/security reviewer",
+          template: "account-provisioning-template.md",
+          description:
+            "credential 값이 아니라 저장 위치, 접근권한, rotation, audit process를 사람이 문서화해야 합니다."
+        },
+        {
+          id: "LCB-004",
+          title: "명시적 사람 승인",
+          owner: "Project owner/operator",
+          template: "owner-risk-template.md",
+          description:
+            "프로젝트 owner가 잔여 리스크를 이해하고 승인 의사를 직접 작성해야 합니다. AI 문장은 승인으로 인정되지 않습니다."
+        },
+        {
+          id: "LCB-005",
+          title: "컴플라이언스 / 법무 검토",
+          owner: "Compliance/legal reviewer",
+          template: "toss-compliance-template.md",
+          description:
+            "Toss 약관, 계좌 권한, 데이터 라이선스, AI 데이터 처리, 세금 기록, 개인 사용 범위를 사람이 검토해야 합니다."
+        },
+        {
+          id: "LCB-006",
+          title: "소액 운용 한도",
+          owner: "Risk owner/operator",
+          template: "owner-risk-template.md",
+          description:
+            "총자본, 1회 주문 한도, 전략 범위, limit-order-only, stop criteria를 사람이 직접 정해야 합니다."
+        },
+        {
+          id: "LCB-007",
+          title: "kill-switch / rollback",
+          owner: "Engineering safety reviewer + operator",
+          template: "live-safety-review-template.md",
+          description:
+            "실거래 맥락의 kill-switch, rollback, reconciliation 리허설을 사람이 검토하고 기록해야 합니다."
+        },
+        {
+          id: "LCB-008",
+          title: "미래 write adapter 독립 리뷰",
+          owner: "Independent senior reviewer",
+          template: "live-safety-review-template.md",
+          description:
+            "실제 write adapter가 나중에 만들어진 뒤 독립 리뷰가 필요합니다. 지금 이 화면은 그 리뷰를 대체하지 않습니다."
+        }
+      ];
+
+      const emptyEntry = () => ({
+        status: "NOT_STARTED",
+        reviewerName: "",
+        reviewerRole: "",
+        reviewDate: "",
+        sourceSummary: "",
+        limitations: "",
+        humanDecision: ""
+      });
+
+      let state = loadState();
+      let selectedId = blockers[0].id;
+
+      function loadState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+          return blockers.reduce((acc, blocker) => {
+            acc[blocker.id] = { ...emptyEntry(), ...(parsed[blocker.id] || {}) };
+            return acc;
+          }, {});
+        } catch {
+          return blockers.reduce((acc, blocker) => {
+            acc[blocker.id] = emptyEntry();
+            return acc;
+          }, {});
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
+        showToast("저장했습니다. 이 데이터는 현재 브라우저에만 있습니다.");
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.remove("hidden");
+        window.setTimeout(() => toast.classList.add("hidden"), 2600);
+      }
+
+      function statusClass(status) {
+        if (status === "READY_FOR_HUMAN_REVIEW") return "ready";
+        if (status.startsWith("HUMAN_REVIEWED_APPROVED")) return "reviewed";
+        if (status.endsWith("REJECTED")) return "rejected";
+        if (status.endsWith("UNVERIFIED")) return "unverified";
+        if (status === "NEEDS_MORE_EVIDENCE") return "needs";
+        return "not-started";
+      }
+
+      function isReviewed(status) {
+        return status.startsWith("HUMAN_REVIEWED_");
+      }
+
+      function render() {
+        renderBlockers();
+        renderForm();
+        renderExport();
+        const reviewed = blockers.filter((blocker) => isReviewed(state[blocker.id].status)).length;
+        document.getElementById("reviewedCount").textContent = String(reviewed);
+        document.getElementById("remainingCount").textContent = String(blockers.length - reviewed);
+      }
+
+      function renderBlockers() {
+        const list = document.getElementById("blockerList");
+        list.innerHTML = "";
+        blockers.forEach((blocker) => {
+          const entry = state[blocker.id];
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "blocker";
+          row.addEventListener("click", () => {
+            selectedId = blocker.id;
+            renderSelected(blocker);
+          });
+          row.innerHTML = `
+            <div class="blocker-id">${blocker.id}</div>
+            <div>
+              <p class="blocker-title">${blocker.title}</p>
+              <div class="blocker-owner">${blocker.owner}</div>
+            </div>
+            <span class="status ${statusClass(entry.status)}">${entry.status}</span>
+          `;
+          list.appendChild(row);
+        });
+        renderSelected(blockers.find((blocker) => blocker.id === selectedId) || blockers[0]);
+      }
+
+      function renderSelected(blocker) {
+        document.getElementById("selectedTitle").textContent = `${blocker.id} ${blocker.title}`;
+        document.getElementById("selectedMeta").textContent = `${blocker.owner} · ${blocker.template}`;
+        document.getElementById("selectedDescription").textContent = blocker.description;
+      }
+
+      function renderForm() {
+        const select = document.getElementById("blockerSelect");
+        if (!select.options.length) {
+          blockers.forEach((blocker) => {
+            const option = document.createElement("option");
+            option.value = blocker.id;
+            option.textContent = `${blocker.id} ${blocker.title}`;
+            select.appendChild(option);
+          });
+        }
+        select.value = selectedId;
+        const entry = state[selectedId];
+        document.getElementById("statusSelect").value = entry.status;
+        document.getElementById("reviewerName").value = entry.reviewerName;
+        document.getElementById("reviewerRole").value = entry.reviewerRole;
+        document.getElementById("reviewDate").value = entry.reviewDate;
+        document.getElementById("sourceSummary").value = entry.sourceSummary;
+        document.getElementById("limitations").value = entry.limitations;
+        document.getElementById("humanDecision").value = entry.humanDecision;
+      }
+
+      function renderExport() {
+        const rows = document.getElementById("exportRows");
+        rows.innerHTML = blockers
+          .map((blocker) => {
+            const entry = state[blocker.id];
+            return `
+              <tr>
+                <td>${blocker.id}</td>
+                <td>${entry.status}</td>
+                <td>${entry.reviewerName || "-"}</td>
+                <td>${entry.reviewDate || "-"}</td>
+                <td>${entry.limitations || "-"}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function updateEntry(field, value) {
+        state[selectedId] = { ...state[selectedId], [field]: value };
+        render();
+      }
+
+      function downloadJson() {
+        const payload = {
+          safetyType: "PHASE10_HUMAN_EVIDENCE_DRAFT_LOCAL_ONLY",
+          liveBrokerWriteAllowed: false,
+          generatedAt: new Date().toISOString(),
+          entries: state,
+          warning:
+            "This local draft is not live-trading authorization and does not resolve any LCB blocker."
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "phase10-human-evidence-draft.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      document.querySelectorAll("[data-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-view]").forEach((item) => {
+            item.setAttribute("aria-selected", String(item === button));
+          });
+          const view = button.dataset.view;
+          document.getElementById("pageTitle").textContent = button.textContent;
+          ["overview", "evidence", "templates", "export"].forEach((name) => {
+            document.getElementById(`${name}View`).classList.toggle("hidden", name !== view);
+          });
+          render();
+        });
+      });
+
+      document.getElementById("blockerSelect").addEventListener("change", (event) => {
+        selectedId = event.target.value;
+        render();
+      });
+
+      [
+        ["statusSelect", "status"],
+        ["reviewerName", "reviewerName"],
+        ["reviewerRole", "reviewerRole"],
+        ["reviewDate", "reviewDate"],
+        ["sourceSummary", "sourceSummary"],
+        ["limitations", "limitations"],
+        ["humanDecision", "humanDecision"]
+      ].forEach(([id, field]) => {
+        document.getElementById(id).addEventListener("input", (event) => {
+          updateEntry(field, event.target.value);
+        });
+      });
+
+      document.getElementById("saveButton").addEventListener("click", saveState);
+      document.getElementById("downloadButton").addEventListener("click", downloadJson);
+      document.getElementById("resetButton").addEventListener("click", () => {
+        const confirmed = window.confirm("로컬 입력값을 모두 초기화할까요?");
+        if (!confirmed) return;
+        localStorage.removeItem(STORAGE_KEY);
+        state = loadState();
+        selectedId = blockers[0].id;
+        render();
+        showToast("초기화했습니다.");
+      });
+
+      render();
+    </script>
+  </body>
+</html>

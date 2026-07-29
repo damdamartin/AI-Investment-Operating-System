@@ -12,6 +12,7 @@ Related Tasks: `docs/tasks/phase10_claude_worktree_tasks/README.md`
 Round 2 Workbook: `docs/phase10/human-blocker-evidence-workbook.md`
 Human Templates: `docs/phase10/human-evidence-templates/README.md`
 Human Runbook: `docs/phase10/human-evidence-operator-runbook.md`
+Operator Dashboard: `docs/phase10/operator-dashboard.html`
 
 ## Purpose
 
@@ -89,6 +90,12 @@ Human operators can use
 `docs/phase10/human-evidence-operator-runbook.md` to create sanitized
 evidence drafts. Those templates remain blank until a human fills them in
 and do not authorize live trading.
+
+For a visible local workflow, open
+`docs/phase10/operator-dashboard.html` in a browser. It is a static,
+browser-only dashboard for viewing the eight blockers, drafting sanitized
+local notes, opening templates, and exporting a local JSON draft. It does
+not call Toss APIs, read secrets, or create broker orders.
 
 ## Round 2 Status
 
