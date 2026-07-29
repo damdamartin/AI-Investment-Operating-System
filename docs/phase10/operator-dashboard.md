@@ -9,7 +9,7 @@ Related Templates: `docs/phase10/human-evidence-templates/README.md`
 ## Purpose
 
 `operator-dashboard.html` is a local, browser-only operator dashboard for
-the human-facing investment operation workflow.
+the user's personal AI investment operation workflow.
 
 It exists because the project previously had validators, documents, and
 templates, but no visible surface showing the operator what the system
@@ -27,17 +27,17 @@ The dashboard works as a static file. It does not require a dev server.
 
 ## What It Does
 
-- shows the current operation mode first: read-only / Paper-ready /
-  live-trading locked
+- shows the current operation mode first
+- lets the user choose incident behavior: pause, conservative operation,
+  or human review for full liquidation
+- lets the user choose profit behavior: protect cash, review partial
+  withdrawal, or review reinvestment
 - imports a user-selected sanitized JSON file for account summary,
   signals, and operator queue placeholders
 - shows account summary placeholders without exposing account identifiers,
   balances, or holdings quantities
-- shows AI candidate placeholders as review candidates, not orders
-- shows today's operator queue
-- shows all eight `LCB-*` blockers in a secondary safety board
-- links to the four human evidence templates
-- lets the operator draft sanitized local notes per blocker
+- shows news/AI candidate placeholders as review candidates, not orders
+- shows today's operator queue and the remaining live-trading blockers
 - stores drafts only in browser `localStorage`
 - exports a local JSON draft with `liveBrokerWriteAllowed: false`
 
@@ -56,7 +56,11 @@ docs/phase10/operator-dashboard.sample.json
 - no account numbers, credentials, raw broker payloads, balances, or
   holdings quantities
 - no blocker is marked `RESOLVED`
+- no withdrawal or transfer execution
 
 The canonical blocker register remains
 `docs/phase7/live-capable-blocker-register.md`, and only a human may
 update it.
+
+This dashboard is for the project owner's personal operation. It is not a
+public SaaS product and is not designed to manage other people's money.

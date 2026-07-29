@@ -2,24 +2,23 @@
   "safetyType": "OPERATOR_DASHBOARD_SANITIZED_INPUT",
   "liveBrokerWriteAllowed": false,
   "account": {
-    "connection": "READ_ONLY_CONNECTED",
+    "tossState": "읽기 전용",
     "accountRef": "masked",
-    "cash": "hidden",
-    "positions": "hidden",
-    "orderAvailability": "BLOCKED_BY_LCB"
+    "cashPolicy": "수익 보호 현금 분리 전",
+    "liveOrder": "차단"
   },
   "signals": [
     {
-      "name": "Paper 후보 1",
-      "status": "PAPER_REVIEW",
-      "rationale": "sanitized strategy score placeholder",
+      "name": "뉴스 기반 후보 1",
+      "status": "관찰",
+      "rationale": "Naver News + AI 분석 연결 예정",
       "nextAction": "Paper 검토"
     },
     {
-      "name": "관심 후보 2",
-      "status": "WATCH_ONLY",
-      "rationale": "news/risk summary placeholder",
-      "nextAction": "관찰"
+      "name": "AI 발굴 후보 2",
+      "status": "대기",
+      "rationale": "시장/뉴스/리스크 점수 연결 예정",
+      "nextAction": "근거 확인"
     }
   ],
   "tasks": [
@@ -32,6 +31,11 @@
       "title": "소액 운용 한도 작성",
       "body": "LCB-006 숫자는 사람이 직접 입력",
       "tag": "대기"
+    },
+    {
+      "title": "뉴스 추천 종목 데이터 연결",
+      "body": "Naver News와 AI 분석 결과를 이 표에 연결",
+      "tag": "다음 개발"
     }
   ]
 }

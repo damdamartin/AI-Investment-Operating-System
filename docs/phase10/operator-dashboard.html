@@ -3,22 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Investment OS Operator Dashboard</title>
+    <title>AI Investment OS</title>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f5f7fa;
+        --bg: #f6f7f9;
         --panel: #ffffff;
-        --ink: #17202f;
-        --muted: #667386;
-        --line: #d9e0ea;
+        --ink: #182230;
+        --muted: #64748b;
+        --line: #d8dee8;
         --soft: #eef2f6;
         --blue: #1f66d1;
         --green: #087a4b;
         --amber: #946200;
         --red: #b42318;
-        --violet: #6d3fd1;
-        --shadow: 0 12px 28px rgba(20, 32, 52, 0.08);
+        --shadow: 0 10px 24px rgba(24, 34, 48, 0.08);
       }
 
       * {
@@ -51,111 +50,39 @@
         text-decoration: underline;
       }
 
-      .shell {
+      .app {
         min-height: 100vh;
-        display: grid;
-        grid-template-columns: 260px minmax(0, 1fr);
       }
 
-      .sidebar {
-        position: sticky;
-        top: 0;
-        height: 100vh;
-        padding: 18px 14px;
-        background: #121926;
-        color: #eef4ff;
-      }
-
-      .brand {
-        padding: 8px 8px 18px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-      }
-
-      .brand h1 {
-        margin: 0;
-        font-size: 19px;
-        line-height: 1.25;
-      }
-
-      .brand p {
-        margin: 7px 0 0;
-        color: #bdc9d9;
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .nav {
-        display: grid;
-        gap: 6px;
-        margin-top: 18px;
-      }
-
-      .nav button {
-        min-height: 40px;
-        border: 0;
-        border-radius: 8px;
-        padding: 9px 11px;
-        background: transparent;
-        color: #cbd7e7;
-        text-align: left;
-        cursor: pointer;
-      }
-
-      .nav button[aria-selected="true"] {
-        background: #243143;
-        color: #ffffff;
-      }
-
-      .lock-panel {
-        margin-top: 22px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 8px;
-        padding: 13px;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .lock-panel .eyebrow {
-        color: #bdc9d9;
-        font-size: 12px;
-      }
-
-      .lock-panel strong {
-        display: block;
-        margin-top: 5px;
-        color: #fecaca;
-        font-size: 15px;
-      }
-
-      main {
-        min-width: 0;
-      }
-
-      .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 5;
+      header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
         padding: 18px 28px;
         border-bottom: 1px solid var(--line);
-        background: rgba(245, 247, 250, 0.94);
-        backdrop-filter: blur(12px);
+        background: #ffffff;
       }
 
-      .topbar h2 {
-        margin: 0;
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 4px;
         font-size: 22px;
       }
 
-      .topbar p {
-        margin: 4px 0 0;
+      header p {
+        margin-bottom: 0;
         color: var(--muted);
         font-size: 13px;
       }
 
-      .toolbar {
+      .header-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -170,7 +97,6 @@
         background: #ffffff;
         color: var(--ink);
         cursor: pointer;
-        white-space: nowrap;
       }
 
       .button.primary {
@@ -179,15 +105,12 @@
         color: #ffffff;
       }
 
-      .button.danger {
-        border-color: #f0b5ad;
-        color: var(--red);
-      }
-
-      .content {
+      main {
         display: grid;
         gap: 18px;
-        padding: 24px 28px 38px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px 28px 40px;
       }
 
       .panel {
@@ -199,281 +122,49 @@
 
       .hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
         gap: 18px;
-        align-items: stretch;
-      }
-
-      .status-card {
-        padding: 20px;
-      }
-
-      .status-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-
-      .mode {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 32px;
-        border-radius: 999px;
-        padding: 6px 11px;
-        background: #fff0ee;
-        color: var(--red);
-        font-size: 13px;
-        font-weight: 800;
-      }
-
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 999px;
-        background: currentColor;
-      }
-
-      .status-card h3 {
-        margin: 16px 0 8px;
-        font-size: 30px;
-        line-height: 1.15;
-      }
-
-      .status-card p {
-        max-width: 740px;
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.55;
-      }
-
-      .next-actions {
-        margin-top: 18px;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .action-card {
-        min-height: 96px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 13px;
-        background: #fbfcfe;
-      }
-
-      .action-card strong {
-        display: block;
-        margin-bottom: 6px;
-      }
-
-      .action-card span {
-        display: block;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .readiness {
-        padding: 18px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .readiness h3,
-      .section h3 {
-        margin: 0;
-        font-size: 17px;
-      }
-
-      .meter {
-        height: 12px;
-        border-radius: 999px;
-        background: #e9eef5;
-        overflow: hidden;
-      }
-
-      .meter span {
-        display: block;
-        height: 100%;
-        width: 0%;
-        background: var(--green);
-      }
-
-      .readiness-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .mini {
-        min-height: 106px;
-        padding: 15px;
-      }
-
-      .mini .label {
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .mini strong {
-        display: block;
-        margin-top: 8px;
-        font-size: 21px;
-      }
-
-      .mini .hint {
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .columns {
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-        gap: 18px;
-        align-items: start;
       }
 
       .section {
         padding: 18px;
       }
 
-      .section-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
+      .section h2 {
+        margin-bottom: 12px;
+        font-size: 18px;
       }
 
-      .tag {
+      .principle {
+        min-height: 100%;
+        padding: 22px;
+      }
+
+      .principle .mode {
         display: inline-flex;
         align-items: center;
-        min-height: 28px;
+        min-height: 30px;
         border-radius: 999px;
-        padding: 5px 9px;
-        background: var(--soft);
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .tag.green {
-        background: #e8f6ef;
-        color: var(--green);
-      }
-
-      .tag.amber {
-        background: #fff4df;
-        color: var(--amber);
-      }
-
-      .tag.red {
+        padding: 5px 10px;
         background: #fff0ee;
         color: var(--red);
-      }
-
-      .list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-        background: #fbfcfe;
-      }
-
-      .row strong {
-        display: block;
-        font-size: 14px;
-      }
-
-      .row span {
-        display: block;
-        margin-top: 4px;
-        color: var(--muted);
         font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .signal-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 700px;
-      }
-
-      .signal-table th,
-      .signal-table td {
-        padding: 11px 10px;
-        border-bottom: 1px solid var(--line);
-        text-align: left;
-        vertical-align: top;
-        font-size: 13px;
-      }
-
-      .signal-table th {
-        color: var(--muted);
         font-weight: 800;
-        background: var(--soft);
       }
 
-      .table-wrap {
-        overflow: auto;
-        border: 1px solid var(--line);
-        border-radius: 8px;
+      .principle h2 {
+        margin: 16px 0 8px;
+        font-size: 30px;
+        line-height: 1.15;
       }
 
-      .blocker-board {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .blocker {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-        background: #fbfcfe;
-      }
-
-      .blocker button {
-        width: 100%;
-        border: 0;
-        padding: 0;
-        background: transparent;
-        color: inherit;
-        text-align: left;
-        cursor: pointer;
-      }
-
-      .blocker .id {
-        font-size: 12px;
-        font-weight: 900;
-        color: var(--blue);
-      }
-
-      .blocker h4 {
-        margin: 5px 0;
-        font-size: 14px;
-      }
-
-      .blocker p {
-        margin: 0;
+      .principle p {
+        margin-bottom: 0;
         color: var(--muted);
-        font-size: 12px;
-        line-height: 1.4;
+        line-height: 1.55;
       }
 
-      .form-grid {
+      .control-grid {
         display: grid;
         gap: 12px;
       }
@@ -486,8 +177,8 @@
         font-weight: 800;
       }
 
-      input,
       select,
+      input,
       textarea {
         width: 100%;
         border: 1px solid var(--line);
@@ -498,7 +189,7 @@
       }
 
       textarea {
-        min-height: 86px;
+        min-height: 78px;
         resize: vertical;
       }
 
@@ -508,627 +199,384 @@
         line-height: 1.45;
       }
 
-      .template-grid {
+      .status-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
       }
 
-      .template-grid a {
+      .metric {
+        min-height: 100px;
+        padding: 15px;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric strong {
         display: block;
-        min-height: 72px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 13px;
-        background: #fbfcfe;
+        margin-top: 8px;
+        font-size: 20px;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 11px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      th {
+        color: var(--muted);
+        background: var(--soft);
         font-weight: 800;
       }
 
-      .template-grid span {
-        display: block;
-        margin-top: 5px;
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 27px;
+        border-radius: 999px;
+        padding: 5px 9px;
+        background: var(--soft);
         color: var(--muted);
         font-size: 12px;
-        font-weight: 500;
+        font-weight: 800;
       }
 
-      .hidden {
-        display: none;
+      .tag.red {
+        background: #fff0ee;
+        color: var(--red);
+      }
+
+      .tag.green {
+        background: #e8f6ef;
+        color: var(--green);
+      }
+
+      .tag.amber {
+        background: #fff4df;
+        color: var(--amber);
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+
+      .item strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .item span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .mode-output {
+        border-left: 4px solid var(--blue);
+        padding: 12px;
+        background: #f8fbff;
+        border-radius: 8px;
+      }
+
+      .mode-output strong {
+        display: block;
+        margin-bottom: 5px;
       }
 
       .toast {
         position: fixed;
         right: 24px;
         bottom: 24px;
-        z-index: 20;
         max-width: 360px;
         border-radius: 8px;
         padding: 12px 14px;
-        background: #121926;
+        background: #17202f;
         color: #ffffff;
         box-shadow: var(--shadow);
       }
 
-      @media (max-width: 1080px) {
-        .hero,
-        .columns,
-        .readiness-grid {
-          grid-template-columns: 1fr;
-        }
+      .hidden {
+        display: none;
+      }
 
-        .next-actions {
+      @media (max-width: 980px) {
+        .hero,
+        .two-col,
+        .status-grid {
           grid-template-columns: 1fr;
         }
       }
 
-      @media (max-width: 820px) {
-        .shell {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          position: relative;
-          height: auto;
-        }
-
-        .topbar {
+      @media (max-width: 680px) {
+        header {
           align-items: stretch;
           flex-direction: column;
           padding: 16px;
         }
 
-        .content {
+        main {
           padding: 16px;
-        }
-
-        .blocker-board,
-        .template-grid {
-          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">
+    <div class="app">
+      <header>
+        <div>
           <h1>AI Investment OS</h1>
-          <p>운영자가 보는 투자 운영 대시보드</p>
+          <p>개인 자동투자 운영 대시보드 · 원칙: 생존이 수익보다 먼저</p>
         </div>
-        <nav class="nav" aria-label="Dashboard sections">
-          <button type="button" data-view="home" aria-selected="true">운영 홈</button>
-          <button type="button" data-view="signals">AI 후보</button>
-          <button type="button" data-view="data">데이터 불러오기</button>
-          <button type="button" data-view="safety">안전조건</button>
-          <button type="button" data-view="evidence">증거 입력</button>
-          <button type="button" data-view="templates">문서 / 템플릿</button>
-        </nav>
-        <div class="lock-panel">
-          <div class="eyebrow">실거래 잠금</div>
-          <strong>켜짐</strong>
-          <p class="help">주문 기능은 아직 없습니다.</p>
+        <div class="header-actions">
+          <button class="button" type="button" id="loadExampleButton">예시 데이터</button>
+          <label class="button" for="dataFile">JSON 불러오기</label>
+          <input class="hidden" id="dataFile" type="file" accept="application/json,.json" />
+          <button class="button primary" type="button" id="exportButton">내보내기</button>
         </div>
-      </aside>
+      </header>
 
       <main>
-        <header class="topbar">
-          <div>
-            <h2 id="pageTitle">운영 홈</h2>
-            <p>계좌, AI 후보, Paper 운영, 안전조건을 한 화면에서 확인합니다.</p>
-          </div>
-          <div class="toolbar">
-            <button class="button" type="button" id="saveButton">저장</button>
-            <button class="button primary" type="button" id="downloadButton">리포트 내보내기</button>
-            <button class="button danger" type="button" id="resetButton">초기화</button>
-          </div>
-        </header>
-
-        <section class="content" id="homeView">
-          <div class="hero">
-            <div class="panel status-card">
-              <div class="status-row">
-                <span class="mode"><span class="dot"></span>실거래 잠금 상태</span>
-                <span class="tag red">liveBrokerWriteAllowed: false</span>
-              </div>
-              <h3>지금은 읽기 전용 / Paper 운영 준비 단계입니다.</h3>
-              <p>
-                이 화면은 실제 돈을 움직이는 화면이 아닙니다. 계좌 상태와 전략 후보를 볼 수
-                있게 준비하고, 실거래로 넘어가기 전에 사람이 확인해야 할 8개 조건을 한눈에
-                보여주는 운영 화면입니다.
-              </p>
-              <div class="next-actions">
-                <div class="action-card">
-                  <strong>1. 계좌 읽기 확인</strong>
-                  <span>Phase 5에서 검증한 read-only 연결과 sanitized evidence를 확인합니다.</span>
-                </div>
-                <div class="action-card">
-                  <strong>2. AI 후보 검토</strong>
-                  <span>추천이 아니라 후보입니다. 주문 버튼 없이 Paper 검토로만 이어집니다.</span>
-                </div>
-                <div class="action-card">
-                  <strong>3. 안전조건 채우기</strong>
-                  <span>LCB-001~008이 모두 사람 검토되기 전 실거래 개발은 멈춥니다.</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel readiness">
-              <h3>실거래 준비율</h3>
-              <div class="meter" aria-label="Readiness progress">
-                <span id="readinessBar"></span>
-              </div>
-              <div class="help" id="readinessText">0 / 8 human blockers reviewed</div>
-              <div class="row">
-                <div>
-                  <strong>다음으로 할 일</strong>
-                  <span id="nextTask">LCB-001 Toss 자동매매 권한 확인</span>
-                </div>
-                <span class="tag amber">사람 필요</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="readiness-grid">
-            <div class="panel mini">
-              <div class="label">Toss 연결</div>
-              <strong>읽기 전용</strong>
-              <div class="hint">실제 주문 API 호출 없음</div>
-            </div>
-            <div class="panel mini">
-              <div class="label">Paper 운영</div>
-              <strong>가능</strong>
-              <div class="hint">시뮬레이션 경로만 허용</div>
-            </div>
-            <div class="panel mini">
-              <div class="label">실거래 주문</div>
-              <strong>차단</strong>
-              <div class="hint">write adapter 없음</div>
-            </div>
-            <div class="panel mini">
-              <div class="label">사람 검토</div>
-              <strong id="reviewedMini">0 / 8</strong>
-              <div class="hint">브라우저 로컬 입력 기준</div>
-            </div>
-          </div>
-
-          <div class="columns">
-            <div class="panel section">
-              <div class="section-head">
-                <h3>오늘의 운영 큐</h3>
-                <span class="tag amber">실행 전 검토</span>
-              </div>
-              <div class="list" id="taskList"></div>
-            </div>
-
-            <div class="panel section">
-              <div class="section-head">
-                <h3>계좌 요약</h3>
-                <span class="tag" id="accountSourceTag">민감값 숨김</span>
-              </div>
-              <div class="list" id="accountSummaryList">
-                <div class="row">
-                  <div>
-                    <strong>계좌 식별자</strong>
-                    <span>화면에 표시하지 않음</span>
-                  </div>
-                  <span class="tag green">masked</span>
-                </div>
-                <div class="row">
-                  <div>
-                    <strong>잔고 / 보유수량</strong>
-                    <span>raw 값 표시 금지. sanitized evidence만 사용</span>
-                  </div>
-                  <span class="tag">hidden</span>
-                </div>
-                <div class="row">
-                  <div>
-                    <strong>주문 가능 여부</strong>
-                    <span>LCB-001~008 완료 전 차단</span>
-                  </div>
-                  <span class="tag red">blocked</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="content hidden" id="signalsView">
-          <div class="panel section">
-            <div class="section-head">
-              <h3>AI 관심 후보</h3>
-              <span class="tag amber" id="signalsSourceTag">주문 아님</span>
-            </div>
-            <div class="table-wrap">
-              <table class="signal-table">
-                <thead>
-                  <tr>
-                    <th>후보</th>
-                    <th>상태</th>
-                    <th>근거</th>
-                    <th>다음 행동</th>
-                  </tr>
-                </thead>
-                <tbody id="signalsTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="panel section">
-            <h3>왜 후보만 보이나요?</h3>
-            <p class="help">
-              아직 실거래 조건이 닫히지 않았기 때문에 매수/매도 버튼은 만들지 않았습니다.
-              이 영역은 나중에 전략 점수, 뉴스 분석, Paper 결과가 연결될 자리입니다.
+        <section class="hero">
+          <div class="panel principle">
+            <span class="mode">실거래 잠금 · 주문 기능 없음</span>
+            <h2>오늘은 후보를 보고, 운영모드를 정하고, 위험하면 멈춥니다.</h2>
+            <p>
+              이 화면은 당신이 쓰는 개인 운영 화면입니다. 다른 사람용 서비스가 아니라,
+              네 계좌와 네 원칙을 기준으로 자동매매 시스템을 운영하기 위한 화면입니다.
+              뉴스와 AI는 후보를 보여주고, 실제 주문은 모든 안전조건이 닫힌 뒤에만 별도 단계로 갑니다.
             </p>
           </div>
-        </section>
 
-        <section class="content hidden" id="dataView">
-          <div class="columns">
-            <div class="panel section">
-              <div class="section-head">
-                <h3>sanitized JSON 불러오기</h3>
-                <span class="tag">브라우저 안에서만 처리</span>
-              </div>
-              <div class="form-grid">
-                <label>
-                  운영 대시보드 JSON
-                  <input id="dashboardDataFile" type="file" accept="application/json,.json" />
-                </label>
-                <p class="help">
-                  이 기능은 사용자가 직접 고른 JSON만 읽습니다. `.env`, `tmp/phase5` 파일을 자동으로
-                  읽지 않고, Toss API를 호출하지 않습니다.
-                </p>
-                <div class="row">
-                  <div>
-                    <strong>불러온 파일</strong>
-                    <span id="loadedDataName">없음</span>
-                  </div>
-                  <span class="tag" id="loadedDataStatus">대기</span>
-                </div>
-                <button class="button" type="button" id="loadExampleButton">예시 데이터 적용</button>
-              </div>
-            </div>
-
-            <div class="panel section">
-              <h3>JSON 형식</h3>
-              <p class="help">
-                실제 값 대신 sanitized 표시만 넣습니다. 계좌번호, 잔고, 보유수량, raw payload는 넣지
-                않습니다.
-              </p>
-              <pre class="help" style="white-space: pre-wrap; background: #f7f9fc; border: 1px solid var(--line); border-radius: 8px; padding: 12px">{
-  "safetyType": "OPERATOR_DASHBOARD_SANITIZED_INPUT",
-  "liveBrokerWriteAllowed": false,
-  "account": {
-    "connection": "READ_ONLY_CONNECTED",
-    "accountRef": "masked",
-    "cash": "hidden",
-    "positions": "hidden"
-  },
-  "signals": [
-    {
-      "name": "전략 후보 A",
-      "status": "PAPER_REVIEW",
-      "rationale": "sanitized summary",
-      "nextAction": "Paper 검토"
-    }
-  ],
-  "tasks": [
-    {
-      "title": "read-only 계좌 evidence 확인",
-      "body": "sanitized receipt만 확인",
-      "tag": "읽기 전용"
-    }
-  ]
-}</pre>
-            </div>
-          </div>
-        </section>
-
-        <section class="content hidden" id="safetyView">
-          <div class="columns">
-            <div class="panel section">
-              <div class="section-head">
-                <h3>안전조건 보드</h3>
-                <span class="tag red">미완료 시 실거래 차단</span>
-              </div>
-              <div class="blocker-board" id="blockerBoard"></div>
-            </div>
-            <div class="panel section">
-              <h3 id="selectedBlockerTitle">LCB-001</h3>
-              <p class="help" id="selectedBlockerDescription"></p>
-              <div class="list" style="margin-top: 14px">
-                <div class="row">
-                  <div>
-                    <strong>담당</strong>
-                    <span id="selectedBlockerOwner"></span>
-                  </div>
-                </div>
-                <div class="row">
-                  <div>
-                    <strong>템플릿</strong>
-                    <span><a id="selectedTemplateLink" href="#">열기</a></span>
-                  </div>
-                </div>
-                <div class="row">
-                  <div>
-                    <strong>현재 입력 상태</strong>
-                    <span id="selectedBlockerStatus"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="content hidden" id="evidenceView">
           <div class="panel section">
-            <div class="section-head">
-              <h3>사람 검토 메모</h3>
-              <span class="tag">localStorage</span>
-            </div>
-            <div class="form-grid">
+            <h2>운영모드</h2>
+            <div class="control-grid">
               <label>
-                Blocker
-                <select id="blockerSelect"></select>
-              </label>
-              <label>
-                상태
-                <select id="statusSelect">
-                  <option value="NOT_STARTED">NOT_STARTED</option>
-                  <option value="READY_FOR_HUMAN_REVIEW">READY_FOR_HUMAN_REVIEW</option>
-                  <option value="HUMAN_REVIEWED_APPROVED_WITH_LIMITATIONS">
-                    HUMAN_REVIEWED_APPROVED_WITH_LIMITATIONS
-                  </option>
-                  <option value="HUMAN_REVIEWED_REJECTED">HUMAN_REVIEWED_REJECTED</option>
-                  <option value="HUMAN_REVIEWED_UNVERIFIED">HUMAN_REVIEWED_UNVERIFIED</option>
-                  <option value="NEEDS_MORE_EVIDENCE">NEEDS_MORE_EVIDENCE</option>
+                문제가 생기면
+                <select id="incidentMode">
+                  <option value="PAUSE">활동 멈춤</option>
+                  <option value="CONSERVATIVE">소극적으로 운영</option>
+                  <option value="REVIEW_SELL">전액 매도 검토</option>
                 </select>
               </label>
               <label>
-                사람 reviewer 이름
-                <input id="reviewerName" autocomplete="off" placeholder="AI가 아니라 사람 이름" />
+                수익이 나면
+                <select id="profitMode">
+                  <option value="PROTECT">수익 보호 현금으로 분리</option>
+                  <option value="PARTIAL_WITHDRAW">일부 인출 검토</option>
+                  <option value="REINVEST">조건 충족 시 재투자</option>
+                </select>
               </label>
-              <label>
-                reviewer 역할
-                <input id="reviewerRole" autocomplete="off" placeholder="예: compliance reviewer" />
-              </label>
-              <label>
-                검토일
-                <input id="reviewDate" type="date" />
-              </label>
-              <label>
-                증거 출처 요약
-                <textarea id="sourceSummary" placeholder="링크, 문서명, support ticket reference 등 민감정보 없는 요약"></textarea>
-              </label>
-              <label>
-                제한사항 / 남은 질문
-                <textarea id="limitations" placeholder="불확실하면 그대로 적고 상태를 NEEDS_MORE_EVIDENCE로 유지"></textarea>
-              </label>
-              <label>
-                사람 결정 문장
-                <textarea id="humanDecision" placeholder="사람이 직접 작성. AI 문장은 승인으로 인정하지 않음"></textarea>
-              </label>
+              <div class="mode-output" id="modeOutput"></div>
               <p class="help">
-                금지: API 키, client secret, token, 계좌번호, 잔고, 보유수량, raw broker payload,
-                .env 내용, tmp/phase5 receipt 내용.
+                전액 매도나 인출은 지금 이 화면이 자동 실행하지 않습니다. 지금은 운영 방침을 정하는 단계입니다.
               </p>
             </div>
           </div>
         </section>
 
-        <section class="content hidden" id="templatesView">
+        <section class="status-grid">
+          <div class="panel metric">
+            <span>Toss 연결</span>
+            <strong id="tossState">읽기 전용</strong>
+          </div>
+          <div class="panel metric">
+            <span>실거래 주문</span>
+            <strong>차단</strong>
+          </div>
+          <div class="panel metric">
+            <span>관심 후보</span>
+            <strong id="signalCount">0개</strong>
+          </div>
+          <div class="panel metric">
+            <span>남은 안전조건</span>
+            <strong id="blockerCount">8개</strong>
+          </div>
+        </section>
+
+        <section class="two-col">
           <div class="panel section">
-            <div class="section-head">
-              <h3>문서 / 템플릿</h3>
-              <span class="tag">사람 작성용</span>
+            <h2>뉴스 + AI 관심 종목</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>종목 / 후보</th>
+                  <th>근거</th>
+                  <th>상태</th>
+                  <th>할 일</th>
+                </tr>
+              </thead>
+              <tbody id="signalsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="panel section">
+            <h2>지금 해야 할 일</h2>
+            <div class="list" id="taskList"></div>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <div class="panel section">
+            <h2>내 계좌 / 운영 현황</h2>
+            <div class="list" id="accountList"></div>
+          </div>
+
+          <div class="panel section">
+            <h2>실거래 전 남은 조건</h2>
+            <div class="list" id="blockerList"></div>
+          </div>
+        </section>
+
+        <section class="panel section">
+          <h2>간단 답변</h2>
+          <div class="list">
+            <div class="item">
+              <div>
+                <strong>수익 인출은 어떻게 하나?</strong>
+                <span>지금 시스템은 인출/이체 API를 만들지 않습니다. 수익 인출은 Toss 앱에서 사람이 직접 하고, 시스템에는 “수익 보호/일부 인출 검토” 정책만 기록합니다.</span>
+              </div>
+              <span class="tag">사람 실행</span>
             </div>
-            <div class="template-grid">
-              <a href="human-evidence-templates/toss-compliance-template.md">
-                Toss / Compliance
-                <span>LCB-001, LCB-005</span>
-              </a>
-              <a href="human-evidence-templates/account-provisioning-template.md">
-                Account / Provisioning
-                <span>LCB-002, LCB-003</span>
-              </a>
-              <a href="human-evidence-templates/owner-risk-template.md">
-                Owner / Risk
-                <span>LCB-004, LCB-006</span>
-              </a>
-              <a href="human-evidence-templates/live-safety-review-template.md">
-                Live Safety / Review
-                <span>LCB-007, LCB-008</span>
-              </a>
-              <a href="human-evidence-operator-runbook.md">
-                Operator Runbook
-                <span>작성 절차</span>
-              </a>
-              <a href="operator-dashboard.sample.json">
-                Dashboard Sample JSON
-                <span>데이터 불러오기 예시</span>
-              </a>
-              <a href="../phase7/live-capable-blocker-register.md">
-                Blocker Register
-                <span>최종 사람 결정 기록 위치</span>
-              </a>
+            <div class="item">
+              <div>
+                <strong>전액 매도는 자동으로 하나?</strong>
+                <span>아직 아닙니다. “전액 매도 검토”는 비상 시 사람이 확인할 운영모드입니다. 자동 전량매도는 별도 승인/테스트 전까지 만들지 않습니다.</span>
+              </div>
+              <span class="tag red">자동실행 없음</span>
+            </div>
+            <div class="item">
+              <div>
+                <strong>이 사이트는 누구를 위한 건가?</strong>
+                <span>당신 개인이 운영하는 자동투자 시스템용입니다. 범용 SaaS나 다른 사람 돈을 관리하는 사이트가 아닙니다.</span>
+              </div>
+              <span class="tag green">개인용</span>
             </div>
           </div>
         </section>
       </main>
     </div>
 
-    <div id="toast" class="toast hidden" role="status"></div>
+    <div id="toast" class="toast hidden"></div>
 
     <script>
-      const STORAGE_KEY = "aios.phase10.operatorDashboard.v2";
-      const DATA_STORAGE_KEY = "aios.phase10.operatorDashboardData.v1";
+      const STORAGE_KEY = "aios.simpleOperatorDashboard.v1";
+      const DATA_STORAGE_KEY = "aios.simpleOperatorDashboardData.v1";
 
-      const blockers = [
-        {
-          id: "LCB-001",
-          title: "Toss 자동매매 권한",
-          owner: "Compliance/legal reviewer",
-          template: "human-evidence-templates/toss-compliance-template.md",
-          description:
-            "Toss가 API 기반 자동매매를 허용하는지 공식 문서나 support confirmation으로 확인해야 합니다."
-        },
-        {
-          id: "LCB-002",
-          title: "계좌 권한과 기능",
-          owner: "Operator + compliance reviewer",
-          template: "human-evidence-templates/account-provisioning-template.md",
-          description:
-            "read-only 계좌/권한 검증 결과와 broker account blocking condition 8개를 사람이 확인해야 합니다."
-        },
-        {
-          id: "LCB-003",
-          title: "credential 프로비저닝",
-          owner: "Infrastructure/security reviewer",
-          template: "human-evidence-templates/account-provisioning-template.md",
-          description:
-            "credential 값이 아니라 저장 위치, 접근권한, rotation, audit process를 문서화해야 합니다."
-        },
-        {
-          id: "LCB-004",
-          title: "명시적 사람 승인",
-          owner: "Project owner/operator",
-          template: "human-evidence-templates/owner-risk-template.md",
-          description:
-            "프로젝트 owner가 잔여 리스크를 이해하고 승인 의사를 직접 작성해야 합니다."
-        },
-        {
-          id: "LCB-005",
-          title: "컴플라이언스 / 법무",
-          owner: "Compliance/legal reviewer",
-          template: "human-evidence-templates/toss-compliance-template.md",
-          description:
-            "약관, 계좌 권한, 데이터 라이선스, AI 데이터 처리, 세금 기록, 개인 사용 범위를 검토해야 합니다."
-        },
-        {
-          id: "LCB-006",
-          title: "소액 운용 한도",
-          owner: "Risk owner/operator",
-          template: "human-evidence-templates/owner-risk-template.md",
-          description:
-            "총자본, 1회 주문 한도, 전략 범위, limit-order-only, stop criteria를 사람이 직접 정해야 합니다."
-        },
-        {
-          id: "LCB-007",
-          title: "비상정지 / 복구",
-          owner: "Engineering safety reviewer + operator",
-          template: "human-evidence-templates/live-safety-review-template.md",
-          description:
-            "실거래 맥락의 kill-switch, rollback, reconciliation 리허설을 기록해야 합니다."
-        },
-        {
-          id: "LCB-008",
-          title: "미래 write adapter 리뷰",
-          owner: "Independent senior reviewer",
-          template: "human-evidence-templates/live-safety-review-template.md",
-          description:
-            "실제 write adapter가 나중에 만들어진 뒤 독립 리뷰가 필요합니다."
-        }
-      ];
-
-      const defaultTasks = [
-        ["Toss 자동매매 허용 여부 확인", "LCB-001과 LCB-005가 최우선입니다.", "사람 필요"],
-        ["read-only 계좌 권한 evidence 확인", "계좌번호나 raw payload는 입력하지 않습니다.", "읽기 전용"],
-        ["소액 운용 한도 초안 작성", "숫자는 AI가 정하지 않고 사람이 직접 정합니다.", "대기"],
-        ["Paper 후보 검토", "실주문이 아니라 시뮬레이션 검토입니다.", "가능"]
-      ];
-
-      const defaultSignals = [
-        {
-          name: "전략 후보 A",
-          status: "대기",
-          rationale: "시장/뉴스/리스크 점수 연결 예정",
-          nextAction: "Paper 검토만 가능"
-        },
-        {
-          name: "전략 후보 B",
-          status: "대기",
-          rationale: "백테스트와 walk-forward 결과 연결 예정",
-          nextAction: "실주문 불가"
-        },
-        {
-          name: "전략 후보 C",
-          status: "대기",
-          rationale: "운영 대시보드 데이터 연결 전 placeholder",
-          nextAction: "증거 채우기 먼저"
-        }
-      ];
-
-      const exampleDashboardData = {
+      const defaultData = {
         safetyType: "OPERATOR_DASHBOARD_SANITIZED_INPUT",
         liveBrokerWriteAllowed: false,
         account: {
-          connection: "READ_ONLY_CONNECTED",
+          tossState: "읽기 전용",
           accountRef: "masked",
-          cash: "hidden",
-          positions: "hidden",
-          orderAvailability: "BLOCKED_BY_LCB"
+          cashPolicy: "수익 보호 현금 분리 전",
+          liveOrder: "차단"
         },
         signals: [
           {
-            name: "Paper 후보 1",
-            status: "PAPER_REVIEW",
-            rationale: "sanitized strategy score placeholder",
+            name: "뉴스 기반 후보 1",
+            rationale: "Naver News + AI 분석 연결 예정",
+            status: "관찰",
             nextAction: "Paper 검토"
           },
           {
-            name: "관심 후보 2",
-            status: "WATCH_ONLY",
-            rationale: "news/risk summary placeholder",
-            nextAction: "관찰"
+            name: "AI 발굴 후보 2",
+            rationale: "시장/뉴스/리스크 점수 연결 예정",
+            status: "대기",
+            nextAction: "근거 확인"
           }
         ],
         tasks: [
           {
             title: "Toss 자동매매 허용 여부 확인",
-            body: "LCB-001 증거를 사람이 직접 확인",
-            tag: "사람 필요"
+            body: "약관 또는 고객센터 답변으로 확인",
+            tag: "최우선"
           },
           {
-            title: "소액 운용 한도 작성",
-            body: "LCB-006 숫자는 사람이 직접 입력",
-            tag: "대기"
+            title: "소액 운용 한도 정하기",
+            body: "총액, 1회 주문, 손실 중단 기준을 사람이 정함",
+            tag: "사람 결정"
+          },
+          {
+            title: "뉴스 추천 종목 데이터 연결",
+            body: "Naver News와 AI 분석 결과를 이 표에 연결",
+            tag: "다음 개발"
           }
         ]
       };
 
-      const emptyEntry = () => ({
-        status: "NOT_STARTED",
-        reviewerName: "",
-        reviewerRole: "",
-        reviewDate: "",
-        sourceSummary: "",
-        limitations: "",
-        humanDecision: ""
-      });
+      const blockers = [
+        ["LCB-001", "Toss 자동매매 허용 확인"],
+        ["LCB-002", "계좌 권한 확인"],
+        ["LCB-003", "API 키 운영 보관 방식"],
+        ["LCB-004", "사람 승인 문구"],
+        ["LCB-005", "컴플라이언스 검토"],
+        ["LCB-006", "소액 운용 한도"],
+        ["LCB-007", "비상정지/복구 연습"],
+        ["LCB-008", "주문 adapter 독립 리뷰"]
+      ];
 
-      let state = loadState();
-      let dashboardData = loadDashboardData();
-      let selectedId = blockers[0].id;
+      const state = loadState();
+      let data = loadData();
 
       function loadState() {
         try {
-          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-          return blockers.reduce((acc, blocker) => {
-            acc[blocker.id] = { ...emptyEntry(), ...(parsed[blocker.id] || {}) };
-            return acc;
-          }, {});
+          return {
+            incidentMode: "PAUSE",
+            profitMode: "PROTECT",
+            ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")
+          };
         } catch {
-          return blockers.reduce((acc, blocker) => {
-            acc[blocker.id] = emptyEntry();
-            return acc;
-          }, {});
+          return { incidentMode: "PAUSE", profitMode: "PROTECT" };
         }
       }
 
-      function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.classList.remove("hidden");
-        window.setTimeout(() => toast.classList.add("hidden"), 2600);
+      function loadData() {
+        try {
+          return JSON.parse(localStorage.getItem(DATA_STORAGE_KEY) || "null") || defaultData;
+        } catch {
+          return defaultData;
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
+      }
+
+      function saveData() {
+        localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data, null, 2));
       }
 
       function escapeHtml(value) {
@@ -1140,292 +588,177 @@
           .replaceAll("'", "&#039;");
       }
 
-      function loadDashboardData() {
-        try {
-          return JSON.parse(localStorage.getItem(DATA_STORAGE_KEY) || "null");
-        } catch {
-          return null;
-        }
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.remove("hidden");
+        window.setTimeout(() => toast.classList.add("hidden"), 2400);
       }
 
-      function isSafeDashboardData(data) {
-        if (!data || typeof data !== "object") return false;
-        if (data.liveBrokerWriteAllowed !== false) return false;
-        const serialized = JSON.stringify(data);
+      function isSafeDashboardData(input) {
+        if (!input || typeof input !== "object") return false;
+        if (input.liveBrokerWriteAllowed !== false) return false;
+        const serialized = JSON.stringify(input);
         return !/(client_secret|access_token|account_number|bearer\s+|-----BEGIN|rawPayload|raw_payload)/i.test(
           serialized
         );
       }
 
-      function statusClass(status) {
-        if (status === "READY_FOR_HUMAN_REVIEW") return "amber";
-        if (status.startsWith("HUMAN_REVIEWED_APPROVED")) return "green";
-        if (status.endsWith("REJECTED") || status.endsWith("UNVERIFIED")) return "red";
-        return "";
-      }
-
-      function isReviewed(status) {
-        return status.startsWith("HUMAN_REVIEWED_");
-      }
-
       function render() {
-        renderProgress();
-        renderTasks();
-        renderAccountSummary();
+        document.getElementById("incidentMode").value = state.incidentMode;
+        document.getElementById("profitMode").value = state.profitMode;
+        renderMode();
+        renderStatus();
         renderSignals();
-        renderLoadedDataStatus();
+        renderTasks();
+        renderAccount();
         renderBlockers();
-        renderForm();
       }
 
-      function renderProgress() {
-        const reviewed = blockers.filter((blocker) => isReviewed(state[blocker.id].status)).length;
-        const percent = Math.round((reviewed / blockers.length) * 100);
-        document.getElementById("readinessBar").style.width = `${percent}%`;
-        document.getElementById("readinessText").textContent =
-          `${reviewed} / ${blockers.length} human blockers reviewed`;
-        document.getElementById("reviewedMini").textContent = `${reviewed} / ${blockers.length}`;
-        const next = blockers.find((blocker) => !isReviewed(state[blocker.id].status));
-        document.getElementById("nextTask").textContent = next
-          ? `${next.id} ${next.title}`
-          : "사람 검토 결과를 blocker register에 직접 기록";
-      }
-
-      function renderTasks() {
-        const list = document.getElementById("taskList");
-        const taskRows = Array.isArray(dashboardData?.tasks)
-          ? dashboardData.tasks.map((task) => [task.title, task.body, task.tag])
-          : defaultTasks;
-        list.innerHTML = taskRows
-          .map(
-            ([title, body, tag]) => `
-              <div class="row">
-                <div>
-                  <strong>${escapeHtml(title)}</strong>
-                  <span>${escapeHtml(body)}</span>
-                </div>
-                <span class="tag amber">${escapeHtml(tag)}</span>
-              </div>
-            `
-          )
-          .join("");
-      }
-
-      function renderAccountSummary() {
-        const account = dashboardData?.account || {};
-        const connected = account.connection || "READ_ONLY_READY";
-        document.getElementById("accountSourceTag").textContent = dashboardData ? "불러온 sanitized 데이터" : "민감값 숨김";
-        document.getElementById("accountSummaryList").innerHTML = `
-          <div class="row">
-            <div>
-              <strong>계좌 연결</strong>
-              <span>${escapeHtml(connected)}</span>
-            </div>
-            <span class="tag green">read-only</span>
-          </div>
-          <div class="row">
-            <div>
-              <strong>계좌 식별자</strong>
-              <span>${escapeHtml(account.accountRef || "화면에 표시하지 않음")}</span>
-            </div>
-            <span class="tag">masked</span>
-          </div>
-          <div class="row">
-            <div>
-              <strong>잔고 / 보유수량</strong>
-              <span>${escapeHtml(account.cash || "hidden")} / ${escapeHtml(account.positions || "hidden")}</span>
-            </div>
-            <span class="tag">hidden</span>
-          </div>
-          <div class="row">
-            <div>
-              <strong>주문 가능 여부</strong>
-              <span>${escapeHtml(account.orderAvailability || "LCB-001~008 완료 전 차단")}</span>
-            </div>
-            <span class="tag red">blocked</span>
-          </div>
+      function renderMode() {
+        const incidentText = {
+          PAUSE: "문제가 생기면 새 활동을 멈추고 Paper/읽기 전용으로 돌아갑니다.",
+          CONSERVATIVE: "문제가 작으면 후보 생성은 유지하되 주문/증액은 막습니다.",
+          REVIEW_SELL: "위험이 크면 전액 매도를 사람이 검토합니다. 자동 매도는 아직 없습니다."
+        }[state.incidentMode];
+        const profitText = {
+          PROTECT: "수익은 보호 현금으로 분리하는 정책입니다.",
+          PARTIAL_WITHDRAW: "일부 인출을 사람이 검토합니다. 인출은 Toss 앱에서 직접 합니다.",
+          REINVEST: "조건 충족 시 재투자를 검토합니다. 자동 증액은 하지 않습니다."
+        }[state.profitMode];
+        document.getElementById("modeOutput").innerHTML = `
+          <strong>현재 운영 방침</strong>
+          <div>${escapeHtml(incidentText)}</div>
+          <div style="margin-top: 6px">${escapeHtml(profitText)}</div>
         `;
       }
 
+      function renderStatus() {
+        document.getElementById("tossState").textContent = data.account?.tossState || "읽기 전용";
+        document.getElementById("signalCount").textContent = `${(data.signals || []).length}개`;
+        document.getElementById("blockerCount").textContent = `${blockers.length}개`;
+      }
+
       function renderSignals() {
-        const signals = Array.isArray(dashboardData?.signals) ? dashboardData.signals : defaultSignals;
-        document.getElementById("signalsSourceTag").textContent = dashboardData ? "sanitized input" : "주문 아님";
-        document.getElementById("signalsTableBody").innerHTML = signals
+        const signals = data.signals || [];
+        document.getElementById("signalsBody").innerHTML = signals
           .map(
             (signal) => `
               <tr>
-                <td>${escapeHtml(signal.name || "-")}</td>
-                <td><span class="tag">${escapeHtml(signal.status || "대기")}</span></td>
-                <td>${escapeHtml(signal.rationale || "-")}</td>
-                <td>${escapeHtml(signal.nextAction || "Paper 검토만 가능")}</td>
+                <td>${escapeHtml(signal.name)}</td>
+                <td>${escapeHtml(signal.rationale)}</td>
+                <td><span class="tag amber">${escapeHtml(signal.status)}</span></td>
+                <td>${escapeHtml(signal.nextAction)}</td>
               </tr>
             `
           )
           .join("");
       }
 
-      function renderLoadedDataStatus() {
-        document.getElementById("loadedDataName").textContent = dashboardData?._sourceName || "없음";
-        document.getElementById("loadedDataStatus").textContent = dashboardData ? "적용됨" : "대기";
+      function renderTasks() {
+        document.getElementById("taskList").innerHTML = (data.tasks || [])
+          .map(
+            (task) => `
+              <div class="item">
+                <div>
+                  <strong>${escapeHtml(task.title)}</strong>
+                  <span>${escapeHtml(task.body)}</span>
+                </div>
+                <span class="tag amber">${escapeHtml(task.tag)}</span>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderAccount() {
+        const account = data.account || {};
+        document.getElementById("accountList").innerHTML = `
+          <div class="item">
+            <div><strong>계좌</strong><span>${escapeHtml(account.accountRef || "masked")}</span></div>
+            <span class="tag">숨김</span>
+          </div>
+          <div class="item">
+            <div><strong>현금 정책</strong><span>${escapeHtml(account.cashPolicy || "미정")}</span></div>
+            <span class="tag">${escapeHtml(state.profitMode)}</span>
+          </div>
+          <div class="item">
+            <div><strong>실거래 주문</strong><span>${escapeHtml(account.liveOrder || "차단")}</span></div>
+            <span class="tag red">blocked</span>
+          </div>
+        `;
       }
 
       function renderBlockers() {
-        const board = document.getElementById("blockerBoard");
-        board.innerHTML = blockers
-          .map((blocker) => {
-            const entry = state[blocker.id];
-            return `
-              <div class="blocker">
-                <button type="button" data-blocker-id="${blocker.id}">
-                  <div class="id">${blocker.id}</div>
-                  <h4>${escapeHtml(blocker.title)}</h4>
-                  <p>${escapeHtml(blocker.owner)}</p>
-                  <span class="tag ${statusClass(entry.status)}" style="margin-top: 10px">${escapeHtml(entry.status)}</span>
-                </button>
+        document.getElementById("blockerList").innerHTML = blockers
+          .map(
+            ([id, title]) => `
+              <div class="item">
+                <div><strong>${id}</strong><span>${escapeHtml(title)}</span></div>
+                <span class="tag amber">남음</span>
               </div>
-            `;
-          })
+            `
+          )
           .join("");
-        board.querySelectorAll("[data-blocker-id]").forEach((button) => {
-          button.addEventListener("click", () => {
-            selectedId = button.dataset.blockerId;
-            renderSelectedBlocker();
-            renderForm();
-          });
-        });
-        renderSelectedBlocker();
-      }
-
-      function renderSelectedBlocker() {
-        const blocker = blockers.find((item) => item.id === selectedId) || blockers[0];
-        const entry = state[blocker.id];
-        document.getElementById("selectedBlockerTitle").textContent = `${blocker.id} ${blocker.title}`;
-        document.getElementById("selectedBlockerDescription").textContent = blocker.description;
-        document.getElementById("selectedBlockerOwner").textContent = blocker.owner;
-        document.getElementById("selectedBlockerStatus").textContent = entry.status;
-        const link = document.getElementById("selectedTemplateLink");
-        link.href = blocker.template;
-        link.textContent = blocker.template;
-      }
-
-      function renderForm() {
-        const select = document.getElementById("blockerSelect");
-        if (!select.options.length) {
-          blockers.forEach((blocker) => {
-            const option = document.createElement("option");
-            option.value = blocker.id;
-            option.textContent = `${blocker.id} ${blocker.title}`;
-            select.appendChild(option);
-          });
-        }
-        select.value = selectedId;
-        const entry = state[selectedId];
-        document.getElementById("statusSelect").value = entry.status;
-        document.getElementById("reviewerName").value = entry.reviewerName;
-        document.getElementById("reviewerRole").value = entry.reviewerRole;
-        document.getElementById("reviewDate").value = entry.reviewDate;
-        document.getElementById("sourceSummary").value = entry.sourceSummary;
-        document.getElementById("limitations").value = entry.limitations;
-        document.getElementById("humanDecision").value = entry.humanDecision;
-      }
-
-      function updateEntry(field, value) {
-        state[selectedId] = { ...state[selectedId], [field]: value };
-        render();
-      }
-
-      function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
-        showToast("저장했습니다. 현재 브라우저에만 저장됩니다.");
       }
 
       function downloadJson() {
         const payload = {
-          safetyType: "PHASE10_OPERATOR_DASHBOARD_LOCAL_DRAFT",
+          safetyType: "OPERATOR_DASHBOARD_LOCAL_POLICY_DRAFT",
           liveBrokerWriteAllowed: false,
           generatedAt: new Date().toISOString(),
-          entries: state,
-          warning: "This is not live-trading authorization and does not resolve any LCB blocker."
+          operatingPolicy: state,
+          dashboardData: data
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "phase10-operator-dashboard-draft.json";
+        link.download = "operator-dashboard-policy-draft.json";
         document.body.appendChild(link);
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
       }
 
-      document.querySelectorAll("[data-view]").forEach((button) => {
-        button.addEventListener("click", () => {
-          document.querySelectorAll("[data-view]").forEach((item) => {
-            item.setAttribute("aria-selected", String(item === button));
-          });
-          const view = button.dataset.view;
-          document.getElementById("pageTitle").textContent = button.textContent;
-          ["home", "signals", "data", "safety", "evidence", "templates"].forEach((name) => {
-            document.getElementById(`${name}View`).classList.toggle("hidden", name !== view);
-          });
-          render();
-        });
-      });
-
-      document.getElementById("blockerSelect").addEventListener("change", (event) => {
-        selectedId = event.target.value;
+      document.getElementById("incidentMode").addEventListener("change", (event) => {
+        state.incidentMode = event.target.value;
+        saveState();
         render();
       });
 
-      [
-        ["statusSelect", "status"],
-        ["reviewerName", "reviewerName"],
-        ["reviewerRole", "reviewerRole"],
-        ["reviewDate", "reviewDate"],
-        ["sourceSummary", "sourceSummary"],
-        ["limitations", "limitations"],
-        ["humanDecision", "humanDecision"]
-      ].forEach(([id, field]) => {
-        document.getElementById(id).addEventListener("input", (event) => {
-          updateEntry(field, event.target.value);
-        });
+      document.getElementById("profitMode").addEventListener("change", (event) => {
+        state.profitMode = event.target.value;
+        saveState();
+        render();
       });
 
-      document.getElementById("saveButton").addEventListener("click", saveState);
-      document.getElementById("downloadButton").addEventListener("click", downloadJson);
-      document.getElementById("dashboardDataFile").addEventListener("change", async (event) => {
+      document.getElementById("loadExampleButton").addEventListener("click", () => {
+        data = defaultData;
+        saveData();
+        render();
+        showToast("예시 데이터를 적용했습니다.");
+      });
+
+      document.getElementById("dataFile").addEventListener("change", async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
         try {
-          const data = JSON.parse(await file.text());
-          if (!isSafeDashboardData(data)) {
-            showToast("거부됨: sanitized JSON이 아니거나 liveBrokerWriteAllowed가 false가 아닙니다.");
+          const parsed = JSON.parse(await file.text());
+          if (!isSafeDashboardData(parsed)) {
+            showToast("거부됨: sanitized JSON이 아니거나 write 허용값이 있습니다.");
             return;
           }
-          dashboardData = { ...data, _sourceName: file.name };
-          localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(dashboardData, null, 2));
+          data = parsed;
+          saveData();
           render();
-          showToast("sanitized 운영 데이터를 불러왔습니다.");
+          showToast("데이터를 불러왔습니다.");
         } catch {
           showToast("JSON 파일을 읽지 못했습니다.");
         }
       });
-      document.getElementById("loadExampleButton").addEventListener("click", () => {
-        dashboardData = { ...exampleDashboardData, _sourceName: "예시 데이터" };
-        localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(dashboardData, null, 2));
-        render();
-        showToast("예시 데이터를 적용했습니다.");
-      });
-      document.getElementById("resetButton").addEventListener("click", () => {
-        if (!window.confirm("로컬 입력값을 모두 초기화할까요?")) return;
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(DATA_STORAGE_KEY);
-        state = loadState();
-        dashboardData = loadDashboardData();
-        selectedId = blockers[0].id;
-        render();
-        showToast("초기화했습니다.");
-      });
+
+      document.getElementById("exportButton").addEventListener("click", downloadJson);
 
       render();
     </script>
