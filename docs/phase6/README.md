@@ -1,7 +1,7 @@
 # Phase 6 Simulation Safety Plan
 
-Version: 0.1.0
-Status: Draft
+Version: 0.2.0
+Status: Round 1 Complete
 Last Updated: 2026-07-29
 
 ## Purpose
@@ -55,3 +55,30 @@ Phase 6 is complete when the project can prove:
 - broker write guard rejects write-looking commands
 - audit output is sufficient to reconstruct paper/simulation decisions
 - live broker writes remain blocked
+
+## Round 1 Status
+
+P6-001, P6-002, and P6-003 merged into local `main`, and P6-004's
+integration review (`docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`)
+confirms all six completion-target items above:
+
+- paper order intents cannot become live broker orders — `PaperOrderIntentPipeline`
+  has no code path that constructs a broker-write command of any shape.
+- unresolved reconciliation blocks future live-readiness — `ReconciliationWorkflowResult.liveReadinessBlocked`
+  is a hard, non-overridable block on any unresolved discrepancy, not just
+  a warning.
+- risk veto, kill switch, and approval failure block action — proven
+  end-to-end in `tests/safety/safety-regression.test.ts` using the real
+  merged `RiskEngine`, `KillSwitchControlService`, and `OrderApprovalEngine`.
+- broker write guard rejects write-looking commands — proven for both
+  structurally forbidden AI-context shapes and for stale/unapproved
+  approvals.
+- audit output is sufficient to reconstruct paper/simulation decisions —
+  `PaperOrderIntentAuditContext` and `AuditLogService` preserve decision
+  lineage while redacting secrets and raw broker data.
+- live broker writes remain blocked — no `TossSecuritiesAdapter` or any
+  Toss order-write implementation exists anywhere in the repository.
+
+Live trading is not authorized. See the review's "Remaining Blockers
+Before Any Future Live-Capable Design Phase" for what a future round would
+still need before any live-capable design work could even begin.

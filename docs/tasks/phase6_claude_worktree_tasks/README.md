@@ -1,8 +1,10 @@
 # Phase 6 Claude Worktree Tasks
 
-Status: Draft
+Status: Round 1 Complete
 Created: 2026-07-29
+Last Updated: 2026-07-29
 Source Review: `docs/reviews/Codex_Phase5_Final_Closure_Review.md`
+Round 1 Closure Review: `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`
 
 ## Purpose
 
@@ -35,28 +37,34 @@ Forbidden in every task:
 
 ## Task Index
 
-| Task ID | Title | Recommended Branch |
-|---|---|---|
-| [P6-001](P6-001_paper_order_intent_pipeline.md) | Paper Order Intent Pipeline | `phase6/p6-001-paper-order-intent-pipeline` |
-| [P6-002](P6-002_reconciliation_snapshot_review.md) | Reconciliation Snapshot Review | `phase6/p6-002-reconciliation-snapshot-review` |
-| [P6-003](P6-003_risk_kill_switch_approval_guard.md) | Risk, Kill Switch, and Approval Guard | `phase6/p6-003-risk-kill-switch-approval-guard` |
-| [P6-004](P6-004_phase6_integration_safety_review.md) | Phase 6 Integration Safety Review | `phase6/p6-004-integration-safety-review` |
+| Task ID | Title | Recommended Branch | Status | Merge Commit |
+|---|---|---|---|---|
+| [P6-001](P6-001_paper_order_intent_pipeline.md) | Paper Order Intent Pipeline | `phase6/p6-001-paper-order-intent-pipeline` | Merged | `76515cd` |
+| [P6-002](P6-002_reconciliation_snapshot_review.md) | Reconciliation Snapshot Review | `phase6/p6-002-reconciliation-snapshot-review` | Merged | `e8855e7` |
+| [P6-003](P6-003_risk_kill_switch_approval_guard.md) | Risk, Kill Switch, and Approval Guard | `phase6/p6-003-risk-kill-switch-approval-guard` | Merged | `98955d5` |
+| [P6-004](P6-004_phase6_integration_safety_review.md) | Phase 6 Integration Safety Review | `phase6/p6-004-integration-safety-review` | Complete (both phases) | not yet merged to `main` |
 
 ## Merge Guidance
 
-P6-001, P6-002, and P6-003 can run in parallel if each task respects its owned files.
+P6-001, P6-002, and P6-003 ran in parallel, each respecting its owned files, and merged into local `main` with no conflicts in the order below.
 
-P6-004 should run in two phases:
+P6-004 ran in two phases:
 
-- Phase 1: scaffold review and regression-gap check while P6-001 through P6-003 are running.
-- Phase 2: complete the integration review after P6-001 through P6-003 are merged into local `main`.
+- Phase 1: scaffold review and regression-gap check while P6-001 through P6-003 were running. Found that the consolidated `tests/safety/safety-regression.test.ts` harness did not yet exercise `RiskEngine`, `KillSwitchControlService`, or `OrderApprovalEngine` end-to-end; closed with two new integration-style regression tests.
+- Phase 2: completed the integration review after P6-001 through P6-003 were merged into local `main`. Added four more regression tests requested by Engineer 3 (P6-003) for the kill-switch-gate and staleness behavior that closed Engineer 4's Phase 1 finding. Full findings: `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`.
 
-Recommended merge order:
+Actual merge order (local `main`, never pushed to GitHub):
 
-1. P6-001
-2. P6-002
-3. P6-003
-4. P6-004
+1. P6-001 (`76515cd`)
+2. P6-002 (`e8855e7`)
+3. P6-003 (`98955d5`)
+4. P6-004 review completed on top of merged `main`; not yet merged back into `main` by the orchestrator as of this update.
+
+## Round 1 Outcome
+
+`npm run check` passes on merged `main` (typecheck clean, 82 test files, 638 tests). No branch weakened an existing fail-closed control; P6-003 added new checks (kill-switch gate consultation, approval/check staleness, out-of-order kill-switch commands) that only make approval and broker-write decisions stricter. No real Toss broker-write adapter exists anywhere in the repository. Full detail, including a pre-existing (non-Phase-6) Phase 5 tooling bug discovered while running the Phase 5 no-write readiness commands, is in `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`.
+
+This closes Phase 6 round 1. Any further Phase 6 work, and any future live-capable design phase, requires a new round with explicit human review per `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`, "Remaining Blockers Before Any Future Live-Capable Design Phase".
 
 ## Phase 6 Boundary
 
