@@ -1,7 +1,7 @@
 # Phase 6 Simulation Safety Plan
 
-Version: 0.2.0
-Status: Round 1 Complete
+Version: 0.3.0
+Status: Round 2 Complete
 Last Updated: 2026-07-29
 
 ## Purpose
@@ -98,3 +98,37 @@ Round 2 still does not authorize live trading. Dashboard, alert, report,
 and scheduler outputs must remain no-write and must not trigger broker
 orders, cancellations, replacements, transfers, withdrawals, or
 money-moving currency conversion.
+
+## Round 2 Status
+
+P6-005, P6-006, and P6-007 merged into local `main`, and P6-008's
+integration review
+(`docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`)
+confirms the round 2 completion targets:
+
+- dashboard/status remains read-only — `Phase6OperatorSafetyDashboardService`
+  and `ReadOnlyDashboardService` each expose exactly one public method,
+  neither can place, cancel, modify, or approve an order, and
+  `liveBrokerWriteAllowed` is a literal `false`, never computed.
+- alerts/reports remain non-executing — every `AlertEvent` carries literal
+  `liveBrokerWriteAllowed: false` and `impliesLiveTradingAuthorization:
+  false`; no alert or metric builder constructs, submits, cancels, or
+  retries a broker order.
+- scheduler jobs remain no-write — `SchedulerJobRunner.start()` enforces
+  `noWrite`/`callsBrokerApi` constraints for every job definition, not
+  only by per-job convention, and rejects a non-compliant definition
+  before it ever reaches `RUNNING`.
+- runbooks are sufficient for operator go/no-go decisions — a five-check
+  daily procedure covering paper/simulation status, reconciliation,
+  kill-switch state, alerts/reports, and audit coverage, plus nine
+  reviewable incident scenarios and explicit stop conditions.
+- paper/simulation readiness is clearly separated from live readiness —
+  `paperSimulationReady`, `liveReadinessBlocked`, and the permanently
+  literal `liveBrokerWriteAllowed: false` are three independently computed
+  fields, verified behaviorally distinct (not just separately named) by
+  direct test.
+
+Live trading is not authorized. See the round 2 review's "Remaining
+Blockers Before Phase 7 Live-Capable Design Review" for what a future
+round would still need before any live-capable design work could even
+begin.
