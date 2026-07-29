@@ -1,0 +1,15 @@
+{
+  "_comment": "Illustrative only. No real names, account references, or production identifiers are used or should ever be used in documentation, tests, or committed code. See docs/phase9/live-blocker-evidence-intake.md.",
+  "blockerId": "LCB-001",
+  "evidenceSourceReferences": [
+    "docs/phase5/toss-official-api-source-notes.md#automated-trading-clause"
+  ],
+  "result": "UNVERIFIED",
+  "limitations": "Covers KR market developer console documentation only; US market terms and written support confirmation not yet obtained.",
+  "humanReviewerName": "Example Reviewer",
+  "humanReviewerRole": "Compliance/legal reviewer",
+  "reviewDate": "2026-07-20T00:00:00Z",
+  "aiGeneratedSummary": "Draft research note only, not a substitute for human review: initial documentation scan found no explicit prohibition on read-only automated queries, but did not confirm order-submission automation terms.",
+  "humanReviewed": true,
+  "humanReviewerAttestation": "I am the named human reviewer for this blocker. I personally reviewed the evidence source references above, they do not contain secrets, account numbers, or raw broker payloads, and this record summarizes evidence only. It does not resolve this blocker; only a human editing the canonical blocker register can ever record a RESOLVED decision."
+}
