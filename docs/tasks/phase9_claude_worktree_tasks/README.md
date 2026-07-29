@@ -1,9 +1,10 @@
 # Phase 9 Claude Worktree Tasks
 
-Version: 0.1.0
-Status: Draft
+Version: 0.2.0
+Status: Complete
 Last Updated: 2026-07-29
 Related Phase: `docs/phase9/README.md`
+Related Review: `docs/reviews/Codex_Phase9_Small_Capital_Preparation_Review.md`
 
 ## Phase 9 Round 1 Boundary
 
@@ -19,10 +20,10 @@ secrets, or mark human-only blockers as resolved.
 
 | Task | Title | Recommended Branch | Status |
 | --- | --- | --- | --- |
-| [P9-001](P9-001_live_blocker_evidence_intake.md) | Live Blocker Evidence Intake | `phase9/p9-001-live-blocker-evidence-intake` | Draft |
-| [P9-002](P9-002_toss_write_preflight_contract_guard.md) | Toss Write Preflight Contract Guard | `phase9/p9-002-toss-write-preflight-contract-guard` | Draft |
-| [P9-003](P9-003_small_capital_enablement_gate.md) | Small-Capital Enablement Gate | `phase9/p9-003-small-capital-enablement-gate` | Draft |
-| [P9-004](P9-004_phase9_integration_review.md) | Phase 9 Integration Review | `phase9/p9-004-integration-review` | Draft |
+| [P9-001](P9-001_live_blocker_evidence_intake.md) | Live Blocker Evidence Intake | `phase9/p9-001-live-blocker-evidence-intake` | Merged (`254a963`) |
+| [P9-002](P9-002_toss_write_preflight_contract_guard.md) | Toss Write Preflight Contract Guard | `phase9/p9-002-toss-write-preflight-contract-guard` | Merged (`abe6d64`) |
+| [P9-003](P9-003_small_capital_enablement_gate.md) | Small-Capital Enablement Gate | `phase9/p9-003-small-capital-enablement-gate` | Merged (`3d977aa`) |
+| [P9-004](P9-004_phase9_integration_review.md) | Phase 9 Integration Review | `phase9/p9-004-integration-review` | Complete — see `docs/reviews/Codex_Phase9_Small_Capital_Preparation_Review.md` |
 
 Use `PHASE9_FOUR_ENGINEER_ORCHESTRATOR_PROMPT.md` to start the four
 parallel Claude Code engineers.

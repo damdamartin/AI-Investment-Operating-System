@@ -27,6 +27,7 @@ import {
   Quantity,
   REQUIRED_DEPLOYMENT_RUNBOOK_IDS,
   REQUIRED_DEPLOYMENT_SECRET_NAMES,
+  REQUIRED_MANUAL_APPROVAL_ATTESTATION,
   REQUIRED_ROLLBACK_REHEARSAL_STEPS,
   RestoreSafetyGate,
   RiskCheck,
@@ -34,6 +35,7 @@ import {
   Signal,
   StrategyVersion,
   TossCapabilityRegistry,
+  evaluateSmallCapitalReadiness,
   validateClaudeAnalysis,
   type BackupRestoreDrillInput,
   type ClaudeAnalysisRequest,
@@ -43,13 +45,20 @@ import {
   type DashboardReadOnlyStatus,
   type DeploymentReadinessInput,
   type EvidenceReference,
+  type ManualLiveApprovalRecord,
   type OperationsStatusReadModelInput,
   type Phase6OperatorSafetyStatus,
   type ReconciliationReport,
   type RollbackRehearsalStepRecord,
+  type SmallCapitalCapitalLimits,
+  type SmallCapitalKillSwitchSignal,
+  type SmallCapitalOperatorSurfaceSignal,
+  type SmallCapitalProposedOrder,
   type SmallCapitalReadinessReport,
+  type SmallCapitalReconciliationSignal,
   type TossWriteAdapter
 } from "../../src/index.js";
+import type { ComplianceGateResult } from "../../src/application/compliance/index.js";
 
 function signal(): Signal {
   return new Signal({
@@ -1179,6 +1188,120 @@ describe("safety regression harness", () => {
       expect(report.resumeAllowed).toBe(true);
       expect(report.liveBrokerWriteAllowed).toBe(false);
       expect(report.correctiveTradingAllowed).toBe(false);
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: report
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+  });
+
+  describe("Pre-existing small-capital readiness evaluator that Phase 9 will extend cannot itself satisfy BrokerWriteCommandGuard (Phase 9 pre-merge baseline)", () => {
+    // Phase 9 (P9-001 live blocker evidence intake, P9-002 Toss write
+    // preflight contract guard, P9-003 small-capital enablement gate, none
+    // yet merged as of this test) is expected to build on top of
+    // `evaluateSmallCapitalReadiness` (src/application/live-readiness/small-capital-readiness.ts,
+    // already merged in Phase 7) -- P9-003's own task doc lists
+    // `small-capital-readiness.ts` as a direct input, and the future
+    // enablement gate's whole purpose is to combine this evaluator's
+    // output with Phase 8 operations/deployment/backup readiness and Phase
+    // 9 evidence intake into a single go/no-go report. This evaluator can
+    // already produce its cleanest possible "everything looks fine" result
+    // today (`readyForSmallCapitalLive: true`, zero blocking reason
+    // codes) -- the same shape of property the "Dashboard operator
+    // surface", "AI output", and "Pre-existing operational evaluators"
+    // blocks above already prove, at this consolidated harness level,
+    // cannot substitute for a real BrokerWriteCommandGuard authorization.
+    // Until now, `evaluateSmallCapitalReadiness`'s output had never been
+    // cross-checked against BrokerWriteCommandGuard here -- only
+    // per-module unit tests exist (tests/application/small-capital-readiness.test.ts),
+    // and those do not touch BrokerWriteCommandGuard at all. This closes
+    // that narrow gap on the pre-P9-001/P9-002/P9-003 baseline, mirroring
+    // exactly the same pattern the Phase 8 review (P8-004) already
+    // established for `DeploymentEnvironmentSkeletonService` and
+    // `RestoreSafetyGate` before P8-002/P8-003 merged, so Phase 2 of this
+    // Phase 9 review has a concrete pre-merge proof to compare the merged
+    // evidence intake, preflight guard, and enablement gate outputs
+    // against.
+
+    const NOW = new Date("2026-07-29T01:00:00Z");
+    const KRW = Currency.from("KRW");
+
+    function krw(amount: string): Money {
+      return Money.fromMajor(amount, KRW);
+    }
+
+    function fullyCleanSmallCapitalInput() {
+      const capitalLimits: SmallCapitalCapitalLimits = {
+        maxOrderValue: krw("300000"),
+        maxDailyNotionalExposure: krw("900000"),
+        maxTotalCapitalExposure: krw("3000000")
+      };
+      const proposedOrder: SmallCapitalProposedOrder = {
+        market: "KR",
+        assetType: "STOCK",
+        orderType: "LIMIT",
+        orderValue: krw("100000"),
+        projectedDailyNotionalAfterOrder: krw("100000"),
+        projectedTotalCapitalExposureAfterOrder: krw("100000"),
+        withinRegularSessionWindow: true,
+        isExtendedHours: false,
+        isFractional: false
+      };
+      const manualApproval: ManualLiveApprovalRecord = {
+        id: "approval-1",
+        scopePortfolioId: "portfolio-1",
+        scopeStrategyVersionId: "strategy-version-1",
+        approvalStatus: "APPROVED",
+        approvedByName: "Jun Kim",
+        approvedByRole: "OWNER",
+        acknowledgedRisksStatement: REQUIRED_MANUAL_APPROVAL_ATTESTATION,
+        approvedAt: new Date("2026-07-01T00:00:00Z"),
+        expiresAt: new Date("2026-08-01T00:00:00Z"),
+        safetyType: "MANUAL_LIVE_APPROVAL_RECORD_HUMAN_OWNED"
+      };
+      const reconciliation: SmallCapitalReconciliationSignal = {
+        liveReadinessBlocked: false,
+        stale: false,
+        reasonCodes: []
+      };
+      const killSwitch: SmallCapitalKillSwitchSignal = { allowed: true, blocksNewOrders: false, reasonCodes: [] };
+      const operatorSurface: SmallCapitalOperatorSurfaceSignal = {
+        dashboardReachable: true,
+        systemStatus: "OK",
+        openCriticalAlertCount: 0,
+        auditTrailRecorded: true
+      };
+      const compliance: ComplianceGateResult = { allowed: true, reasons: [], limitations: [] };
+
+      return {
+        now: NOW,
+        capitalLimits,
+        proposedOrder,
+        manualApproval,
+        reconciliation,
+        killSwitch,
+        operatorSurface,
+        compliance
+      };
+    }
+
+    it("does not let a clean evaluateSmallCapitalReadiness() report (readyForSmallCapitalLive: true) satisfy BrokerWriteCommandGuard on its own", () => {
+      const report: SmallCapitalReadinessReport = evaluateSmallCapitalReadiness(fullyCleanSmallCapitalInput());
+
+      expect(report.readyForSmallCapitalLive).toBe(true);
+      expect(report.blockingReasonCodes).toEqual([]);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.safetyType).toBe("SMALL_CAPITAL_READINESS_REPORT_EVALUATION_ONLY");
 
       const guardResult = new BrokerWriteCommandGuard().evaluate({
         commandType: "SUBMIT_ORDER",
