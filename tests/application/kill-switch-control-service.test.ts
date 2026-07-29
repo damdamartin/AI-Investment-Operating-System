@@ -93,6 +93,68 @@ describe("KillSwitchControlService", () => {
     expect(decision.allowed).toBe(false);
     expect(decision.reasonCodes).toContain("kill_switch_active_asset");
   });
+
+  it("rejects a stale deactivate command that arrives after a more recent activation", () => {
+    const service = new KillSwitchControlService();
+    const inactive = service.createInactiveState({
+      id: "kill-switch-1",
+      scope: "GLOBAL",
+      updatedAt: new Date("2026-01-01T00:00:00Z")
+    });
+
+    // A newer activation lands first...
+    const activated = service.activate(inactive, {
+      actor: "operator-1",
+      reason: "manual emergency stop",
+      occurredAt: new Date("2026-01-01T00:10:00Z")
+    });
+    expect(activated.ok).toBe(true);
+
+    // ...then a stale/replayed deactivation claiming an earlier time arrives.
+    // It must not be allowed to silently turn the switch back off.
+    const staleDeactivation = service.deactivate(activated.state, {
+      actor: "operator-2",
+      reason: "late duplicate message",
+      occurredAt: new Date("2026-01-01T00:05:00Z")
+    });
+
+    expect(staleDeactivation.ok).toBe(false);
+    expect(staleDeactivation.reasonCodes).toContain("kill_switch_command_out_of_order");
+    expect(staleDeactivation.state.status).toBe("ACTIVE");
+  });
+
+  it("aggregates multiple scoped kill-switch states and fails closed to the most restrictive one", () => {
+    const service = new KillSwitchControlService();
+
+    const allInactive = service.evaluateAggregateTradingGate([
+      activeState({ scope: "GLOBAL", status: "INACTIVE" }),
+      activeState({ scope: "PORTFOLIO", status: "INACTIVE" })
+    ]);
+    expect(allInactive.allowed).toBe(true);
+
+    const oneActive = service.evaluateAggregateTradingGate([
+      activeState({ scope: "GLOBAL", status: "INACTIVE" }),
+      activeState({ scope: "STRATEGY", status: "ACTIVE", reason: "strategy breach" })
+    ]);
+    expect(oneActive.allowed).toBe(false);
+    expect(oneActive.reasonCodes).toContain("kill_switch_active_strategy");
+
+    const oneUnknown = service.evaluateAggregateTradingGate([
+      activeState({ scope: "GLOBAL", status: "INACTIVE" }),
+      service.createUnknownState({
+        id: "kill-switch-unknown",
+        scope: "MARKET",
+        reason: "state store unavailable",
+        updatedAt: now()
+      })
+    ]);
+    expect(oneUnknown.allowed).toBe(false);
+    expect(oneUnknown.reasonCodes).toContain("kill_switch_state_unknown");
+
+    const empty = service.evaluateAggregateTradingGate([]);
+    expect(empty.allowed).toBe(false);
+    expect(empty.reasonCodes).toContain("kill_switch_state_missing");
+  });
 });
 
 function activeState(overrides: Partial<KillSwitchControlState> = {}): KillSwitchControlState {

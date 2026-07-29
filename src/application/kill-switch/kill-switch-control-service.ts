@@ -82,7 +82,7 @@ export class KillSwitchControlService {
   }
 
   activate(state: KillSwitchControlState, command: KillSwitchControlCommand): KillSwitchControlCommandResult {
-    const validationErrors = validateCommand(command);
+    const validationErrors = validateCommand(command, state);
     if (validationErrors.length > 0) return commandResult(false, state, validationErrors);
 
     const nextState: KillSwitchControlState = {
@@ -105,7 +105,7 @@ export class KillSwitchControlService {
   }
 
   deactivate(state: KillSwitchControlState, command: KillSwitchControlCommand): KillSwitchControlCommandResult {
-    const validationErrors = validateCommand(command);
+    const validationErrors = validateCommand(command, state);
     if (validationErrors.length > 0) return commandResult(false, state, validationErrors);
 
     if (state.status === "INACTIVE") {
@@ -157,13 +157,52 @@ export class KillSwitchControlService {
       reason: state.reason
     });
   }
+
+  /**
+   * Evaluate the combined trading gate across every kill-switch scope that
+   * may apply to a single order (GLOBAL, MARKET, PORTFOLIO, STRATEGY,
+   * ASSET). Per docs/07_Trading_System.md section 22, any one of these
+   * scopes may independently block trading, and live trading cannot
+   * continue while the global switch is active. This method fails closed:
+   * an ACTIVE state anywhere in the set wins, then an UNKNOWN state, and
+   * only if every provided state is INACTIVE (or none were provided) does
+   * it allow trading to continue.
+   */
+  evaluateAggregateTradingGate(states: KillSwitchControlState[]): KillSwitchTradingGate {
+    if (states.length === 0) {
+      return this.evaluateTradingGate(undefined);
+    }
+
+    const active = states.find((state) => state.status === "ACTIVE");
+    if (active) return this.evaluateTradingGate(active);
+
+    const unknown = states.find((state) => state.status === "UNKNOWN");
+    if (unknown) return this.evaluateTradingGate(unknown);
+
+    const representative = states.find((state) => state.scope === "GLOBAL") ?? states[0];
+    return this.evaluateTradingGate(representative);
+  }
 }
 
-function validateCommand(command: KillSwitchControlCommand): string[] {
+function validateCommand(command: KillSwitchControlCommand, state: KillSwitchControlState): string[] {
   const errors: string[] = [];
   if (!command.actor.trim()) errors.push("kill_switch_actor_required");
   if (!command.reason.trim()) errors.push("kill_switch_reason_required");
   if (Number.isNaN(command.occurredAt.getTime())) errors.push("kill_switch_occurred_at_invalid");
+
+  // Reject out-of-order (replayed or racing) commands: a command that
+  // claims to have occurred before the state's last known update must never
+  // be allowed to silently overwrite a more recent state. This matters most
+  // for deactivation: a stale "deactivate" arriving after a newer
+  // "activate" must not turn a live kill switch back off.
+  if (
+    errors.length === 0 &&
+    !Number.isNaN(state.updatedAt?.getTime()) &&
+    command.occurredAt.getTime() < state.updatedAt.getTime()
+  ) {
+    errors.push("kill_switch_command_out_of_order");
+  }
+
   return errors;
 }
 

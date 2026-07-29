@@ -92,6 +92,63 @@ describe("RiskEngine", () => {
     expect(output.reasonCodes).toContain("max_drawdown_exceeded");
     expect(output.riskCheck.failedLimitIds).toContain("max-drawdown");
   });
+
+  it("blocks when the shared kill-switch control gate is not allowed, even with no local KillSwitchState", () => {
+    const output = new RiskEngine().evaluate({
+      ...baseInput(),
+      killSwitchGate: {
+        allowed: false,
+        blocksNewOrders: true,
+        reasonCodes: ["kill_switch_active_global"],
+        brokerWriteGate: { active: true, scope: "GLOBAL", reason: "manual stop" },
+        safetyType: "KILL_SWITCH_TRADING_GATE_ONLY"
+      }
+    });
+
+    expect(output.riskCheck.result).toBe("BLOCKED");
+    expect(output.riskCheck.riskLevel).toBe("CRITICAL");
+    // The risk engine must reuse the kill-switch service's own reason code
+    // rather than inventing a second, divergent vocabulary.
+    expect(output.reasonCodes).toContain("kill_switch_active_global");
+    expect(output.riskCheck.failedLimitIds).toContain("kill-switch-gate");
+  });
+
+  it("passes when the shared kill-switch control gate explicitly allows trading", () => {
+    const output = new RiskEngine().evaluate({
+      ...baseInput(),
+      killSwitchGate: {
+        allowed: true,
+        blocksNewOrders: false,
+        reasonCodes: [],
+        brokerWriteGate: { active: false, scope: "GLOBAL" },
+        safetyType: "KILL_SWITCH_TRADING_GATE_ONLY"
+      }
+    });
+
+    expect(output.riskCheck.result).toBe("PASS");
+    expect(output.reasonCodes).toEqual([]);
+  });
+
+  it("returns deterministically sorted, deduplicated reason codes and failed limit ids", () => {
+    const output = new RiskEngine().evaluate({
+      ...baseInput(),
+      orderAmount: Money.fromMajor("1500.00", usd),
+      killSwitches: [
+        new KillSwitchState({ id: "kill-switch-1", scope: "ACCOUNT", active: true, reason: "manual stop" })
+      ],
+      portfolio: {
+        ...basePortfolio(),
+        currentDrawdownRatio: 0.21
+      }
+    });
+
+    const sorted = [...output.reasonCodes].sort();
+    expect(output.reasonCodes).toEqual(sorted);
+    expect(output.reasonCodes).toEqual([...new Set(output.reasonCodes)]);
+
+    const sortedLimits = [...output.riskCheck.failedLimitIds].sort();
+    expect(output.riskCheck.failedLimitIds).toEqual(sortedLimits);
+  });
 });
 
 function baseInput() {

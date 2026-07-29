@@ -14,6 +14,25 @@ export interface BrokerWriteEnvironmentPolicy {
   allowedEnvironments: BrokerWriteEnvironment[];
 }
 
+/**
+ * Safe default environment policy for Phase 6. Phase 6 is paper-trading and
+ * simulation only (see docs/reviews/Codex_Phase5_Final_Closure_Review.md,
+ * "Phase 6 Entry Conditions", and docs/tasks/phase6_claude_worktree_tasks/
+ * README.md, "Phase 6 Boundary"). Wiring code should import and reuse this
+ * constant instead of hand-building an environment policy object, so a
+ * typo or copy-paste mistake can never accidentally enable live broker
+ * writes during this phase. `allowedEnvironments` is intentionally empty:
+ * no environment is allowed to perform a live broker write in Phase 6.
+ */
+export const PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY: BrokerWriteEnvironmentPolicy = Object.freeze({
+  environment: "development",
+  liveBrokerWritesEnabled: false,
+  allowedEnvironments: []
+});
+
+/** Default maximum age of the OrderApproval's underlying checks before a broker write command is refused as stale. */
+export const DEFAULT_MAX_APPROVAL_AGE_MS = 5 * 60 * 1000;
+
 export interface BrokerWriteKillSwitchGate {
   active: boolean;
   scope: "GLOBAL" | "MARKET" | "PORTFOLIO" | "STRATEGY" | "ASSET";
@@ -33,6 +52,10 @@ export interface BrokerWriteCommandGuardInput {
   reconciliation?: ReconciliationReport | undefined;
   openQuestionBlocks?: string[] | undefined;
   aiContext?: unknown;
+  /** The time this broker write command is being evaluated ("now"). Required to detect a stale approval. */
+  now?: Date | undefined;
+  /** Overrides DEFAULT_MAX_APPROVAL_AGE_MS for approval-staleness checks. */
+  maxApprovalAgeMs?: number | undefined;
 }
 
 export interface BrokerWriteCommandGuardResult {
@@ -62,6 +85,8 @@ function rejectionReasons(input: BrokerWriteCommandGuardInput): string[] {
     reasons.push("missing_order_approval");
   } else if (!input.approval.isApproved()) {
     reasons.push("order_approval_not_approved");
+  } else {
+    reasons.push(...approvalStalenessReasons(input.approval, input.now, input.maxApprovalAgeMs));
   }
 
   if (!input.brokerAccount) {
@@ -126,6 +151,35 @@ function rejectionReasons(input: BrokerWriteCommandGuardInput): string[] {
   }
 
   return [...new Set(reasons)].sort();
+}
+
+/**
+ * An approved OrderApproval is only as trustworthy as the RiskCheck and
+ * MoneyCheck it was built from. If too much time has passed since those
+ * checks were made, market, account, or kill-switch conditions may have
+ * changed underneath the approval. This guard therefore requires `now` and
+ * refuses to authorize a stale approval, and fails closed when `now` is not
+ * supplied at all (the caller must prove freshness, not assume it).
+ */
+function approvalStalenessReasons(
+  approval: OrderApproval,
+  now: Date | undefined,
+  maxApprovalAgeMs: number | undefined
+): string[] {
+  if (!now || Number.isNaN(now.getTime())) {
+    return ["missing_evaluation_time"];
+  }
+
+  const approvalBasisTime = Math.max(
+    approval.riskCheck.checkedAt.getTime(),
+    approval.moneyCheck.checkedAt.getTime()
+  );
+  const ageMs = now.getTime() - approvalBasisTime;
+  const maxAgeMs = maxApprovalAgeMs ?? DEFAULT_MAX_APPROVAL_AGE_MS;
+
+  if (ageMs < 0) return ["order_approval_timestamp_in_future"];
+  if (ageMs > maxAgeMs) return ["order_approval_stale"];
+  return [];
 }
 
 function containsForbiddenAICommand(value: unknown): boolean {

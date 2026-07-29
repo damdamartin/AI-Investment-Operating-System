@@ -5,12 +5,14 @@ import {
   BrokerAccount,
   BrokerWriteCommandGuard,
   Currency,
+  DEFAULT_MAX_APPROVAL_AGE_MS,
   EngineScoreSet,
   Market,
   Money,
   MoneyCheck,
   OrderApproval,
   OrderIntent,
+  PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY,
   PortfolioBrokerAccountLink,
   Price,
   Quantity,
@@ -21,6 +23,8 @@ import {
   type BrokerWriteCommandGuardInput,
   type ReconciliationReport
 } from "../../src/index.js";
+
+const approvalBasisTime = new Date("2026-01-01T00:00:00Z");
 
 describe("BrokerWriteCommandGuard", () => {
   it("blocks by default when required gates are unknown", () => {
@@ -136,6 +140,52 @@ describe("BrokerWriteCommandGuard", () => {
     expect(result.allowed).toBe(false);
     expect(result.reasonCodes).toContain("ai_context_contains_forbidden_broker_command");
   });
+
+  it("rejects a stale or missing-timestamp approval, and a future-dated one, even when every other gate passes", () => {
+    const missingNow = new BrokerWriteCommandGuard().evaluate({
+      ...passingInput(),
+      now: undefined
+    });
+    const stale = new BrokerWriteCommandGuard().evaluate({
+      ...passingInput(),
+      now: new Date(approvalBasisTime.getTime() + DEFAULT_MAX_APPROVAL_AGE_MS + 1)
+    });
+    const future = new BrokerWriteCommandGuard().evaluate({
+      ...passingInput(),
+      now: new Date(approvalBasisTime.getTime() - 1)
+    });
+    const freshAtTheEdge = new BrokerWriteCommandGuard().evaluate({
+      ...passingInput(),
+      now: new Date(approvalBasisTime.getTime() + DEFAULT_MAX_APPROVAL_AGE_MS)
+    });
+
+    expect(missingNow.allowed).toBe(false);
+    expect(missingNow.reasonCodes).toContain("missing_evaluation_time");
+
+    expect(stale.allowed).toBe(false);
+    expect(stale.reasonCodes).toContain("order_approval_stale");
+
+    expect(future.allowed).toBe(false);
+    expect(future.reasonCodes).toContain("order_approval_timestamp_in_future");
+
+    expect(freshAtTheEdge.allowed).toBe(true);
+  });
+
+  it("never allows a broker write under the Phase 6 no-live-write environment policy, even when every other gate passes", () => {
+    // This proves the structural guarantee behind "approved paths remain
+    // paper-only": swapping only the environment policy to the shared
+    // Phase 6 default blocks the command even though the approval, broker
+    // account, portfolio link, compliance, capability, kill switch, and
+    // reconciliation gates are all fully passing.
+    const result = new BrokerWriteCommandGuard().evaluate({
+      ...passingInput(),
+      environment: PHASE6_NO_LIVE_BROKER_WRITE_ENVIRONMENT_POLICY
+    });
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasonCodes).toContain("environment_live_broker_writes_disabled");
+    expect(result.reasonCodes).toContain("environment_development_not_allowed_for_broker_writes");
+  });
 });
 
 function passingInput(): BrokerWriteCommandGuardInput {
@@ -174,7 +224,8 @@ function passingInput(): BrokerWriteCommandGuardInput {
       allowedEnvironments: ["production"]
     },
     killSwitch: { active: false, scope: "GLOBAL" },
-    reconciliation: cleanReconciliation()
+    reconciliation: cleanReconciliation(),
+    now: approvalBasisTime
   };
 }
 
