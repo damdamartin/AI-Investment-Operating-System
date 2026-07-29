@@ -7,6 +7,7 @@ import {
   BrokerWriteCommandGuard,
   buildAIAnalysisRecord,
   Currency,
+  DashboardSensitiveControlGate,
   DomainValidationError,
   EngineScoreSet,
   KillSwitchControlService,
@@ -26,6 +27,9 @@ import {
   TossCapabilityRegistry,
   validateClaudeAnalysis,
   type ClaudeAnalysisRequest,
+  type DashboardActionType,
+  type DashboardActorAuthState,
+  type DashboardPermission,
   type ReconciliationReport
 } from "../../src/index.js";
 
@@ -639,6 +643,119 @@ describe("safety regression harness", () => {
           now: new Date("2026-01-01T00:00:00Z")
         })
       ).toThrow(DomainValidationError);
+    });
+  });
+
+  describe("Dashboard operator surface stays advisory-only and cannot itself authorize a broker write", () => {
+    // Phase 6 round 2 (P6-005/P6-006/P6-007) adds operator-facing surfaces
+    // (dashboard, alerts, scheduler) on top of the round 1 safety chain
+    // this file already exercises above. Before those branches land, this
+    // block closes a gap in the pre-round-2 baseline: the consolidated
+    // safety-regression harness never proved that the *existing*
+    // read-only dashboard surface (`DashboardSensitiveControlGate`) is
+    // structurally incapable of producing, or standing in for, a broker
+    // write command — independent of whatever P6-005 adds later. Per-module
+    // unit coverage already exists in
+    // tests/application/dashboard-sensitive-control-gate.test.ts and
+    // tests/application/read-only-dashboard.test.ts; this block instead
+    // proves the cross-module property (dashboard decision -> guard) the
+    // same way the "AI output stays advisory-only" block above proves it
+    // for Claude output.
+
+    const allDashboardPermissions: DashboardPermission[] = [
+      "DASHBOARD_READ",
+      "KILL_SWITCH_CONTROL",
+      "RISK_POLICY_WRITE",
+      "CAPITAL_ALLOCATION_WRITE",
+      "STRATEGY_GOVERNANCE_WRITE",
+      "PRODUCTION_MODE_WRITE",
+      "BROKER_ACCOUNT_WRITE"
+    ];
+
+    const fullyPrivilegedActor: DashboardActorAuthState = {
+      actorId: "operator-1",
+      authenticated: true,
+      permissions: allDashboardPermissions,
+      stepUpConfirmedAt: new Date("2026-01-01T00:00:00Z")
+    };
+
+    // Every DashboardActionType known to the current baseline. None of
+    // these is an order-submission-shaped action (no SUBMIT_ORDER,
+    // CANCEL_ORDER, REPLACE_ORDER, or PLACE_ORDER action exists in the
+    // dashboard's own vocabulary).
+    const allDashboardActionTypes: DashboardActionType[] = [
+      "VIEW_STATUS",
+      "VIEW_AUDIT_LOG",
+      "VIEW_STRATEGY_REPORT",
+      "ACTIVATE_KILL_SWITCH",
+      "DEACTIVATE_KILL_SWITCH",
+      "CHANGE_RISK_LIMIT",
+      "CHANGE_CAPITAL_ALLOCATION",
+      "PROMOTE_STRATEGY",
+      "RETIRE_PRODUCTION_STRATEGY",
+      "ENABLE_PRODUCTION_MODE",
+      "LINK_BROKER_ACCOUNT",
+      "VALIDATE_BROKER_CREDENTIALS"
+    ];
+
+    it("never produces a dashboard control decision shaped like a broker write, for any known dashboard action type, even fully authorized", () => {
+      const gate = new DashboardSensitiveControlGate();
+
+      for (const actionType of allDashboardActionTypes) {
+        const decision = gate.evaluate({
+          actionType,
+          resourceId: `resource-${actionType.toLowerCase()}`,
+          auth: fullyPrivilegedActor,
+          reason: "regression coverage: fully authorized dashboard action",
+          confirmedAt: new Date("2026-01-01T00:00:00Z"),
+          requestedAt: new Date("2026-01-01T00:00:00Z")
+        });
+
+        expect(decision.allowed).toBe(true);
+        expect(decision.safetyType).toBe("DASHBOARD_SENSITIVE_CONTROL_GATE_DECISION");
+
+        const encoded = JSON.stringify(decision);
+        expect(encoded).not.toMatch(/submitOrder|cancelOrder|replaceOrder|placeOrder|TossSecuritiesAdapter/i);
+
+        for (const value of Object.values(decision)) {
+          expect(typeof value).not.toBe("function");
+        }
+      }
+    });
+
+    it("does not let the most privileged allowed dashboard decision (ENABLE_PRODUCTION_MODE) satisfy BrokerWriteCommandGuard on its own", () => {
+      const gate = new DashboardSensitiveControlGate();
+      const decision = gate.evaluate({
+        actionType: "ENABLE_PRODUCTION_MODE",
+        resourceId: "production-mode",
+        auth: fullyPrivilegedActor,
+        reason: "regression coverage: dashboard alone cannot authorize a broker write",
+        confirmedAt: new Date("2026-01-01T00:00:00Z"),
+        requestedAt: new Date("2026-01-01T00:00:00Z")
+      });
+
+      expect(decision.allowed).toBe(true);
+      expect(decision.mutatesState).toBe(true);
+
+      // Feeding the dashboard's own "allowed, mutates state" decision as
+      // loosely-typed context must not substitute for any of the guard's
+      // required deterministic gates (order approval, broker account,
+      // portfolio link, compliance, capability, environment, kill switch,
+      // reconciliation). A dashboard authorization is not a broker-write
+      // authorization.
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: decision
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
     });
   });
 });
