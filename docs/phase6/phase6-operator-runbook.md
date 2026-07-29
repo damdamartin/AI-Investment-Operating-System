@@ -207,6 +207,10 @@ AUDIT_COVERAGE_GAP
 - **Recovery**: resume only after broker state is confirmed known and
   reconciliation has run.
 - **Trading safety state**: `BLOCKED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the broker failure window, affected
+  simulation decisions, reconciliation evidence reviewed, and follow-up
+  actions.
 
 ### UNKNOWN_ORDER_STATE
 
@@ -219,6 +223,9 @@ AUDIT_COVERAGE_GAP
 - **Recovery**: resume only after reconciliation resolves the order to a
   known terminal state.
 - **Trading safety state**: `BLOCKED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the unknown state, resolution evidence,
+  impacted paper/simulation activity, and prevention action.
 
 ### RECONCILIATION_MISMATCH
 
@@ -234,6 +241,9 @@ AUDIT_COVERAGE_GAP
   a human must record the resolution; resume only after the workflow
   result returns to a non-blocking state.
 - **Trading safety state**: `BLOCKED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the mismatch category, sanitized refs used
+  for review, human resolution, and any test coverage added.
 
 ### CLAUDE_API_FAILURE
 
@@ -248,6 +258,9 @@ AUDIT_COVERAGE_GAP
 - **Recovery**: resume once Claude API output is valid and schema-passing
   again.
 - **Trading safety state**: `PAUSED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the failure mode, schema or timeout
+  evidence, affected strategy signals, and follow-up prompt/schema fix.
 
 ### NAVER_API_FAILURE
 
@@ -261,6 +274,9 @@ AUDIT_COVERAGE_GAP
   changes.
 - **Recovery**: resume once news data is flowing and fresh again.
 - **Trading safety state**: `PAUSED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the outage window, stale-data impact, data
+  freshness checks, and any fallback policy changes.
 
 ### KILL_SWITCH_ACTIVATION
 
@@ -276,6 +292,9 @@ AUDIT_COVERAGE_GAP
 - **Recovery**: deactivation must be audited and human-approved; resume
   only after the underlying cause is resolved.
 - **Trading safety state**: `BLOCKED`.
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the active scope, activation reason,
+  approval evidence, and any guard or monitoring improvements.
 
 ### SCHEDULER_JOB_FAILURE
 
@@ -297,6 +316,9 @@ AUDIT_COVERAGE_GAP
   loss of a live-trading-relevant safety control, since none of these jobs
   can affect trading directly -- but reduced visibility still warrants
   caution).
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the failed job, sanitized error summary,
+  retry decision, fix, and next successful run evidence.
 
 ### LOCAL_PHASE5_STATE_MISSING
 
@@ -316,6 +338,10 @@ AUDIT_COVERAGE_GAP
   `PHASE6_AUDIT_COVERAGE_REVIEW` run.
 - **Trading safety state**: `PAUSED` (for the audit-coverage check only;
   not a trading-path incident).
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record when local state became known, which
+  sanitized check was used, and why no local secret or raw receipt was
+  copied into committed artifacts.
 
 ### AUDIT_COVERAGE_GAP
 
@@ -333,6 +359,9 @@ AUDIT_COVERAGE_GAP
   decision is treated the same severity as a reconciliation mismatch, per
   `docs/07_Trading_System.md` section 28's "if an order cannot be
   explained later, the trading system is not compliant" statement).
+- **Prefers no-trade under uncertainty**: `true`.
+- **Postmortem notes**: record the missing audit scope, root cause,
+  remediation, backfill decision, and regression test coverage.
 
 ## Stop Conditions
 

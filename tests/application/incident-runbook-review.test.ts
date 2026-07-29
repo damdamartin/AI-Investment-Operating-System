@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   IncidentRunbookReview,
@@ -115,6 +117,16 @@ describe("IncidentRunbookReview", () => {
       expect(result.ok).toBe(false);
       expect(result.reasonCodes).toContain("incomplete_runbook_scenario_audit_coverage_gap");
     });
+
+    it("keeps the committed Phase 6 operator runbook aligned with required scenarios", () => {
+      const markdown = readFileSync(resolve(process.cwd(), "docs/phase6/phase6-operator-runbook.md"), "utf8");
+      const sections = runbookSectionsFromMarkdown(markdown);
+      const result = new IncidentRunbookReview().reviewSet(sections);
+
+      expect(sections.map((section) => section.scenario)).toEqual(PHASE6_REQUIRED_RUNBOOK_SCENARIOS);
+      expect(result.ok).toBe(true);
+      expect(result.reasonCodes).toEqual([]);
+    });
   });
 });
 
@@ -136,4 +148,63 @@ function section(scenario: IncidentRunbookScenario): IncidentRunbookSection {
     tradingSafetyState: pausedScenarios.includes(scenario) ? "PAUSED" : "BLOCKED",
     prefersNoTrade: true
   };
+}
+
+function runbookSectionsFromMarkdown(markdown: string): IncidentRunbookSection[] {
+  return PHASE6_REQUIRED_RUNBOOK_SCENARIOS.map((scenario) => {
+    const body = scenarioSectionBody(markdown, scenario);
+    return {
+      scenario,
+      symptoms: requiredRunbookListValue(body, "Symptoms"),
+      immediateActions: requiredRunbookListValue(body, "Immediate actions"),
+      investigation: requiredRunbookListValue(body, "Investigation"),
+      recovery: requiredRunbookListValue(body, "Recovery"),
+      postmortemNotes: requiredRunbookListValue(body, "Postmortem notes"),
+      tradingSafetyState: requiredTradingSafetyState(body),
+      prefersNoTrade: requiredPrefersNoTrade(body)
+    };
+  });
+}
+
+function scenarioSectionBody(markdown: string, scenario: IncidentRunbookScenario): string {
+  const match = new RegExp(`^### ${scenario}\\n([\\s\\S]*?)(?=^### |^## |(?![\\s\\S]))`, "m").exec(markdown);
+  const body = match?.[1];
+  if (body === undefined) {
+    throw new Error(`Missing runbook scenario section: ${scenario}`);
+  }
+  return body;
+}
+
+function requiredRunbookListValue(body: string, label: string): string[] {
+  const match = new RegExp(`^- \\*\\*${escapeRegExp(label)}\\*\\*: ([\\s\\S]*?)(?=\\n- \\*\\*|\\n### |\\n## |(?![\\s\\S]))`, "m").exec(body);
+  const value = match?.[1];
+  if (value === undefined) {
+    throw new Error(`Missing runbook field: ${label}`);
+  }
+  return [value.replace(/\s+/g, " ").trim()];
+}
+
+function requiredTradingSafetyState(body: string): IncidentRunbookSection["tradingSafetyState"] {
+  const value = requiredRunbookListValue(body, "Trading safety state")[0];
+  if (value === undefined) {
+    throw new Error("Missing trading safety state");
+  }
+  const match = /`(CLEAR|PAUSED|BLOCKED)`/.exec(value);
+  const state = match?.[1];
+  if (state === undefined) {
+    throw new Error("Missing explicit trading safety state");
+  }
+  return state as IncidentRunbookSection["tradingSafetyState"];
+}
+
+function requiredPrefersNoTrade(body: string): boolean {
+  const value = requiredRunbookListValue(body, "Prefers no-trade under uncertainty")[0];
+  if (value === undefined) {
+    throw new Error("Missing no-trade preference");
+  }
+  return value.includes("`true`");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
