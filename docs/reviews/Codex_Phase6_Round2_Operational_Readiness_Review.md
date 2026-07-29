@@ -658,14 +658,13 @@ against the round 2 merged state:
    items that section requires (real broker order-type verification, real
    slippage measurement, real fee/tax exposure) — those remain untouched
    and unverified.
-7. **New, round-2-specific note**: the operator runbook's incident
-   scenarios are validated as `IncidentRunbookSection` data structures in
-   tests, but the actual `docs/phase6/phase6-operator-runbook.md` prose is
-   not itself machine-checked against `IncidentRunbookReview.reviewSet()`
-   at `npm run check` time (see "Whether Runbooks Are Sufficient" above).
-   This is a documentation-maintenance gap, not a safety-boundary gap, but
-   should be closed (e.g., with a parser + CI check) before the runbook is
-   relied upon as the sole go/no-go source for a higher-stakes phase.
+7. **Resolved by follow-up commit `857a652`**: the round-2-specific
+   documentation-maintenance gap is now closed. The actual
+   `docs/phase6/phase6-operator-runbook.md` prose is parsed and checked
+   against `IncidentRunbookReview.reviewSet()` by
+   `tests/application/incident-runbook-review.test.ts` at
+   `npm run check` time. This follow-up did not change the safety boundary
+   and did not add any broker-write capability.
 
 ## Appendix: Phase 1 Regression-Gap Check (Pre-Merge Baseline)
 

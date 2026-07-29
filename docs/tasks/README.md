@@ -10,6 +10,15 @@ This folder contains implementation-ready task documents for Claude Code paralle
 
 Each task is intentionally narrow. A Claude Code session should read the task file, the required architecture documents, and `docs/11_AI_RULES.md` before implementation.
 
+## Parallel Worktree Task Packs
+
+- Phase 5 read-only verification:
+  `docs/tasks/phase5_claude_worktree_tasks/README.md`
+- Phase 6 paper/simulation safety and operations:
+  `docs/tasks/phase6_claude_worktree_tasks/README.md`
+- Phase 7 live-capable design readiness:
+  `docs/tasks/phase7_claude_worktree_tasks/README.md`
+
 ## Phase 1: Foundation Tasks
 
 | Task | Title | Primary Module | Status |

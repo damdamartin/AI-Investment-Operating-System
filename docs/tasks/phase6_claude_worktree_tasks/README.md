@@ -73,11 +73,16 @@ This closes Phase 6 round 1. A follow-up reliability fix for `scripts/validate-t
 
 ## Round 2 Outcome
 
-`npm run check` passes on merged `main` (typecheck clean, 82 test files, 696 tests). P6-005 added `Phase6OperatorSafetyDashboardService`, a read-only operator status view over the round 1 safety chain with a permanently literal `liveBrokerWriteAllowed: false`. P6-006 added seven new/strengthened, deterministically-classified alert categories and observability metrics, every alert carrying literal `liveBrokerWriteAllowed: false` and `impliesLiveTradingAuthorization: false`. P6-007 added five no-write scheduler review jobs with `noWrite`/`callsBrokerApi` constraints enforced at the runner level (not just by convention), plus three new incident-runbook scenarios and a `reviewSet()` check that catches an entire missing scenario. No branch weakened an existing fail-closed control, and none added a code path capable of a broker write or a real network call — confirmed by direct source inspection and repo-wide grep, not just by reading each branch's own documentation. Full detail is in `docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`.
+`npm run check` passes on merged `main` (typecheck clean, 82 test files, 699 tests after the follow-up runbook-document validation fix). P6-005 added `Phase6OperatorSafetyDashboardService`, a read-only operator status view over the round 1 safety chain with a permanently literal `liveBrokerWriteAllowed: false`. P6-006 added seven new/strengthened, deterministically-classified alert categories and observability metrics, every alert carrying literal `liveBrokerWriteAllowed: false` and `impliesLiveTradingAuthorization: false`. P6-007 added five no-write scheduler review jobs with `noWrite`/`callsBrokerApi` constraints enforced at the runner level (not just by convention), plus three new incident-runbook scenarios and a `reviewSet()` check that catches an entire missing scenario. No branch weakened an existing fail-closed control, and none added a code path capable of a broker write or a real network call — confirmed by direct source inspection and repo-wide grep, not just by reading each branch's own documentation. Full detail is in `docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`.
 
 The Phase 5 preflight/completion script crash flagged in the round 1 review is confirmed fixed: `npm run phase5:toss:preflight` and `npm run phase5:toss:completion` now fail closed with clean, sanitized JSON reports (not an unhandled exception) on a fresh checkout with no local `.env` or `tmp/phase5/*` files.
 
-This closes Phase 6 round 2's engineering work. Merging P6-008's branch (`phase6/p6-008-round2-operational-readiness-review`) into local `main` is the orchestrator's next step; this file's Task Index will need one more update once that merge lands.
+This closes Phase 6 round 2's engineering work. P6-008 has merged into
+local `main`, and the later follow-up commit
+`857a652 Validate Phase 6 operator runbook coverage` closed the
+documentation-maintenance gap noted by the integration review: the actual
+committed operator runbook prose is now parsed and checked by
+`tests/application/incident-runbook-review.test.ts`.
 
 ## Round 2 Plan (P6-005 through P6-008)
 
@@ -95,7 +100,8 @@ Actual round 2 merge order (local `main`, never pushed to GitHub):
 5. P6-005 (`19e3421`)
 6. P6-006 (`349cc89`)
 7. P6-007 (`3cc8fa9`)
-8. P6-008 — review complete on branch `phase6/p6-008-round2-operational-readiness-review`; merge into local `main` is the orchestrator's next step.
+8. P6-008 (`c42cc34`)
+9. Follow-up runbook document validation (`857a652`)
 
 Any further Phase 6 work, and any future live-capable design phase, requires explicit human review per `docs/reviews/Codex_Phase6_Simulation_Safety_Review.md`, "Remaining Blockers Before Any Future Live-Capable Design Phase", and `docs/reviews/Codex_Phase6_Round2_Operational_Readiness_Review.md`, "Remaining Blockers Before Phase 7 Live-Capable Design Review".
 
