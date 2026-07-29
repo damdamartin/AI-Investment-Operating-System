@@ -1,10 +1,10 @@
 # Codex Phase 10 Live Operation Readiness Review
 
-Version: 0.1.0
-Status: Draft (Phase 1 of 2 — scaffold only)
+Version: 0.2.0
+Status: Complete (Phase 2 of 2)
 Review Date: 2026-07-29
 Task: P10-004 Phase 10 Integration Review
-Assigned Engineer: Engineer 4
+Assigned Engineer: Engineer 4 (Phase 2 completed by the orchestrator after Engineer 4's phase-2 background session hit an account session limit mid-task, after merging main but before writing content)
 
 ## Purpose
 
@@ -32,23 +32,90 @@ every phase.**
 - Phase 1 (scaffold, baseline source scans, pre-merge regression-gap
   check): complete.
 - Phase 2 (full integration review after P10-001/P10-002/P10-003 merge):
-  PENDING — awaiting P10-001/P10-002/P10-003 merge.
+  complete.
 
 ## Summary
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+P10-001, P10-002, and P10-003 are merged into local `main` (merge commits
+`b65e939`, `8f11842`, `b3d2cc2`; tip `b3d2cc2`). All three add pure,
+no-write, evidence-only modules under
+`src/application/live-readiness/`. `npm run check` passes on the merged
+tree (93 test files, 1017 tests). The post-merge source scans show no
+genuinely new match outside the accepted categories (prohibition prose,
+`command: never` uncallable placeholders, redaction/tamper-detection test
+fixtures, and doc-comments describing the safety guarantees). No task
+introduced a callable broker-write path, a real network call, a real
+secret, or a `liveBrokerWriteAllowed: true` runtime value.
+**Go — Phase 10 round 1 is complete** as a no-write live-operation
+readiness package. This is preparation evidence and tooling only; it is
+not live-trading authorization, and none of `LCB-001` through `LCB-008`
+were touched or marked resolved by this round.
 
 ## What Changed in P10-001 (Approval Packet)
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+New `src/application/live-readiness/live-operation-approval-packet.ts` —
+a pure evaluator (`evaluateLiveOperationApprovalPacket`) that composes two
+already-merged Phase 9 outputs: the P9-001 `LiveBlockerEvidenceRegisterReview`
+(LCB-001..008 status) and the P9-003 `SmallCapitalEnablementGateReport`
+(which itself folds in Phase 7 design-time readiness and Phase 8
+operations/deployment/backup-restore readiness). It adds one genuinely new
+piece of logic on top: a stricter 120-day human-evidence-freshness gate
+that actively blocks (`stale_human_evidence_<id>`) rather than merely
+warning, tighter than the upstream evidence-intake module's own 180-day
+warning-only threshold. `readyForLiveOperation` and `liveBrokerWriteAllowed`
+are both written once as bare `false` literals at the function's single
+return statement, and are tested to stay `false` even against a
+"maximally clean" input (all 8 blockers `HUMAN_REVIEWED`, all upstream
+sub-reports clean) and against tampered upstream inputs that claim
+`liveBrokerWriteAllowed: true`. No free-text evidence fields (reviewer
+names, source references) pass through the packet — only typed
+status/reason-code/date fields, verified by a serialization scan for
+secret-like/account-like substrings.
 
 ## What Changed in P10-002 (First-Trade Protocol)
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+New `src/application/live-readiness/first-trade-operating-protocol.ts` —
+a pure evaluator (`evaluateFirstTradeOperatingProtocol`) checking 8
+required, sanitized, verbatim-text operator attestations (limited capital
+mode, limit-order-only policy, max order amount policy, narrow strategy
+set, kill-switch readiness, rollback/reconciliation rehearsal, post-trade
+manual review commitment, stop criteria after first trade). Kill-switch
+readiness and reconciliation rehearsal each require a corroborating,
+structurally-real signal shape (duck-typed compatible with
+`KillSwitchTradingGate` / `ReconciliationWorkflowResult`, consumed
+read-only) in addition to the attestation text, so a bare checked box
+cannot satisfy either. Stop criteria requires a structured boolean plus a
+non-empty description, not just a checkbox. `liveBrokerWriteAllowed` and
+`automaticFirstTradeAllowed` are hardcoded `false` literals. No
+order-shaped object (symbol/quantity/side/price) appears anywhere in the
+module's inputs or outputs — verified by source grep and a
+report-serialization scan.
 
 ## What Changed in P10-003 (Runtime Lock Gate)
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+New `src/application/live-readiness/runtime-live-lock-gate.ts` — a pure
+gate (`evaluateRuntimeLiveLockGate`) that checks the current runtime
+safety posture against the real (non-mocked) `BrokerWriteCommandGuard`,
+the real `toss-write-contract.ts` / `toss-write-preflight.ts` types, and
+the real `small-capital-enablement-gate.ts` report. The most rigorous
+test in this module (and arguably in Phase 10) feeds the gate a
+genuinely-passing `BrokerWriteCommandGuard.evaluate()` result — the single
+most favorable input the real guard could ever legitimately produce
+(`allowed: true`) — and proves `runtimeWriteLockEngaged` still stays
+`true` and `liveBrokerWriteAllowed` still stays `false`, surfacing the
+situation explicitly as a `broker_write_guard_currently_allows_writes`
+anomaly reason code rather than hiding it. Separate tests feed tampered
+inputs claiming `liveBrokerWriteAllowed: true` or an "everything is
+resolved" approval claim, and both are detected as blocking, never
+trusted. `git diff` confirms `broker-write-command-guard.ts`,
+`toss-write-contract.ts`, `toss-write-preflight.ts`, and
+`small-capital-enablement-gate.ts` were not modified. This task also
+added one `describe` block to `tests/safety/safety-regression.test.ts`
+mirroring the same tamper-detection property at the consolidated-harness
+level, cross-checked against the real `BrokerWriteCommandGuard`; it
+coexists cleanly with Engineer 4's own Phase 1 addition to the same file
+(confirmed via `git log -p` on that file — both blocks are present,
+neither was overwritten, textual merge was clean).
 
 ## Baseline Source Scan Results
 
@@ -351,7 +418,68 @@ finding to flag in Phase 2.
 
 ## Post-Merge Source Scan Results
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+Run against merged `main` tip `b3d2cc2` (after P10-001, P10-002, P10-003
+merge, `src/application/live-readiness/index.ts` conflict resolved by the
+orchestrator by keeping all four alphabetically-ordered barrel-export
+lines):
+
+```bash
+rg -n "submitOrder|cancelOrder|replaceOrder|placeOrder|TossSecuritiesAdapter|liveBrokerWriteAllowed: true|fetch\(|axios|undici" src tests docs/phase10
+# 146 matches (baseline: 110)
+
+rg -n "\.env|tmp/phase5|client_secret|access_token|account_number" src tests docs/phase10
+# 124 matches (baseline: 115)
+```
+
+Diffing post-merge matches against the Phase 1 baseline line-for-line
+(`file:line:content`) shows 61 lines that were not present verbatim in
+the baseline. Most of these are not new content — they are pre-existing
+Phase 7 lines in `tests/safety/safety-regression.test.ts` (e.g. the
+`TossWriteAdapter.submitOrder must never be called; Phase 7 keeps this
+contract uncallable by design` test block) that shifted to new line
+numbers because Engineer 3's and Engineer 4's additions were inserted
+earlier in the same file. Confirmed by diffing that file directly
+(`git diff 3c6923a HEAD -- tests/safety/safety-regression.test.ts`),
+which shows only **one** line actually added that matches either scan
+pattern:
+
+```
++    it("detects a deliberately tampered liveBrokerWriteAllowed: true approval
+     object ('everything is resolved') as blocking, never as authorization,
+     and BrokerWriteCommandGuard still independently denies", () => {
+```
+
+— an accepted safety-assertion test title, not a real finding.
+
+The remaining genuinely-new matches are entirely within the three new
+Phase 10 files and their docs/tests (`live-operation-approval-packet.*`,
+`first-trade-operating-protocol.*`, `runtime-live-lock-gate.*`) — new
+content by definition, since those files didn't exist in the baseline.
+Every one of them was individually categorized by the three engineers in
+their final reports and cross-checked here: prohibition prose in the new
+`docs/phase10/*.md` files, doc-comments in the new `.ts` source files
+describing the "no fetch/no .env/no liveBrokerWriteAllowed:true"
+guarantees, and test code that either (a) asserts these patterns are
+absent from serialized output, or (b) deliberately constructs a tampered
+`liveBrokerWriteAllowed: true`-shaped fixture specifically to prove the
+gate/packet rejects it.
+
+As an independent check (not just trusting the regex), a manual grep of
+the three new source files (excluding tests and docs) for these patterns
+outside of comment lines returns zero matches in all three:
+
+```bash
+grep -nE "submitOrder|cancelOrder|replaceOrder|placeOrder|TossSecuritiesAdapter|liveBrokerWriteAllowed: true|fetch\(|axios|undici" \
+  src/application/live-readiness/live-operation-approval-packet.ts \
+  src/application/live-readiness/first-trade-operating-protocol.ts \
+  src/application/live-readiness/runtime-live-lock-gate.ts \
+  | grep -vE "^\s*[0-9]+:\s*(\*|//|/\*)"
+# (no output — every match in these three files is inside a comment)
+```
+
+**Conclusion: no genuinely new match in either scan represents a callable
+write path, a real network call, a real secret, or a computed
+`liveBrokerWriteAllowed: true` runtime value.**
 
 ## Phase 1 Regression-Gap Check (Pre-Merge Baseline)
 
@@ -456,38 +584,82 @@ Result: 27 tests passed (26 pre-existing + 1 new), 0 failed. Full
 
 ## Whether All New Reports Are Evidence-Only and Sanitized
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+Yes. All three new modules (`live-operation-approval-packet.ts`,
+`first-trade-operating-protocol.ts`, `runtime-live-lock-gate.ts`) are pure
+functions: plain data in, a plain report out, no side effects, no I/O.
+None consumes or passes through free-text evidence fields (reviewer
+names, source references) — only already-typed status/reason-code/date
+fields from upstream Phase 7/8/9 reports. Each has a dedicated test that
+serializes a "maximally clean" report to JSON and scans for
+secret-like/account-like/order-shaped substrings, finding none.
 
 ## Whether Any Path Can Produce liveBrokerWriteAllowed:true
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+No. In all three new modules, `liveBrokerWriteAllowed` (and the related
+fields `readyForLiveOperation`, `automaticFirstTradeAllowed`,
+`runtimeWriteLockEngaged`) are written as bare literal `false` values at
+each module's return statement(s) — not computed from any input, not
+reachable via any branch. Each module has at least one test that feeds a
+"maximally clean" or explicitly tampered (`liveBrokerWriteAllowed: true`
+cast onto an upstream report) input and confirms the module's own output
+still cannot be flipped. P10-003's gate goes further and proves this even
+against a real, legitimately-passing `BrokerWriteCommandGuard.evaluate()`
+result (`allowed: true`) — the single most favorable input that guard can
+produce — surfacing that condition as an explicit anomaly reason code
+rather than silently trusting it.
 
 ## Whether Any Task Introduced a Callable Broker-Write Adapter
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+No. `git diff 3c6923a HEAD -- src/application/broker-write-guard/broker-write-command-guard.ts src/adapters/toss-write-contract.ts src/adapters/toss-write-preflight.ts` returns zero lines — none of these were modified. No new HTTP client, `fetch`, `axios`, or `undici` code exists in any Phase 10 file (grep-verified, comment-only matches). `TossSecuritiesAdapter` does not appear as an implementation anywhere — only as a doc-comment/prose reference to a future, not-yet-built adapter.
 
 ## Whether Any Task Read .env/tmp/phase5/Secrets/Account Identifiers/Raw Broker Payloads
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+No. `git diff 3c6923a HEAD --stat` shows no `.env` file touched anywhere
+in the Phase 10 commit range. Every `.env`/`tmp/phase5` match in the
+source scans is either prohibition prose or a `PATH: process.env.PATH`
+subprocess-spawn pass-through pattern already established in earlier
+phases — not an actual read of secret content. All four engineers
+(1, 2, 3, and this reviewer) independently confirmed via existence-check
+only (`ls`) that neither file exists in their respective worktrees, and
+none used Read/Bash to open either path.
 
 ## Whether LCB-001..008 Remain Human-Only
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+Yes. `git diff 3c6923a HEAD --stat -- docs/phase7/live-capable-blocker-register.md` returns zero lines — the canonical register file was not touched by any Phase 10 task. None of the three new modules' status vocabularies contain a code-reachable path to a `RESOLVED`-equivalent state; P10-001's packet only ever reads and re-summarizes upstream `LiveBlockerEvidenceRegisterReview` status values, never writes them.
 
 ## Whether the Final Phase 10 Package Clearly Avoids Live-Trading Authorization
 
-PENDING — awaiting P10-001/P10-002/P10-003 merge.
+Yes. Every one of the three new report types carries an explicit,
+hardcoded `liveBrokerWriteAllowed: false`, and P10-001's packet
+additionally carries an explicit statement string that the packet is not
+live-trading authorization. No document in `docs/phase10/` describes any
+Phase 10 output as sufficient, on its own or in combination, to enable a
+real order. The remaining path to any future live capability runs
+entirely through the human-only `LCB-001`..`LCB-008` register, untouched
+by this round.
 
-## Required Checks (Phase 1)
+## Required Checks (Phase 2, Final)
 
 ```bash
 npm run check
 ```
 
-Result: recorded in the Phase 1 final report for this task (P10-004). See
-the orchestrator/task session log for the exact pass/fail output; this
-scaffold does not restate it inline to avoid drift once Phase 2 re-runs
-the same command against merged code.
+Result: **PASS.** Run twice for confirmation. First run (orchestrator, in
+the primary repo checkout at `/Users/mac/Documents/Codex/AI-Investment-Operating-System`
+on merged `main` tip `b3d2cc2`): 93 test files, 1017 tests passed, 0
+failed. Second run (this `eng4` worktree, after `git merge main`,
+immediately before this commit): 93 test files, **1018** tests passed, 0
+failed — one more than the first run. Investigated and explained, not a
+regression: the primary repo checkout has a real local `.env` and 9 real
+files under `tmp/phase5/` (from earlier operator Phase 5 testing sessions
+outside this task), while this worktree has neither (both confirmed
+absent by existence check only, never read). At least one existing test
+elsewhere in the suite is sensitive to local Phase 5 state and runs one
+additional case when that state is absent — this is a pre-existing
+environment-dependent test characteristic unrelated to any Phase 10 file,
+not something introduced by P10-001/002/003 or this review. Both runs are
+100% green with zero failures; this does not affect the go/no-go
+conclusion, and no Phase 10 file was involved in the discrepancy.
 
 ## What Phase 1 Of This Review Did Not Do
 
