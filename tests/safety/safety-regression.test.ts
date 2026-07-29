@@ -28,6 +28,7 @@ import {
   Quantity,
   REQUIRED_DEPLOYMENT_RUNBOOK_IDS,
   REQUIRED_DEPLOYMENT_SECRET_NAMES,
+  REQUIRED_LIVE_CAPABLE_BLOCKER_IDS,
   REQUIRED_MANUAL_APPROVAL_ATTESTATION,
   REQUIRED_ROLLBACK_REHEARSAL_STEPS,
   RestoreSafetyGate,
@@ -47,7 +48,11 @@ import {
   type DashboardPermission,
   type DashboardReadOnlyStatus,
   type DeploymentReadinessInput,
+  type DeploymentReadinessReferenceFact,
+  type DeploymentReadinessRunbookReference,
+  type DeploymentReadinessSecretReference,
   type EvidenceReference,
+  type LiveBlockerEvidenceSummaryEntry,
   type ManualLiveApprovalRecord,
   type OperationsStatusReadModelInput,
   type Phase6OperatorSafetyStatus,
@@ -55,6 +60,8 @@ import {
   type RollbackRehearsalStepRecord,
   type RuntimeLiveLockGateApprovalSignal,
   type SmallCapitalCapitalLimits,
+  type SmallCapitalEnablementGateInput,
+  type SmallCapitalEnablementOperationsSignal,
   type SmallCapitalKillSwitchSignal,
   type SmallCapitalOperatorSurfaceSignal,
   type SmallCapitalProposedOrder,
@@ -1307,6 +1314,265 @@ describe("safety regression harness", () => {
       expect(report.blockingReasonCodes).toEqual([]);
       expect(report.liveBrokerWriteAllowed).toBe(false);
       expect(report.safetyType).toBe("SMALL_CAPITAL_READINESS_REPORT_EVALUATION_ONLY");
+
+      const guardResult = new BrokerWriteCommandGuard().evaluate({
+        commandType: "SUBMIT_ORDER",
+        aiContext: report
+      });
+
+      expect(guardResult.allowed).toBe(false);
+      expect(guardResult.reasonCodes).toContain("missing_order_approval");
+      expect(guardResult.reasonCodes).toContain("missing_broker_account");
+      expect(guardResult.reasonCodes).toContain("missing_compliance_gate");
+      expect(guardResult.reasonCodes).toContain("missing_environment_policy");
+      expect(guardResult.reasonCodes).toContain("missing_kill_switch_state");
+      expect(guardResult.reasonCodes).toContain("missing_reconciliation_state");
+      expect(guardResult.reasonCodes).not.toContain("ai_context_contains_forbidden_broker_command");
+    });
+  });
+
+  describe("P9-003 small-capital enablement gate output cannot itself satisfy BrokerWriteCommandGuard (Phase 10 pre-merge baseline)", () => {
+    // Phase 9 (P9-001 live blocker evidence intake, P9-002 Toss write
+    // preflight contract guard, P9-003 small-capital enablement gate) is now
+    // merged into local `main`, but -- unlike the Phase 8 post-merge review,
+    // which added a dedicated "P8-001/P8-002/P8-003 outputs cannot
+    // themselves satisfy BrokerWriteCommandGuard" block above -- the Phase 9
+    // integration review (P9-004,
+    // docs/reviews/Codex_Phase9_Small_Capital_Preparation_Review.md) never
+    // added an equivalent post-merge block. The only Phase-9-adjacent proof
+    // in this file remains the pre-merge "evaluateSmallCapitalReadiness()"
+    // block immediately above, which covers only the pre-existing Phase 7
+    // evaluator P9-003 wraps, not P9-003's own output.
+    //
+    // This matters now because Phase 10 round 1 builds directly on top of
+    // that gap: P10-001 (live operation approval packet) lists
+    // `small-capital-enablement-gate.ts` as a direct input, and P10-003
+    // (runtime lock and audit gate) exists specifically to prove
+    // tamper-resistance for the safety chain this gate sits inside. Before
+    // either of those merge, this closes the narrow, current-state gap: the
+    // real `evaluateSmallCapitalEnablementGate()` output -- fed its single
+    // most "authorization-looking" input (every upstream Phase 7/8 report
+    // clean AND every LCB-* blocker HUMAN_REVIEWED, mirroring
+    // `tests/application/small-capital-enablement-gate.test.ts`'s own
+    // `maximallyCleanInput()`) -- has never been cross-checked against the
+    // real `BrokerWriteCommandGuard` at this consolidated harness level.
+
+    const NOW = new Date("2026-07-29T02:00:00Z");
+    const KRW = Currency.from("KRW");
+
+    function krw(amount: string): Money {
+      return Money.fromMajor(amount, KRW);
+    }
+
+    function cleanPhase7Report(): SmallCapitalReadinessReport {
+      const capitalLimits: SmallCapitalCapitalLimits = {
+        maxOrderValue: krw("300000"),
+        maxDailyNotionalExposure: krw("900000"),
+        maxTotalCapitalExposure: krw("3000000")
+      };
+      const proposedOrder: SmallCapitalProposedOrder = {
+        market: "KR",
+        assetType: "STOCK",
+        orderType: "LIMIT",
+        orderValue: krw("100000"),
+        projectedDailyNotionalAfterOrder: krw("100000"),
+        projectedTotalCapitalExposureAfterOrder: krw("100000"),
+        withinRegularSessionWindow: true,
+        isExtendedHours: false,
+        isFractional: false
+      };
+      const manualApproval: ManualLiveApprovalRecord = {
+        id: "approval-1",
+        scopePortfolioId: "portfolio-1",
+        scopeStrategyVersionId: "strategy-version-1",
+        approvalStatus: "APPROVED",
+        approvedByName: "Jun Kim",
+        approvedByRole: "OWNER",
+        acknowledgedRisksStatement: REQUIRED_MANUAL_APPROVAL_ATTESTATION,
+        approvedAt: new Date("2026-07-01T00:00:00Z"),
+        expiresAt: new Date("2026-08-01T00:00:00Z"),
+        safetyType: "MANUAL_LIVE_APPROVAL_RECORD_HUMAN_OWNED"
+      };
+      const reconciliation: SmallCapitalReconciliationSignal = {
+        liveReadinessBlocked: false,
+        stale: false,
+        reasonCodes: []
+      };
+      const killSwitch: SmallCapitalKillSwitchSignal = { allowed: true, blocksNewOrders: false, reasonCodes: [] };
+      const operatorSurface: SmallCapitalOperatorSurfaceSignal = {
+        dashboardReachable: true,
+        systemStatus: "OK",
+        openCriticalAlertCount: 0,
+        auditTrailRecorded: true
+      };
+      const compliance: ComplianceGateResult = { allowed: true, reasons: [], limitations: [] };
+
+      return evaluateSmallCapitalReadiness({
+        now: NOW,
+        capitalLimits,
+        proposedOrder,
+        manualApproval,
+        reconciliation,
+        killSwitch,
+        operatorSurface,
+        compliance
+      });
+    }
+
+    function cleanOperationsSignal(): SmallCapitalEnablementOperationsSignal {
+      return {
+        systemHealth: "OK",
+        liveReadinessBlocked: false,
+        killSwitchAllowed: true,
+        killSwitchBlocksNewOrders: false,
+        hasOpenCriticalAlert: false,
+        unsafeSchedulerJobDefinitionCount: 0,
+        liveBrokerWriteAllowed: false,
+        reasonCodes: []
+      };
+    }
+
+    function cleanDeploymentReport() {
+      const runbookReferences: DeploymentReadinessRunbookReference[] = REQUIRED_DEPLOYMENT_RUNBOOK_IDS.map(
+        (runbookId) => ({
+          runbookId,
+          reference: `docs/runbooks/Incident_Runbooks.md#${runbookId.replace(/_/g, "-")}`,
+          exists: true
+        })
+      );
+      const cleanReferenceFact = (name: string): DeploymentReadinessReferenceFact => ({
+        reference: `docs/phase8/${name}.md`,
+        exists: true
+      });
+      const secretReferences: DeploymentReadinessSecretReference[] = REQUIRED_DEPLOYMENT_SECRET_NAMES.map(
+        (name) => ({
+          name,
+          reference: `secret-ref:${name.toLowerCase().replace(/_/g, "-")}-staging`
+        })
+      );
+
+      const input: DeploymentReadinessInput = {
+        now: NOW,
+        targetEnvironment: "staging",
+        liveTradingSignal: { liveTradingEnabled: false, appEnv: "staging" },
+        runbookReferences,
+        rollbackPlanReference: cleanReferenceFact("rollback-plan"),
+        backupRestoreGateReference: cleanReferenceFact("backup-restore-drill"),
+        observabilityAlertingReference: cleanReferenceFact("operations-status-api"),
+        secretReferences
+      };
+
+      return evaluateDeploymentReadiness(input);
+    }
+
+    function cleanBackupRestoreReport() {
+      const evidence = (locator: string): EvidenceReference => ({
+        description: "regression coverage evidence",
+        locator,
+        capturedAt: NOW
+      });
+      const steps: RollbackRehearsalStepRecord[] = REQUIRED_ROLLBACK_REHEARSAL_STEPS.map((stepId) => ({
+        stepId,
+        rehearsed: true,
+        evidence: evidence(`rollback-rehearsal://${stepId}`)
+      }));
+
+      const input: BackupRestoreDrillInput = {
+        drillId: "regression-drill-p10",
+        now: NOW,
+        requestedResumeMode: "PAPER",
+        backupManifest: {
+          manifestVerified: true,
+          manifestId: "manifest-regression-p10",
+          backupCompletedAt: NOW,
+          encryptionVerified: true,
+          storageSeparateFromPrimary: true,
+          retentionPolicyDocumented: true,
+          evidence: evidence("backup-manifest://manifest-regression-p10")
+        },
+        schemaConfigVersion: {
+          schemaVersionVerified: true,
+          expectedSchemaVersion: "v1",
+          restoredSchemaVersion: "v1",
+          configVersionsVerified: true,
+          expectedConfigVersionIds: ["risk-v1"],
+          activeConfigVersionIds: ["risk-v1"],
+          evidence: evidence("config-version-report://regression-drill-p10")
+        },
+        auditContinuity: {
+          continuityVerified: true,
+          lastAuditRecordIdBeforeRestore: "audit-1",
+          firstAuditRecordIdAfterRestore: "audit-2",
+          gapDetected: false,
+          evidence: evidence("audit-continuity-report://regression-drill-p10")
+        },
+        secretsHandledSeparately: {
+          confirmedNotInBackupArtifact: true,
+          secretsManagerReference: "secret-manager://toss/api-credentials",
+          rotatedOrValidatedSeparately: true,
+          evidence: evidence("secret-rotation-ticket://SEC-REGRESSION-P10")
+        },
+        reconciliation: {
+          liveReadinessBlocked: false,
+          stale: false,
+          tradingSafetyState: "CLEAR",
+          reconciledAgainstBrokerSnapshot: true,
+          reasonCodes: [],
+          evidence: evidence("reconciliation-workflow-report://regression-drill-p10")
+        },
+        dataQuality: {
+          status: "GREEN",
+          blocksTrading: false,
+          reasonCodes: [],
+          evidence: evidence("data-quality-report://regression-drill-p10")
+        },
+        killSwitch: {
+          allowed: true,
+          blocksNewOrders: false,
+          reasonCodes: [],
+          evidence: evidence("kill-switch-state://GLOBAL")
+        },
+        operatorApproval: {
+          approved: true,
+          approvedByName: "Regression Operator",
+          approvedByRole: "OPERATOR",
+          approvedAt: NOW,
+          evidence: evidence("approval-record://regression-drill-p10")
+        },
+        rollbackRehearsal: { steps }
+      };
+
+      return evaluateBackupRestoreDrill(input);
+    }
+
+    function humanReviewedBlockerEvidence(): LiveBlockerEvidenceSummaryEntry[] {
+      return REQUIRED_LIVE_CAPABLE_BLOCKER_IDS.map((blockerId) => ({
+        blockerId,
+        status: "HUMAN_REVIEWED",
+        humanReviewerName: "Compliance Reviewer",
+        humanReviewedAt: NOW
+      }));
+    }
+
+    function maximallyCleanInput(): SmallCapitalEnablementGateInput {
+      return {
+        now: NOW,
+        smallCapitalReadiness: cleanPhase7Report(),
+        operations: cleanOperationsSignal(),
+        deploymentReadiness: cleanDeploymentReport(),
+        backupRestoreDrill: cleanBackupRestoreReport(),
+        liveBlockerEvidence: humanReviewedBlockerEvidence()
+      };
+    }
+
+    it("does not let a clean evaluateSmallCapitalEnablementGate() report (readyForSmallCapitalPreparation: true, every LCB-* HUMAN_REVIEWED) satisfy BrokerWriteCommandGuard on its own", () => {
+      const report = evaluateSmallCapitalEnablementGate(maximallyCleanInput());
+
+      expect(report.readyForSmallCapitalPreparation).toBe(true);
+      expect(report.blockingReasonCodes).toEqual([]);
+      expect(report.readyForLiveBrokerWrites).toBe(false);
+      expect(report.liveBrokerWriteAllowed).toBe(false);
+      expect(report.safetyType).toBe("SMALL_CAPITAL_ENABLEMENT_GATE_REPORT_EVIDENCE_ONLY");
 
       const guardResult = new BrokerWriteCommandGuard().evaluate({
         commandType: "SUBMIT_ORDER",

@@ -1,8 +1,9 @@
 # Phase 10 Small-Capital Live Operation Readiness
 
-Version: 0.1.0
-Status: Draft
+Version: 0.2.0
+Status: Round 1 Complete (readiness package only — not live-trading approval)
 Last Updated: 2026-07-29
+Round 1 Review: `docs/reviews/Codex_Phase10_Live_Operation_Readiness_Review.md`
 Related Roadmap: `docs/99_Development_Roadmap.md`
 Related Previous Phase: `docs/phase9/README.md`
 Primary Blocker Register: `docs/phase7/live-capable-blocker-register.md`
@@ -60,3 +61,12 @@ Phase 10 round 1 can be considered complete only when:
 Phase 10 round 1 completion is not approval for live trading. It is a
 final readiness package for human review before any future write-capable
 implementation is considered.
+
+## Round 1 Status
+
+Complete. P10-001 (approval packet), P10-002 (first-trade protocol), and
+P10-003 (runtime lock and audit gate) are merged into local `main` and
+reviewed together in P10-004. `npm run check` passes on the merged tree.
+No callable broker-write path was introduced. `docs/phase7/live-capable-blocker-register.md`
+was not touched — `LCB-001` through `LCB-008` remain open and human-only.
+Full detail: `docs/reviews/Codex_Phase10_Live_Operation_Readiness_Review.md`.
