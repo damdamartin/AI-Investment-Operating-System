@@ -32,6 +32,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify secrets are set
+        run: |
+          echo "Checking environment variables..."
+          echo "TOSS_CLIENT_ID length: ${#TOSS_CLIENT_ID}"
+          echo "TOSS_CLIENT_SECRET length: ${#TOSS_CLIENT_SECRET}"
+          echo "CLOUDFLARE_ACCOUNT_ID length: ${#CLOUDFLARE_ACCOUNT_ID}"
+          if [ -z "$TOSS_CLIENT_ID" ] || [ -z "$TOSS_CLIENT_SECRET" ]; then
+            echo "❌ Toss credentials not set!"
+            exit 1
+          fi
+          echo "✅ All required secrets are configured"
+        env:
+          TOSS_CLIENT_ID: ${{ secrets.TOSS_CLIENT_ID }}
+          TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Run trading cycle
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
