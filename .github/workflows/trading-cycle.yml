@@ -41,7 +41,7 @@ jobs:
           TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
           TOSS_CLIENT_ID: ${{ secrets.TOSS_CLIENT_ID }}
           TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
-          PIPELINE_WATCHLIST: ${{ secrets.PIPELINE_WATCHLIST }}
+          PIPELINE_WATCHLIST: "005930:Samsung Electronics:KR:STOCK,000660:SK Hynix:KR:STOCK"
           PIPELINE_KILL_SWITCH_ACTIVE: ${{ vars.PIPELINE_KILL_SWITCH_ACTIVE }}
           PIPELINE_KILL_SWITCH_REASON: ${{ vars.PIPELINE_KILL_SWITCH_REASON }}
         run: node dist/src/entrypoints/run-trading-cycle.js
