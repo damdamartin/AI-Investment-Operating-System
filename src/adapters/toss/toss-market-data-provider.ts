@@ -204,7 +204,9 @@ export class TossMarketDataProvider implements MarketDataProvider {
 
   #buildMarketPricesUrl(symbols: string[]): string {
     const url = new URL(MARKET_PRICES_PATH, this.#baseUrl);
-    url.searchParams.set("symbols", symbols.join(","));
+    // Toss API expects symbols without market codes (e.g., "005930" not "005930.KS")
+    const normalizedSymbols = symbols.map((s) => s.split(".")[0]);
+    url.searchParams.set("symbols", normalizedSymbols.join(","));
     return url.toString();
   }
 
