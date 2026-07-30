@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: npm run build
 
-            - name: Run trading cycle
+      - name: Run trading cycle
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
