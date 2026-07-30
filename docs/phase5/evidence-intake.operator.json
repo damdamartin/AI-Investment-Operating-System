@@ -1,0 +1,60 @@
+{
+  "intakeVersion": "1",
+  "preparedAt": "2026-07-29T14:02:43.000Z",
+  "preparedBy": "OWNER",
+  "items": [
+    {
+      "id": "operator-api-terms-review-2026-07-29",
+      "kind": "API_TERMS_REVIEW",
+      "relatedOpenQuestion": "OQ-001",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "sourceReference": "operator-dashboard-export://2026-07-29T23:02:43+09:00#LCB-001",
+      "sanitizedSummary": "Owner-provided review states that the Toss Securities personal API was officially provided for the owner's personal account and that stock order and trading use through that API is understood by the owner to permit AI-assisted automated trading for that account. This summary contains no credentials, account numbers, raw broker payloads, or order endpoint responses.",
+      "reviewedByHuman": true,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "operator-account-permission-review-2026-07-29",
+      "kind": "ACCOUNT_SNAPSHOT_READ",
+      "relatedOpenQuestion": "OQ-002",
+      "source": "LOCAL_READ_ONLY_CHECK",
+      "sourceReference": "operator-dashboard-export://2026-07-29T23:02:43+09:00#LCB-002",
+      "sanitizedSummary": "Owner-provided review states that the connected Toss Securities account exists, belongs to the owner, and currently holds domestic and overseas stocks. The export intentionally omits account numbers, balances, raw holdings quantities, credentials, and raw API payloads.",
+      "reviewedByHuman": true,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "operator-order-recording-review-2026-07-29",
+      "kind": "ORDER_STATUS_QUERY_READ",
+      "relatedOpenQuestion": "OQ-003",
+      "source": "LOCAL_READ_ONLY_CHECK",
+      "sourceReference": "operator-dashboard-export://2026-07-29T23:02:43+09:00#phase5-recording",
+      "sanitizedSummary": "Owner-provided review states that AI-assisted trading records are intended to be recorded, exportable, and paired with immediate abnormal-signal alerts. This is operating evidence for recordkeeping readiness only; it does not include raw order status responses, fill identifiers, broker payloads, or live write calls.",
+      "reviewedByHuman": true,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    },
+    {
+      "id": "operator-etf-pilot-scope-review-2026-07-29",
+      "kind": "ETF_SUPPORT_DOCUMENTATION",
+      "relatedOpenQuestion": "OQ-004",
+      "source": "TOSS_DEVELOPER_CONSOLE",
+      "sourceReference": "operator-dashboard-export://2026-07-29T23:02:43+09:00#first-trade-pilot",
+      "sanitizedSummary": "Owner-provided first-trade pilot record selects a US ETF-like ticker under limit-order-only, single-order, human-approved minimum-capital testing. This summary is scoped to the pilot record and does not include proof of fractional, extended-hours, or market-order support.",
+      "reviewedByHuman": true,
+      "rawPayloadIncluded": false,
+      "screenshotContainsSecrets": false,
+      "liveWriteOperation": false
+    }
+  ],
+  "notes": [
+    "Generated from the operator-provided dashboard export operator-dashboard-operational-data (2).xls.",
+    "This intake is sanitized evidence only. It does not mark any LCB blocker RESOLVED and does not enable live broker writes.",
+    "The attached export still reports actual order transmission as blocked."
+  ]
+}

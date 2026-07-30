@@ -4,6 +4,7 @@ import { D1HttpClient } from "../persistence/d1-http-client.js";
 import { PipelineRepository } from "../persistence/pipeline-repository.js";
 import { runAutoRecommendationCycle } from "../application/pipeline/auto-recommendation-orchestrator.js";
 import { PlaceholderMarketDataProvider } from "../application/pipeline/market-data-provider.js";
+import { TossMarketDataProvider } from "../adapters/toss/toss-market-data-provider.js";
 
 /**
  * Entrypoint invoked by the scheduled GitHub Actions workflow
@@ -20,7 +21,16 @@ async function main(): Promise<void> {
     apiToken: config.d1.apiToken
   });
   const repository = new PipelineRepository(db);
-  const marketDataProvider = new PlaceholderMarketDataProvider();
+
+  // Choose market data provider: Toss if credentials are available, otherwise placeholder
+  const marketDataProvider =
+    process.env.TOSS_CLIENT_ID && process.env.TOSS_CLIENT_SECRET
+      ? new TossMarketDataProvider({
+          baseUrl: process.env.TOSS_API_BASE_URL || "https://openapi.tossinvest.com",
+          clientId: process.env.TOSS_CLIENT_ID,
+          clientSecret: process.env.TOSS_CLIENT_SECRET
+        })
+      : new PlaceholderMarketDataProvider();
 
   const result = await runAutoRecommendationCycle({
     repository,

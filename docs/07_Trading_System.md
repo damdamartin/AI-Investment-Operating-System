@@ -361,6 +361,7 @@ Checks:
 - available cash
 - reserved cash
 - unsettled cash
+- irregular new deposits treated as additional protected principal
 - sellable quantity
 - strategy allocation limit
 - portfolio allocation limit
@@ -368,6 +369,7 @@ Checks:
 - minimum cash ratio
 - currency availability
 - estimated fees and taxes
+- estimated AI token usage cost allocation
 - expected cash after order
 
 Outputs:
@@ -386,6 +388,12 @@ Rules:
 - insufficient sellable quantity blocks sell orders
 - USD orders require USD cash or verified conversion behavior
 - minimum cash ratio is enforced after order
+- operator-facing return is calculated after fees, taxes, and estimated
+  AI token usage costs
+- profit thresholds do not automatically liquidate positions
+- operator-entered cash targets may create sell candidates and a
+  cash-raising sequence, but every resulting order intent must still pass
+  risk, money, order approval, broker capability, and reconciliation gates
 
 ## 15. Order Approval Engine
 

@@ -1,0 +1,19 @@
+{
+  "candidateVersion": "1",
+  "candidateId": "operator-first-order-tsll-sell-2026-07-29",
+  "createdAt": "2026-07-29T14:54:01.000Z",
+  "source": "OPERATOR_DASHBOARD_MINIMUM_CAPITAL_RECORD",
+  "market": "US",
+  "side": "SELL",
+  "orderType": "LIMIT",
+  "symbol": "TSLL",
+  "quantity": "1",
+  "limitPrice": "7.05",
+  "maxOrderAmount": "7.10",
+  "currency": "USD",
+  "humanApprovalStatus": "HUMAN_APPROVED",
+  "humanApprovalMemo": "Owner states that they are personally leading this trading test.",
+  "aiRationale": "Test sale of one Tesla ETF-related share for pilot verification.",
+  "stopCondition": "If the limit price falls more than 10%, expand the sell review to two shares.",
+  "actualOrderTransmission": "BLOCKED"
+}

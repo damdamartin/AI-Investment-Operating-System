@@ -1,0 +1,50 @@
+{
+  "catalogVersion": "1",
+  "updatedAt": "2026-07-29T14:20:00.000Z",
+  "items": [
+    {
+      "id": "toss-oauth-token-official-2026-07-29",
+      "operation": "AUTHENTICATION_READ",
+      "method": "POST",
+      "path": "/oauth2/token",
+      "evidenceKind": "AUTHENTICATION_READ",
+      "relatedOpenQuestion": "OQ-001",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "verified": true,
+      "notes": "Official Toss Securities Open API guide documents OAuth 2.0 Client Credentials token issuance at POST /oauth2/token. No credentials are stored in this catalog."
+    },
+    {
+      "id": "toss-accounts-official-2026-07-29",
+      "operation": "ACCOUNT_SNAPSHOT_READ",
+      "method": "GET",
+      "path": "/api/v1/accounts",
+      "evidenceKind": "ACCOUNT_SNAPSHOT_READ",
+      "relatedOpenQuestion": "OQ-002",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "verified": true,
+      "notes": "Official Toss Securities Open API guide documents GET /api/v1/accounts for account list lookup. Account-scoped calls require Authorization plus X-Tossinvest-Account where applicable."
+    },
+    {
+      "id": "toss-holdings-official-2026-07-29",
+      "operation": "POSITION_QUERY_READ",
+      "method": "GET",
+      "path": "/api/v1/holdings",
+      "evidenceKind": "POSITION_QUERY_READ",
+      "relatedOpenQuestion": "OQ-002",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "verified": true,
+      "notes": "Official Toss Securities Open API guide documents GET /api/v1/holdings for current holdings lookup. This is read-only asset evidence and not an order endpoint."
+    },
+    {
+      "id": "toss-stocks-prices-official-2026-07-29",
+      "operation": "MARKET_DATA_READ",
+      "method": "GET",
+      "path": "/api/v1/stocks",
+      "evidenceKind": "MARKET_DATA_READ",
+      "relatedOpenQuestion": "OQ-004",
+      "source": "TOSS_OFFICIAL_DOCS",
+      "verified": true,
+      "notes": "Official Toss Securities Open API guide shows GET /api/v1/stocks with symbols query for stock market data. This catalog stores only the path, not query values."
+    }
+  ]
+}

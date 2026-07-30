@@ -113,6 +113,11 @@ The system must maintain minimum cash rules, including separate treatment for:
 - reserved cash
 - emergency or business-use funds that must not be traded
 
+Money deposited into the brokerage account is treated as investment
+principal. Deposits may be irregular, and each deposit increases the
+principal base that the system must protect under the same operating
+rules.
+
 ### 4.5 Rules Must Defeat Emotion
 
 The system exists partly to prevent human emotional errors:
@@ -152,6 +157,18 @@ A strategy that can destroy the account under realistic market stress is unaccep
 Profits must not be treated as free money.
 
 The system must protect realized gains with the same discipline used for original capital.
+
+Return reporting must use net return after trading fees, taxes, and
+estimated AI token usage costs. Gross return may be stored for analysis,
+but operator-facing return must not overstate performance by ignoring
+required operating costs.
+
+The system must not automatically liquidate profits merely because a
+profit threshold was reached. Cash raising happens only when the operator
+enters a cash target or when an approved risk rule requires defensive
+selling. A cash target may produce sell candidates and a liquidation
+sequence, but those candidates must still pass risk, money management,
+order approval, and broker capability checks before any live order path.
 
 ### 4.9 Admit That the System Can Be Wrong
 

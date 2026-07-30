@@ -591,6 +591,7 @@ Track:
 - input tokens
 - output tokens
 - estimated cost
+- estimated cost allocated to trading performance reports
 - cache hit rate
 - retry count
 - failed schema validations
@@ -603,6 +604,10 @@ Cost controls:
 - batch non-urgent analysis if useful
 - set daily and monthly AI budget limits
 - alert on abnormal cost growth
+
+AI token usage cost is an operating cost. It must be included in net
+return reporting together with trading fees and taxes, even though it is
+not a broker cash movement or order amount.
 
 ## 20. AI Data Privacy
 
@@ -781,4 +786,3 @@ Audit systems remember everything
 ```
 
 This structure allows the system to benefit from AI without handing it uncontrolled authority over capital.
-

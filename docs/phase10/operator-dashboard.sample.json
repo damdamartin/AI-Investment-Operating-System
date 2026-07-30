@@ -8,6 +8,8 @@
     "liveOrder": "차단"
   },
   "performance": {
+    "returnBasis": "NET_AFTER_FEES_TAXES_AI_TOKEN_COST",
+    "principalPolicy": "BROKERAGE_DEPOSITS_ARE_INVESTMENT_PRINCIPAL",
     "week": [
       { "label": "월", "returnPct": 0.0, "balance": 1000000 },
       { "label": "화", "returnPct": 0.4, "balance": 1004000 },

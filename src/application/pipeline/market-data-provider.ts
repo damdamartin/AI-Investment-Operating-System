@@ -25,13 +25,16 @@ export interface MarketDataProvider {
  * (src/adapters/toss/toss-read-only-http-client.ts) deliberately never
  * extracts a real price or symbol from the API response - by design, it
  * only ever returns an item count, per its own P5-016 task requirement.
- * Wiring a *different*, price-extracting Toss client, or any other live feed
- * tied to the user's brokerage identity, is a decision the project owner
- * should make deliberately, not something this pipeline should do silently.
  *
- * Replace this class with a real `MarketDataProvider` implementation (a
- * licensed market data vendor, or a Toss client the user has separately
- * decided to build) before treating recommendations as meaningful.
+ * A real `TossMarketDataProvider` implementation exists in
+ * `src/adapters/toss/toss-market-data-provider.ts`, which provides actual
+ * market data from the Toss Securities API. This implementation can be
+ * substituted for the placeholder when ready.
+ *
+ * Replace this class with a real `MarketDataProvider` implementation (such as
+ * `TossMarketDataProvider`, a licensed market data vendor, or any other live
+ * feed tied to the user's brokerage identity) before treating recommendations
+ * as meaningful.
  */
 export class PlaceholderMarketDataProvider implements MarketDataProvider {
   async fetchRecentSnapshots(asset: WatchlistAsset, now: Date): Promise<MarketDataSnapshot[]> {

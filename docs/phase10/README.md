@@ -13,6 +13,10 @@ Round 2 Workbook: `docs/phase10/human-blocker-evidence-workbook.md`
 Human Templates: `docs/phase10/human-evidence-templates/README.md`
 Human Runbook: `docs/phase10/human-evidence-operator-runbook.md`
 Operator Dashboard: `docs/phase10/operator-dashboard.html`
+Cloudflare Deployment: `docs/phase10/cloudflare-deployment.md`
+Operator Live Evidence Summary: `docs/phase10/operator-live-evidence-summary.md`
+Operator Toss Read-Only Endpoint Catalog: `docs/phase5/toss-read-only-endpoints.operator.json`
+Operator First-Order Candidate: `docs/phase10/first-order-candidate.operator.json`
 
 ## Purpose
 
@@ -114,3 +118,19 @@ five allowed decision values, and each states explicitly that it is not
 live-trading authorization. Full detail, including the consolidated list
 of what a human operator must still do for every `LCB-*` blocker:
 `docs/reviews/Codex_Phase10_Round2_Human_Blocker_Evidence_Review.md`.
+
+## Operator First-Order Candidate Check
+
+The operator's first minimum-capital order candidate is recorded in
+`docs/phase10/first-order-candidate.operator.json`.
+
+Run:
+
+```bash
+npm run phase10:first-order:candidate
+```
+
+This check validates that the candidate is a single human-approved limit
+order candidate suitable for human one-order review. It performs no network
+call, stores no broker payload, and always reports
+`orderSubmissionAllowed: false` and `liveBrokerWriteAllowed: false`.
