@@ -32,13 +32,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run trading cycle
+            - name: Run trading cycle
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TOSS_CLIENT_ID: ${{ secrets.TOSS_CLIENT_ID }}
-          TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
           TOSS_CLIENT_ID: ${{ secrets.TOSS_CLIENT_ID }}
           TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
           PIPELINE_WATCHLIST: "005930:Samsung Electronics:KR:STOCK,000660:SK Hynix:KR:STOCK"
