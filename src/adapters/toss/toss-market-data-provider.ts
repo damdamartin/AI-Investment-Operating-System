@@ -126,12 +126,9 @@ export class TossMarketDataProvider implements MarketDataProvider {
       client_secret: this.#clientSecret
     }).toString();
 
-    const url = this.#buildUrl(TOKEN_PATH);
-    console.error(`[TossMarketDataProvider] Authenticating at ${url}`);
-
     let response: TossMarketDataFetchResponse;
     try {
-      response = await this.#fetchImpl(url, {
+      response = await this.#fetchImpl(this.#buildUrl(TOKEN_PATH), {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body
@@ -141,9 +138,6 @@ export class TossMarketDataProvider implements MarketDataProvider {
     }
 
     if (!response.ok) {
-      console.error(`[TossMarketDataProvider] Authentication response status: ${response.status}`);
-      const responseBody = await response.json().catch(() => ({}));
-      console.error(`[TossMarketDataProvider] Response body:`, responseBody);
       throw new Error(`Toss authentication failed with status ${response.status}`);
     }
 
