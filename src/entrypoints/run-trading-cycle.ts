@@ -23,12 +23,18 @@ async function main(): Promise<void> {
   const repository = new PipelineRepository(db);
 
   // Choose market data provider: Toss if credentials are available, otherwise placeholder
+  const tossClientId = process.env.TOSS_CLIENT_ID?.trim();
+  const tossClientSecret = process.env.TOSS_CLIENT_SECRET?.trim();
+
+  console.log(`[run-trading-cycle] TOSS_CLIENT_ID available: ${tossClientId ? "yes (length: " + tossClientId.length + ")" : "no"}`);
+  console.log(`[run-trading-cycle] TOSS_CLIENT_SECRET available: ${tossClientSecret ? "yes (length: " + tossClientSecret.length + ")" : "no"}`);
+
   const marketDataProvider =
-    process.env.TOSS_CLIENT_ID && process.env.TOSS_CLIENT_SECRET
+    tossClientId && tossClientSecret
       ? new TossMarketDataProvider({
           baseUrl: process.env.TOSS_API_BASE_URL || "https://openapi.tossinvest.com",
-          clientId: process.env.TOSS_CLIENT_ID,
-          clientSecret: process.env.TOSS_CLIENT_SECRET
+          clientId: tossClientId,
+          clientSecret: tossClientSecret
         })
       : new PlaceholderMarketDataProvider();
 
