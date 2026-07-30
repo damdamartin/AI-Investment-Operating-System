@@ -126,15 +126,21 @@ export class TossMarketDataProvider implements MarketDataProvider {
       client_secret: this.#clientSecret
     }).toString();
 
+    const tokenUrl = this.#buildUrl(TOKEN_PATH);
+    const requestInit = {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      body
+    };
+
     let response: TossMarketDataFetchResponse;
     try {
-      response = await this.#fetchImpl(this.#buildUrl(TOKEN_PATH), {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body
-      });
+      response = await this.#fetchImpl(tokenUrl, requestInit);
     } catch (error) {
-      throw new Error("Failed to reach Toss authentication endpoint");
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to reach Toss authentication endpoint: ${message}`);
     }
 
     if (!response.ok) {
@@ -144,7 +150,7 @@ export class TossMarketDataProvider implements MarketDataProvider {
     const payload = await safeJson(response);
     const accessToken = readStringField(payload, "access_token");
     if (!accessToken) {
-      throw new Error("Toss authentication response missing access_token");
+      throw new Error(`Toss authentication response missing access_token. Response: ${JSON.stringify(payload)}`);
     }
 
     const tokenType = readStringField(payload, "token_type") ?? "Bearer";
@@ -168,15 +174,20 @@ export class TossMarketDataProvider implements MarketDataProvider {
       throw new Error("Maximum 200 symbols per request");
     }
 
+    const url = this.#buildMarketPricesUrl(symbols);
+    const requestInit = {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${accessToken}`
+      }
+    };
+
     let response: TossMarketDataFetchResponse;
     try {
-      const url = this.#buildMarketPricesUrl(symbols);
-      response = await this.#fetchImpl(url, {
-        method: "GET",
-        headers: { authorization: `Bearer ${accessToken}` }
-      });
+      response = await this.#fetchImpl(url, requestInit);
     } catch (error) {
-      throw new Error("Failed to reach Toss market prices endpoint");
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to reach Toss market prices endpoint: ${message}`);
     }
 
     if (!response.ok) {
@@ -186,7 +197,7 @@ export class TossMarketDataProvider implements MarketDataProvider {
     const payload = await safeJson(response);
     const items = extractArray(payload);
     if (!items || items.length === 0) {
-      throw new Error("Toss market prices response was empty or malformed");
+      throw new Error(`Toss market prices response was empty or malformed. Payload: ${JSON.stringify(payload)}`);
     }
 
     // Return the first matching price record (typically only one symbol per request)
