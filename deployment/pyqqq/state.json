@@ -1,0 +1,8 @@
+{
+  "deployment_date": "2026-07-31T11:30:02.291722",
+  "deployment_path": "/Users/mac/Documents/Codex/AI-Investment-Operating-System/deployment/pyqqq",
+  "log_file": "/Users/mac/Documents/Codex/AI-Investment-Operating-System/logs/pyqqq.log",
+  "script": "/Users/mac/Documents/Codex/AI-Investment-Operating-System/deployment/pyqqq/run.sh",
+  "cronjob": "0 */3 * * * (\ub9e4 3\uc2dc\uac04)",
+  "status": "deployed"
+}

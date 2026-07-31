@@ -15,6 +15,9 @@ import { TossTeamOrchestrator } from "../application/multi-agent/teams/toss-team
 import { getDashboardHTML } from "./trading-cycle-worker-dashboard.js";
 import { RealtimeTradingAgent } from "../durable-objects/realtime-trading-agent.js";
 
+// ✅ Durable Object 내보내기 (Cloudflare 배포 필수)
+export { RealtimeTradingAgent };
+
 interface WorkerEnv {
   DB: D1Database;
   CLAUDE_API_KEY: string;
@@ -332,32 +335,40 @@ async function fetchTossAccountBalance(env: WorkerEnv): Promise<{ totalAsset: nu
 }
 
 /**
- * Fetch KIS Account Balance
+ * Get or refresh KIS access token (with caching)
  */
-async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: number; cash: number; positions: number }> {
+async function getKISAccessToken(env: WorkerEnv): Promise<string | null> {
   try {
     const appKey = env.KIS_APP_KEY;
     const appSecret = env.KIS_APP_SECRET;
-    const accountNumber = env.KIS_ACCOUNT_NUMBER;
     const kisEnv = (env.KIS_ENV || "production").toLowerCase();
 
-    if (!appKey || !appSecret || !accountNumber) {
+    if (!appKey || !appSecret) {
       console.warn("⚠️ KIS 자격증명 없음");
-      return { totalAsset: 10000000, cash: 10000000, positions: 0 };
+      return null;
     }
 
-    // Base URL과 TR_ID를 환경에 따라 결정
-    const isVts = kisEnv === "vts" || kisEnv === "mock" || kisEnv === "paper";
-    const baseUrl = isVts
+    const baseUrl = kisEnv === "vts" || kisEnv === "mock" || kisEnv === "paper"
       ? "https://openapivts.koreainvestment.com:29443"
       : "https://openapi.koreainvestment.com:9443";
-    const trId = isVts ? "VTTC8434R" : "TTTC8434R";
 
-    console.log(`[KIS 환경] ${isVts ? "모의투자" : "실전"} - ${baseUrl}`);
+    // Check cached token
+    try {
+      const cached = await env.DB.prepare(
+        "SELECT token, expires_at FROM kis_token_cache ORDER BY id DESC LIMIT 1"
+      ).first() as any;
 
-    // Step 1: Get access token
+      if (cached && cached.token && new Date(cached.expires_at) > new Date()) {
+        console.log(`✅ KIS 캐시된 토큰 사용: ${cached.token.substring(0, 20)}...`);
+        return cached.token;
+      }
+    } catch (e) {
+      console.log(`[KIS] 토큰 캐시 조회 불가 (테이블 미존재 또는 에러): ${e}`);
+    }
+
+    // Get new token
     const tokenUrl = `${baseUrl}/oauth2/tokenP`;
-    console.log(`[KIS] 토큰 발급 시도: ${tokenUrl}`);
+    console.log(`[KIS] 새 토큰 발급: ${tokenUrl}`);
 
     const tokenResponse = await fetch(tokenUrl, {
       method: "POST",
@@ -369,23 +380,67 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
       }),
     });
 
-    console.log(`[KIS] 토큰 응답 상태: ${tokenResponse.status}`);
     const tokenData = (await tokenResponse.json()) as any;
-    console.log(`[KIS] 토큰 응답 본체:`, JSON.stringify(tokenData));
+
+    if (tokenResponse.status !== 200 || !tokenData.access_token) {
+      console.error(`❌ KIS 토큰 발급 실패: ${tokenResponse.status}`);
+      console.error(`   응답:`, JSON.stringify(tokenData));
+      return null;
+    }
 
     const accessToken = tokenData.access_token;
+    console.log(`✅ KIS 새 토큰 발급: ${accessToken.substring(0, 20)}...`);
 
-    if (!accessToken) {
-      console.error("❌ KIS 토큰 발급 실패");
-      console.error(`   토큰 URL: ${tokenUrl}`);
-      console.error(`   HTTP Status: ${tokenResponse.status}`);
-      console.error(`   응답:`, JSON.stringify(tokenData));
+    // Cache token (expires in 23 hours)
+    try {
+      const expiresAt = new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
+      await env.DB.prepare(
+        "INSERT INTO kis_token_cache (token, expires_at) VALUES (?, ?)"
+      ).bind(accessToken, expiresAt).run();
+    } catch (e) {
+      console.log(`[KIS] 토큰 캐시 저장 실패: ${e}`);
+    }
+
+    return accessToken;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("❌ 토큰 조회 중 오류:", errorMsg);
+    return null;
+  }
+}
+
+/**
+ * Fetch KIS Account Balance
+ */
+async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: number; cash: number; positions: number }> {
+  try {
+    const appKey = env.KIS_APP_KEY;
+    const appSecret = env.KIS_APP_SECRET;
+    const accountNumber = env.KIS_ACCOUNT_NUMBER;
+    const kisEnv = (env.KIS_ENV || "production").toLowerCase();
+
+    if (!accountNumber) {
+      console.warn("⚠️ KIS 계좌번호 없음");
       return { totalAsset: 10000000, cash: 10000000, positions: 0 };
     }
 
-    console.log(`✅ KIS 토큰 발급 성공: ${accessToken.substring(0, 20)}...`);
+    // Get cached or new token
+    const accessToken = await getKISAccessToken(env);
+    if (!accessToken) {
+      console.error("❌ KIS 토큰 발급 불가");
+      return { totalAsset: 10000000, cash: 10000000, positions: 0 };
+    }
 
-    // Step 2: Get account balance
+    // Determine base URL and TR_ID
+    const isVts = kisEnv === "vts" || kisEnv === "mock" || kisEnv === "paper";
+    const baseUrl = isVts
+      ? "https://openapivts.koreainvestment.com:29443"
+      : "https://openapi.koreainvestment.com:9443";
+    const trId = isVts ? "VTTC8434R" : "TTTC8434R";
+
+    console.log(`[KIS 환경] ${isVts ? "모의투자" : "실전"}`);
+
+    // Get account balance
     const balanceUrl = new URL(`${baseUrl}/uapi/domestic-stock/v1/trading/inquire-balance`);
     const cano = (accountNumber || "").split("-")[0] || "";
     const acntPrdtCd = ((accountNumber || "").split("-")[1] || "01") as string;
@@ -401,16 +456,18 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
     balanceUrl.searchParams.set("CTX_AREA_FK100", "");
     balanceUrl.searchParams.set("CTX_AREA_NK100", "");
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "authorization": `Bearer ${accessToken}`,
+      "tr_id": trId,
+      "custtype": "P"
+    };
+    if (appKey) headers["appkey"] = appKey;
+    if (appSecret) headers["appsecret"] = appSecret;
+
     const balanceResponse = await fetch(balanceUrl.toString(), {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "authorization": `Bearer ${accessToken}`,
-        "appkey": appKey,
-        "appsecret": appSecret,
-        "tr_id": trId,
-        "custtype": "P"
-      }
+      headers
     });
 
     const balanceData = (await balanceResponse.json()) as any;

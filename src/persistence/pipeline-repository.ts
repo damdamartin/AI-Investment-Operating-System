@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Asset } from "../domain/assets/index.js";
-import type { MoneyCheck } from "../domain/portfolio/index.js";
+import type { MoneyCheck, Position } from "../domain/portfolio/index.js";
 import type { RiskCheck } from "../domain/risk/index.js";
 import type { Signal } from "../domain/strategy/index.js";
 import type { D1QueryResultRow } from "./d1-http-client.js";
@@ -214,5 +214,97 @@ export class PipelineRepository {
       [id, input.actor, input.action, input.resourceType, input.resourceId, input.reason ?? null, JSON.stringify(input.metadata ?? {})]
     );
     return id;
+  }
+
+  /** Create a new position after successful order execution */
+  async insertPosition(position: Position): Promise<string> {
+    const entryPriceStr = position.entryPrice.toString();
+    const slPriceStr = position.stopLoss.toString();
+    const tpPriceStr = position.takeProfit.toString();
+
+    const entryParts = entryPriceStr.split(" ");
+    const slParts = slPriceStr.split(" ");
+    const tpParts = tpPriceStr.split(" ");
+
+    const entryMajor = entryParts[0] ?? "0";
+    const entryCurrency = entryParts[1] ?? "KRW";
+    const slMajor = slParts[0] ?? "0";
+    const slCurrency = slParts[1] ?? "KRW";
+    const tpMajor = tpParts[0] ?? "0";
+    const tpCurrency = tpParts[1] ?? "KRW";
+
+    await this.db.query(
+      `insert into positions
+         (id, asset_id, order_recommendation_id, quantity, entry_price_major, entry_price_currency,
+          entry_date, stop_loss_major, stop_loss_currency, take_profit_major, take_profit_currency, status)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        position.id,
+        position.assetId,
+        position.orderRecommendationId,
+        position.quantity.toString(),
+        entryMajor,
+        entryCurrency,
+        position.entryDate.toISOString(),
+        slMajor,
+        slCurrency,
+        tpMajor,
+        tpCurrency,
+        "OPEN"
+      ]
+    );
+    return position.id;
+  }
+
+  /** Get all open positions */
+  async getOpenPositions(): Promise<D1QueryResultRow[]> {
+    const result = await this.db.query(`select * from positions where status = 'OPEN' order by entry_date asc`);
+    return result.results;
+  }
+
+  /** Get open positions for a specific asset */
+  async getOpenPositionsByAsset(assetId: string): Promise<D1QueryResultRow[]> {
+    const result = await this.db.query(
+      `select * from positions where status = 'OPEN' and asset_id = ? order by entry_date asc`,
+      [assetId]
+    );
+    return result.results;
+  }
+
+  /** Close a position and record the trigger */
+  async closePosition(position: Position, triggerType: "STOP_LOSS" | "TAKE_PROFIT", triggerPrice: string): Promise<void> {
+    const parts = triggerPrice.split(" ");
+    const triggerMajor = parts[0] ?? "0";
+    const triggerCurrency = parts[1] ?? "KRW";
+
+    // Update position status
+    await this.db.query(
+      `update positions set status = ?, close_reason = ?, closed_at = ?, last_check_at = ? where id = ?`,
+      [
+        "CLOSED",
+        position.closeReason ?? null,
+        position.closedAt?.toISOString() ?? new Date().toISOString(),
+        position.lastCheckAt?.toISOString() ?? new Date().toISOString(),
+        position.id
+      ]
+    );
+
+    // Record the trigger event
+    const triggerId = randomUUID();
+    await this.db.query(
+      `insert into position_triggers
+         (id, position_id, trigger_type, triggered_price_major, triggered_price_currency, triggered_at, close_quantity, close_reason)
+       values (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        triggerId,
+        position.id,
+        triggerType,
+        triggerMajor,
+        triggerCurrency,
+        position.closedAt?.toISOString() ?? new Date().toISOString(),
+        position.quantity.toString(),
+        position.closeReason ?? triggerType
+      ]
+    );
   }
 }

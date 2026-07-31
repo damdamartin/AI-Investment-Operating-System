@@ -31,7 +31,11 @@ function fakeRepository(): AutoRecommendationRepository & {
     insertRiskCheck: vi.fn(async (riskCheck) => riskCheck.id),
     insertMoneyCheck: vi.fn(async (moneyCheck) => moneyCheck.id),
     insertOrderRecommendation: vi.fn(async () => "recommendation-1"),
-    insertAuditLog: vi.fn(async () => "audit-1")
+    insertAuditLog: vi.fn(async () => "audit-1"),
+    insertPosition: vi.fn(async (position) => position.id),
+    getOpenPositions: vi.fn(async () => []),
+    getOpenPositionsByAsset: vi.fn(async () => []),
+    closePosition: vi.fn(async () => undefined)
   };
 }
 

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PipelineConfig, WatchlistAssetConfig } from "../../config/pipeline-config.js";
 import { Asset } from "../../domain/assets/index.js";
 import { OrderIntent } from "../../domain/orders/index.js";
+import { Position } from "../../domain/portfolio/index.js";
 import { CashBalance } from "../../domain/portfolio/index.js";
 import { KillSwitchState } from "../../domain/risk/index.js";
 import { StrategyVersion } from "../../domain/strategy/index.js";
@@ -13,6 +14,11 @@ import type { PipelineRepository } from "../../persistence/pipeline-repository.j
 import { RiskEngine } from "../risk-engine/index.js";
 import { StrategyScoringService } from "../strategy-scoring/index.js";
 import type { MarketDataProvider } from "./market-data-provider.js";
+import { BrokerOrderExecutor } from "../orders/broker-order-executor.js";
+import { StopLossEngine } from "./stop-loss-engine.js";
+import { TakeProfitEngine } from "./take-profit-engine.js";
+import { QuantityOptimizer } from "./quantity-optimizer.js";
+import { PriceStrategySelector } from "./price-strategy-selector.js";
 
 /**
  * Narrow slice of `PipelineRepository` this orchestrator depends on, so
@@ -29,6 +35,10 @@ export type AutoRecommendationRepository = Pick<
   | "insertMoneyCheck"
   | "insertOrderRecommendation"
   | "insertAuditLog"
+  | "insertPosition"
+  | "getOpenPositions"
+  | "getOpenPositionsByAsset"
+  | "closePosition"
 >;
 
 export interface OrchestratorDependencies {
@@ -36,6 +46,7 @@ export interface OrchestratorDependencies {
   marketDataProvider: MarketDataProvider;
   config: PipelineConfig;
   now: () => Date;
+  brokerExecutor?: BrokerOrderExecutor;
 }
 
 export interface AssetCycleOutcome {
@@ -46,7 +57,13 @@ export interface AssetCycleOutcome {
     | "HOLD"
     | "RISK_CHECK_FAILED"
     | "MONEY_CHECK_FAILED"
-    | "RECOMMENDATION_CREATED";
+    | "RECOMMENDATION_CREATED"
+    | "ORDER_EXECUTED"
+    | "EXECUTION_FAILED"
+    | "POSITION_CREATED"
+    | "STOP_LOSS_TRIGGERED"
+    | "TAKE_PROFIT_TRIGGERED"
+    | "POSITION_CHECK_FAILED";
   detail?: string[];
 }
 
@@ -60,6 +77,10 @@ const moneyEngine = new MoneyManagementEngine();
 const marketEngine = new MarketEngine();
 const strategyScoringService = new StrategyScoringService();
 const killSwitchControlService = new KillSwitchControlService();
+const stopLossEngine = new StopLossEngine();
+const takeProfitEngine = new TakeProfitEngine(0.5); // 50% partial close
+const quantityOptimizer = new QuantityOptimizer();
+const priceStrategySelector = new PriceStrategySelector();
 
 /**
  * Runs one full, unattended cycle of the recommendation pipeline: market
@@ -121,6 +142,23 @@ export async function runAutoRecommendationCycle(deps: OrchestratorDependencies)
       status: "PAPER",
       definitionHash: `${config.strategyName}:${config.strategyVersion}`
     });
+
+    // TODO: Implement stop-loss and take-profit checks for existing positions
+    // This will be completed in the next version after position data structure is finalized
+    try {
+      const openPositionRows = await repository.getOpenPositions();
+      // Placeholder: Stop-loss and take-profit logic will check these positions
+      // in the next deployment cycle once position data is properly normalized
+    } catch (error) {
+      // Silently log - don't block trading cycle
+      await repository.insertAuditLog({
+        actor: "auto-recommendation-orchestrator",
+        action: "POSITION_CHECK_SKIPPED",
+        resourceType: "CYCLE_RUN",
+        resourceId: cycleRunId,
+        metadata: { cycleRunId }
+      });
+    }
 
     for (const watchlistAsset of config.watchlist) {
       const outcome = await runOneAsset({
@@ -232,8 +270,60 @@ async function runOneAsset(args: {
 
   const currency = Currency.from(config.portfolio.currency);
   const latestSnapshot = snapshots[snapshots.length - 1]!;
-  const limitPrice = latestSnapshot.price ?? Price.from("0", currency);
-  const quantity = Quantity.from(config.recommendationQuantity);
+  let currentPrice = latestSnapshot.price ?? Price.from("0", currency);
+
+  // Extract volatility score from market engine results
+  const volatilityScore = marketResult.output.scoreSet.scores.find(s => s.engine === "MARKET_VOLATILITY")?.score ?? 50;
+
+  // Select price strategy based on signal strength, volatility, and time
+  const priceStrategy = priceStrategySelector.selectStrategy({
+    compositeScore: scoringResult.output.compositeScore,
+    volatility: volatilityScore,
+    hour: now.getHours(),
+    dayOfWeek: now.getDay()
+  });
+
+  // Calculate limit price based on strategy
+  const limitPrice = priceStrategy.orderType === "LIMIT_ORDER"
+    ? priceStrategySelector.calculateLimitPrice(currentPrice, priceStrategy)
+    : currentPrice;
+
+  // Optimize quantity based on signal strength, volatility, and portfolio exposure
+  const currentExposure = Number(config.portfolio.currentStrategyExposureMajor) || 0;
+  const totalEquity = Number(config.portfolio.totalEquityMajor) || 1;
+  const exposureRatio = Math.min(1, currentExposure / totalEquity);
+
+  const optimizerResult = quantityOptimizer.optimizeQuantity({
+    baseQuantity: Number(config.recommendationQuantity) || 1,
+    compositeScore: scoringResult.output.compositeScore,
+    volatility: volatilityScore,
+    currentExposureRatio: exposureRatio,
+    maxQuantityMultiplier: 3.0 // Configurable limit
+  });
+
+  const finalQty = Math.max(1, Math.floor(optimizerResult.finalQuantity));
+  const quantity = Quantity.from(finalQty.toString());
+
+  // If quantity is 0 after optimization, skip this trade
+  if (quantity.isZero()) {
+    await repository.insertAuditLog({
+      actor: "quantity-optimizer",
+      action: "TRADE_SKIPPED_DUE_TO_RISK",
+      resourceType: "SIGNAL",
+      resourceId: signal.id,
+      reason: "Quantity optimized to 0 due to market conditions",
+      metadata: {
+        cycleRunId,
+        symbol: watchlistAsset.symbol,
+        compositeScore: scoringResult.output.compositeScore,
+        volatility: volatilityScore,
+        exposureRatio: exposureRatio,
+        reasoning: optimizerResult.reasoning
+      }
+    });
+    return { symbol: watchlistAsset.symbol, outcome: "HOLD", detail: ["Skipped due to risk conditions"] };
+  }
+
   const orderIntent = new OrderIntent({
     id: randomUUID(),
     signal,
@@ -317,6 +407,14 @@ async function runOneAsset(args: {
   // return above, with `kill_switch_active_*` in its reason codes. This is
   // the defense-in-depth behavior documented on `RiskEngineInput.killSwitchGate`.
 
+  // Create recommendation record with quantity optimization details
+  const recommendationReasoning = [
+    `Composite score ${scoringResult.output.compositeScore} (confidence ${scoringResult.output.compositeConfidence})`,
+    `from engines: ${scoringResult.output.requiredEngines.join(", ")}.`,
+    `Quantity optimized: base=${config.recommendationQuantity} → final=${optimizerResult.finalQuantity}`,
+    `(${optimizerResult.reasoning})`
+  ].join(" ");
+
   await repository.insertOrderRecommendation({
     signalId: signal.id,
     riskCheckId,
@@ -326,18 +424,155 @@ async function runOneAsset(args: {
     recommendedQuantity: quantity.toString(),
     recommendedAmountMajor: orderAmount.toMajorString(),
     recommendedCurrency: config.portfolio.currency,
-    reasoning: `Composite score ${scoringResult.output.compositeScore} (confidence ${scoringResult.output.compositeConfidence}) from engines: ${scoringResult.output.requiredEngines.join(", ")}.`
+    reasoning: recommendationReasoning
   });
 
+  // Log quantity optimization details
   await repository.insertAuditLog({
-    actor: "auto-recommendation-orchestrator",
-    action: "ORDER_RECOMMENDATION_CREATED",
+    actor: "quantity-optimizer",
+    action: "QUANTITY_OPTIMIZED",
     resourceType: "SIGNAL",
     resourceId: signal.id,
-    metadata: { cycleRunId, symbol: watchlistAsset.symbol, direction: signal.direction }
+    metadata: {
+      cycleRunId,
+      symbol: watchlistAsset.symbol,
+      baseQuantity: config.recommendationQuantity,
+      optimizedQuantity: optimizerResult.finalQuantity,
+      scoreMultiplier: optimizerResult.scoreMultiplier,
+      volatilityMultiplier: optimizerResult.volatilityMultiplier,
+      exposureMultiplier: optimizerResult.exposureMultiplier,
+      compositeScore: scoringResult.output.compositeScore,
+      volatility: volatilityScore,
+      exposureRatio: exposureRatio,
+      reasoning: optimizerResult.reasoning
+    }
   });
 
-  return { symbol: watchlistAsset.symbol, outcome: "RECOMMENDATION_CREATED" };
+  // Log price strategy selection
+  await repository.insertAuditLog({
+    actor: "price-strategy-selector",
+    action: "PRICE_STRATEGY_SELECTED",
+    resourceType: "SIGNAL",
+    resourceId: signal.id,
+    metadata: {
+      cycleRunId,
+      symbol: watchlistAsset.symbol,
+      orderType: priceStrategy.orderType,
+      currentPrice: currentPrice.toString(),
+      limitPrice: limitPrice.toString(),
+      discountPercent: priceStrategy.discountPercent,
+      maxWaitMinutes: priceStrategy.maxWaitMinutes,
+      compositeScore: scoringResult.output.compositeScore,
+      volatility: volatilityScore,
+      hour: now.getHours(),
+      dayOfWeek: now.getDay(),
+      reasoning: priceStrategy.reasoning
+    }
+  });
+
+  // Execute order automatically (AI-driven automatic execution)
+  try {
+    await repository.insertAuditLog({
+      actor: "auto-recommendation-orchestrator",
+      action: "ORDER_EXECUTION_INITIATED",
+      resourceType: "SIGNAL",
+      resourceId: signal.id,
+      metadata: { cycleRunId, symbol: watchlistAsset.symbol, direction: signal.direction, quantity: quantity.toString() }
+    });
+
+    // Execute actual broker order if executor is available
+    if (deps.brokerExecutor) {
+      const quantityNum = Number(quantity.toString());
+      const executionResult = await deps.brokerExecutor.executeOrder(
+        watchlistAsset.symbol,
+        orderIntent,
+        limitPrice,
+        quantityNum
+      );
+
+      if (executionResult.success) {
+        await repository.insertAuditLog({
+          actor: "auto-recommendation-orchestrator",
+          action: "ORDER_EXECUTED",
+          resourceType: "SIGNAL",
+          resourceId: signal.id,
+          metadata: { cycleRunId, symbol: watchlistAsset.symbol, orderId: executionResult.orderId }
+        });
+
+        // Create position with stop-loss and take-profit for BUY orders
+        if (signal.direction === "BUY") {
+          try {
+            const slPrice = stopLossEngine.calculateStopLossPrice(limitPrice, 2); // 2% stop loss
+            const tpPrice = takeProfitEngine.calculateTakeProfitPrice(limitPrice, 5); // 5% take profit
+
+            const position = new Position({
+              id: randomUUID(),
+              assetId,
+              orderRecommendationId: signal.id, // Using signal.id as placeholder for order recommendation ID
+              quantity,
+              entryPrice: limitPrice,
+              stopLoss: slPrice,
+              takeProfit: tpPrice,
+              entryDate: now
+            });
+
+            await repository.insertPosition(position);
+            await repository.insertAuditLog({
+              actor: "auto-recommendation-orchestrator",
+              action: "POSITION_CREATED",
+              resourceType: "POSITION",
+              resourceId: position.id,
+              metadata: {
+                cycleRunId,
+                assetId,
+                symbol: watchlistAsset.symbol,
+                quantity: quantity.toString(),
+                entryPrice: limitPrice.toString(),
+                stopLoss: slPrice.toString(),
+                takeProfit: tpPrice.toString()
+              }
+            });
+
+            return { symbol: watchlistAsset.symbol, outcome: "POSITION_CREATED" };
+          } catch (positionError) {
+            await repository.insertAuditLog({
+              actor: "auto-recommendation-orchestrator",
+              action: "POSITION_CREATION_FAILED",
+              resourceType: "SIGNAL",
+              resourceId: signal.id,
+              reason: positionError instanceof Error ? positionError.message : "Unknown error",
+              metadata: { cycleRunId, symbol: watchlistAsset.symbol }
+            });
+            return { symbol: watchlistAsset.symbol, outcome: "EXECUTION_FAILED", detail: ["Position creation failed"] };
+          }
+        }
+
+        return { symbol: watchlistAsset.symbol, outcome: "ORDER_EXECUTED" };
+      } else {
+        await repository.insertAuditLog({
+          actor: "auto-recommendation-orchestrator",
+          action: "ORDER_EXECUTION_FAILED",
+          resourceType: "SIGNAL",
+          resourceId: signal.id,
+          reason: executionResult.error || "Unknown error",
+          metadata: { cycleRunId, symbol: watchlistAsset.symbol }
+        });
+        return { symbol: watchlistAsset.symbol, outcome: "EXECUTION_FAILED", detail: [executionResult.error || "Unknown"] };
+      }
+    }
+
+    return { symbol: watchlistAsset.symbol, outcome: "RECOMMENDATION_CREATED" };
+  } catch (executionError) {
+    await repository.insertAuditLog({
+      actor: "auto-recommendation-orchestrator",
+      action: "ORDER_EXECUTION_FAILED",
+      resourceType: "SIGNAL",
+      resourceId: signal.id,
+      reason: executionError instanceof Error ? executionError.message : "Unknown error",
+      metadata: { cycleRunId, symbol: watchlistAsset.symbol }
+    });
+    throw executionError;
+  }
 }
 
 /**

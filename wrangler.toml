@@ -3,23 +3,28 @@ main = "src/workers/trading-cycle-worker.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ✅ Durable Object 바인딩
-[[durable_objects.bindings]]
-name = "REALTIME_TRADING_AGENT"
-class_name = "RealtimeTradingAgent"
+# ✅ Durable Object 내보내기 설정
+[exports.RealtimeTradingAgent]
+type = "durable-object"
+storage = "sqlite"
 
 [env.production]
 vars = { ENVIRONMENT = "production", CLOUDFLARE_ACCOUNT_ID = "87b29e119026eda88a305476a9c28adb", CLOUDFLARE_D1_DATABASE_ID = "9d287512-e226-4d7f-b739-d54098b36e0d" }
+
+# ✅ Durable Object 바인딩 (production 환경)
+[[env.production.durable_objects.bindings]]
+name = "REALTIME_TRADING_AGENT"
+class_name = "RealtimeTradingAgent"
+
+# ✅ Durable Object 마이그레이션
+[[env.production.durable_objects.migrations]]
+tag = "v1"
+new_classes = ["RealtimeTradingAgent"]
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_id = "9d287512-e226-4d7f-b739-d54098b36e0d"
 preview_database_id = "9d287512-e226-4d7f-b739-d54098b36e0d"
-
-# ✅ Durable Object 마이그레이션
-[[durable_objects.migrations]]
-tag = "v1"
-new_classes = ["RealtimeTradingAgent"]
 
 # ❌ REMOVED: 3시간 배치 크론 작업 제거
 # 이전: 매 3시간마다 실행 (06:00, 09:00, 12:00, 15:00, 18:00, 21:00, 00:00 KST)

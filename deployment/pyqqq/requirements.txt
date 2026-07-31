@@ -1,0 +1,5 @@
+aiohttp
+anthropic
+python-dotenv
+pydantic
+pydantic-settings

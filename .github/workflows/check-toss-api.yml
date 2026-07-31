@@ -1,0 +1,68 @@
+name: Check Toss API Connection
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-toss:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Toss API Endpoint
+        run: |
+          echo "=== Toss API 연결 체크 ==="
+          echo ""
+          echo "1️⃣ 현재 IP 주소:"
+          curl -s https://api.ipify.org
+          echo ""
+          echo ""
+          echo "2️⃣ Toss API 엔드포인트 응답 확인:"
+          curl -v https://openapi.tossinvest.com/oauth2/token \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=test&client_secret=test" 2>&1 | head -30
+          echo ""
+          echo ""
+          echo "3️⃣ 주요 확인 사항:"
+          echo "   - HTTP Status: 403이면 IP 차단 가능성 높음"
+          echo "   - HTTP Status: 401이면 자격증명 문제"
+          echo "   - HTTP Status: 400이면 요청 형식 문제"
+          echo ""
+          echo "4️⃣ GitHub Actions IP 범위:"
+          curl -s https://api.github.com/meta | grep -A 20 '"actions"'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test Toss Market Data Provider
+        run: npm test -- toss-market-data-provider
+        continue-on-error: true
+
+      - name: Run Trading Cycle (Verbose)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TOSS_CLIENT_ID: ${{ secrets.TOSS_CLIENT_ID }}
+          TOSS_CLIENT_SECRET: ${{ secrets.TOSS_CLIENT_SECRET }}
+          PIPELINE_WATCHLIST: "005930:Samsung Electronics:KR:STOCK,000660:SK Hynix:KR:STOCK"
+        run: |
+          echo "=== Trading Cycle 실행 (디버그 모드) ==="
+          echo "환경 변수 확인:"
+          echo "  TOSS_CLIENT_ID length: ${#TOSS_CLIENT_ID}"
+          echo "  TOSS_CLIENT_SECRET length: ${#TOSS_CLIENT_SECRET}"
+          echo "  CLOUDFLARE_ACCOUNT_ID length: ${#CLOUDFLARE_ACCOUNT_ID}"
+          echo ""
+          echo "시세 데이터 조회 시작..."
+          node dist/src/entrypoints/run-trading-cycle.js
+        continue-on-error: true

@@ -34,28 +34,73 @@ If a task conflicts with this document, the task is invalid until reviewed.
 
 ## 3. Non-Negotiable Trading Rules
 
-### Rule 1: AI Must Not Directly Place Broker Orders
+### Rule 1: AI Must Base All Orders on Data, Never on Arbitrary Judgment
 
-AI must never directly call Toss Securities Open API order endpoints.
+AI may only generate trading signals and recommendations based on quantifiable data and pre-defined rules. AI must never make arbitrary, judgmental, or discretionary trading decisions.
 
-Forbidden:
-
-```text
-Claude API -> Toss Securities API
-AI Agent -> Toss order submit
-Dashboard AI action -> broker order
-```
-
-Required path:
+**Forbidden (Arbitrary AI Decision-Making):**
 
 ```text
-Signal
--> OrderIntent
--> RiskCheck
--> MoneyCheck
--> OrderApproval
--> TossSecuritiesAdapter
+- AI feeling/intuition-based trading
+- AI guessing market direction without data
+- AI overriding risk rules based on confidence
+- AI making discretionary allocation changes
+- AI changing strategy parameters mid-trade
 ```
+
+**Required (Data-Driven Decision-Making):**
+
+```text
+All signals must be generated from:
+- Market data (price, volume, volatility)
+- News analysis (quantified sentiment)
+- Technical indicators (objective thresholds)
+- Risk metrics (measured exposure)
+- Portfolio state (current holdings)
+
+Zero subjective override capability for AI.
+```
+
+**Technical Implementation:**
+
+```text
+Signal (Data-driven)
+├─ Market: prices, volume, trend
+├─ News: analyzed sentiment scores
+├─ Technical: indicator thresholds
+└─ Strategy: rule-based scoring
+
+-> OrderIntent (Deterministic)
+   ├─ quantity = f(risk_limits, portfolio_state)
+   └─ price = market_price + defined_offset
+
+-> RiskCheck (Objective)
+   ├─ max_order_amount
+   ├─ max_position_ratio
+   ├─ max_portfolio_exposure
+   └─ kill_switch_status
+
+-> MoneyCheck (Deterministic)
+   ├─ available_cash
+   ├─ allocation_rules
+   └─ settlement_state
+
+-> OrderApproval (Automatic if all pass)
+
+-> BrokerAdapter (Toss / Korean Investment)
+```
+
+**What This Means:**
+
+✅ AI analyzes market data and generates signals
+✅ AI follows pre-approved strategy rules
+✅ AI respects risk limits without exception
+✅ AI is fully auditable and traceable
+
+❌ AI does NOT make subjective calls
+❌ AI does NOT override risk rules
+❌ AI does NOT use "confidence" to increase risk
+❌ AI does NOT change strategy on the fly
 
 ### Rule 2: News Alone Must Never Trigger an Order
 

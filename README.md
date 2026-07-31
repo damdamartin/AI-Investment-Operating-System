@@ -1,8 +1,19 @@
 # AI Investment Operating System
 
-Version: 0.5.18
-Status: Phase 5 Read-Only Evidence Started
-Last Updated: 2026-07-28
+Version: 0.6.0
+Status: API Integration Phase (한국투자증권 + Claude + 네이버 뉴스)
+Last Updated: 2026-07-30
+
+## 🚀 진행 중인 작업
+
+**현재 단계:** API 정보 설정 완료 → 코드 구현 중
+
+**새 Claude Code 세션 시작 시:**
+→ `NEW_SESSION_START.md` 파일 읽기
+→ `MOBILE_IMPLEMENTATION_GUIDE.md` 참고
+→ 단계별로 진행
+
+---
 
 ## Overview
 
@@ -10,9 +21,9 @@ AI Investment Operating System is a document-driven project for designing and bu
 
 The system is intended to use:
 
-- Toss Securities Open API for Korean and U.S. stock/ETF market data, account data, and order execution
-- Naver News API for news collection
-- Claude API for AI analysis, strategy research, health checks, and structured reasoning
+- **Korea Investment & Securities (KIS) Open API** for Korean and U.S. stock/ETF market data, account data, and order execution
+- **Naver News API** for news collection
+- **Claude API** for AI analysis, strategy research, health checks, and structured reasoning
 
 ## Core Principle
 

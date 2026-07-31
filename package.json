@@ -32,15 +32,22 @@
     "phase10:first-order:candidate": "node scripts/phase10-first-order-candidate-review.mjs",
     "pipeline:run-cycle": "node dist/src/entrypoints/run-trading-cycle.js",
     "deploy:cloudflare:pages": "npx wrangler pages deploy public --project-name ai-investment-operating-system",
-    "deploy:cloudflare:worker": "npx wrangler deploy --config cloudflare/wrangler.jsonc"
+    "deploy:cloudflare:worker": "npm run build && wrangler deploy --env production",
+    "worker:dev": "npm run build && wrangler dev --env production",
+    "worker:secret": "wrangler secret put"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^24.1.0",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.115.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0"
   }
 }

@@ -128,12 +128,12 @@ export class TossMarketDataProvider implements MarketDataProvider {
 
     const tokenUrl = this.#buildUrl(TOKEN_PATH);
     const requestInit = {
-      method: "POST",
+      method: "POST" as const,
       headers: {
         "content-type": "application/x-www-form-urlencoded"
       },
       body
-    };
+    } satisfies TossMarketDataRequestInit;
 
     let response: TossMarketDataFetchResponse;
     try {
@@ -176,11 +176,11 @@ export class TossMarketDataProvider implements MarketDataProvider {
 
     const url = this.#buildMarketPricesUrl(symbols);
     const requestInit = {
-      method: "GET",
+      method: "GET" as const,
       headers: {
         authorization: `Bearer ${accessToken}`
       }
-    };
+    } satisfies TossMarketDataRequestInit;
 
     let response: TossMarketDataFetchResponse;
     try {

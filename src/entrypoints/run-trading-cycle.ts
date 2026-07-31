@@ -3,8 +3,8 @@ import { loadPipelineConfig } from "../config/pipeline-config.js";
 import { D1HttpClient } from "../persistence/d1-http-client.js";
 import { PipelineRepository } from "../persistence/pipeline-repository.js";
 import { runAutoRecommendationCycle } from "../application/pipeline/auto-recommendation-orchestrator.js";
-import { PlaceholderMarketDataProvider } from "../application/pipeline/market-data-provider.js";
 import { TossMarketDataProvider } from "../adapters/toss/toss-market-data-provider.js";
+import { KISMarketDataProvider } from "../adapters/kis/kis-market-data-provider.js";
 
 /**
  * Entrypoint invoked by the scheduled GitHub Actions workflow
@@ -22,21 +22,38 @@ async function main(): Promise<void> {
   });
   const repository = new PipelineRepository(db);
 
-  // Choose market data provider: Toss if credentials are available, otherwise placeholder
+  // Market data provider credentials
+  const kisAppKey = process.env.KIS_APP_KEY?.trim();
+  const kisAppSecret = process.env.KIS_APP_SECRET?.trim();
   const tossClientId = process.env.TOSS_CLIENT_ID?.trim();
   const tossClientSecret = process.env.TOSS_CLIENT_SECRET?.trim();
 
+  console.log(`[run-trading-cycle] KIS_APP_KEY available: ${kisAppKey ? "yes (length: " + kisAppKey.length + ")" : "no"}`);
+  console.log(`[run-trading-cycle] KIS_APP_SECRET available: ${kisAppSecret ? "yes (length: " + kisAppSecret.length + ")" : "no"}`);
   console.log(`[run-trading-cycle] TOSS_CLIENT_ID available: ${tossClientId ? "yes (length: " + tossClientId.length + ")" : "no"}`);
   console.log(`[run-trading-cycle] TOSS_CLIENT_SECRET available: ${tossClientSecret ? "yes (length: " + tossClientSecret.length + ")" : "no"}`);
 
-  const marketDataProvider =
-    tossClientId && tossClientSecret
-      ? new TossMarketDataProvider({
-          baseUrl: process.env.TOSS_API_BASE_URL || "https://openapi.tossinvest.com",
-          clientId: tossClientId,
-          clientSecret: tossClientSecret
-        })
-      : new PlaceholderMarketDataProvider();
+  // Validate that at least one market data provider is configured
+  if ((!kisAppKey || !kisAppSecret) && (!tossClientId || !tossClientSecret)) {
+    throw new Error(
+      "No market data provider configured. Please set either:\n" +
+      "  1. KIS_APP_KEY + KIS_APP_SECRET (Korea Investment & Securities)\n" +
+      "  2. TOSS_CLIENT_ID + TOSS_CLIENT_SECRET (Toss Securities)"
+    );
+  }
+
+  // Choose market data provider (priority: KIS > Toss)
+  const marketDataProvider = kisAppKey && kisAppSecret
+    ? new KISMarketDataProvider({
+        appKey: kisAppKey,
+        appSecret: kisAppSecret,
+        accountNumber: process.env.KIS_ACCOUNT_NUMBER ?? undefined
+      })
+    : new TossMarketDataProvider({
+        baseUrl: process.env.TOSS_API_BASE_URL || "https://openapi.tossinvest.com",
+        clientId: tossClientId!,
+        clientSecret: tossClientSecret!
+      });
 
   const result = await runAutoRecommendationCycle({
     repository,

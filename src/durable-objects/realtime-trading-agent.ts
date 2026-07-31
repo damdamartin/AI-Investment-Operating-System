@@ -74,6 +74,7 @@ export class RealtimeTradingAgent {
   private isRunning = false;
   private accessToken: string = "";
   private lastSignalTime: Map<string, number> = new Map();
+  private initPromise: Promise<void>;
 
   constructor(state: DurableObjectState, env: WorkerEnv) {
     this.state = state;
@@ -81,33 +82,38 @@ export class RealtimeTradingAgent {
     this.claude = new Anthropic({ apiKey: env.CLAUDE_API_KEY });
     this.watchlist = (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim());
 
-    // Initialize
-    this.initialize();
+    // 비동기 초기화 (병렬 실행)
+    this.initPromise = this.initialize().catch(err => {
+      console.error("❌ Initialization error:", err);
+    });
   }
 
   private async initialize() {
     console.log(`🚀 [${new Date().toISOString()}] RealtimeTradingAgent initialized`);
     console.log(`📊 Watchlist: ${this.watchlist.join(", ")}`);
 
-    try {
-      // Get Toss access token
-      await this.refreshTossAccessToken();
-
-      // Start realtime streaming
-      this.startRealtimeStreaming();
-
-      // Start signal generation loop (5分ごと)
-      this.startSignalGenerationLoop();
-
-      // Start position monitoring loop (10秒ごと)
-      this.startPositionMonitoringLoop();
-
-      this.isRunning = true;
-      console.log("✅ RealtimeTradingAgent is running");
-    } catch (error) {
-      console.error("❌ Initialization failed:", error);
-      throw error;
+    // 토큰 갱신 (선택적, 실패해도 계속)
+    if (this.env.TOSS_CLIENT_ID && this.env.TOSS_CLIENT_SECRET) {
+      try {
+        await this.refreshTossAccessToken();
+        console.log("✅ Toss token refreshed");
+      } catch (error) {
+        console.warn("⚠️ Toss token refresh failed (continuing without it):", error);
+        // 토큰 없이도 계속 진행
+      }
     }
+
+    // 실시간 스트리밍 시작 (항상)
+    this.startRealtimeStreaming();
+
+    // 신호 생성 루프 시작 (항상)
+    this.startSignalGenerationLoop();
+
+    // 포지션 모니터링 루프 시작 (항상)
+    this.startPositionMonitoringLoop();
+
+    this.isRunning = true;
+    console.log("✅ RealtimeTradingAgent is running");
   }
 
   // Step 1️⃣: Toss 토큰 갱신
@@ -593,6 +599,12 @@ JSON으로만 응답하세요:
     const url = new URL(request.url);
 
     if (url.pathname === "/status") {
+      // 초기화 완료 대기 (최대 5초)
+      await Promise.race([
+        this.initPromise,
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+
       return new Response(
         JSON.stringify({
           isRunning: this.isRunning,
