@@ -54,8 +54,12 @@ export class TossTeamOrchestrator {
     // Initialize trading agent
     this.tradingAgent = new TossTradingAgent(config.apiKey);
 
-    // Initialize trade executor with optional config
-    const executorConfig: TossExecutionConfig = {};
+    // Initialize trade executor with optional config + API credentials
+    const executorConfig: TossExecutionConfig = {
+      apiClientId: config.clientId,
+      apiClientSecret: config.clientSecret,
+      apiAccountRef: "1" // From environment
+    };
     if (config.maxPositionSizePercent !== undefined) {
       executorConfig.maxPositionSizePercent = config.maxPositionSizePercent;
     }
