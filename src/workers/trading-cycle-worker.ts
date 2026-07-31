@@ -87,6 +87,11 @@ export default {
       return await handleTestKIS(request, env);
     }
 
+    // Test KIS Account Balance
+    if (url.pathname === "/api/test/kis/balance") {
+      return await handleTestKISBalance(request, env);
+    }
+
     // Start KIS Auto-Trading
     if (url.pathname === "/api/start-kis-trading") {
       return await handleStartKISTrading(request, env);
@@ -508,6 +513,38 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
     console.error("   - appSecret:", env.KIS_APP_SECRET ? "설정됨" : "없음");
     console.error("   - accountNumber:", env.KIS_ACCOUNT_NUMBER || "없음");
     return { totalAsset: 10000000, cash: 10000000, positions: 0 };
+  }
+}
+
+/**
+ * Test KIS Account Balance
+ */
+async function handleTestKISBalance(request: Request, env: WorkerEnv): Promise<Response> {
+  try {
+    console.log("[KIS Balance Test] Starting balance check...");
+    const balance = await fetchKISAccountBalance(env);
+
+    return new Response(JSON.stringify({
+      status: "✅ Balance Test Complete",
+      timestamp: new Date().toISOString(),
+      credentials: {
+        appKeyProvided: !!env.KIS_APP_KEY,
+        appSecretProvided: !!env.KIS_APP_SECRET,
+        accountNumberProvided: !!env.KIS_ACCOUNT_NUMBER,
+        accountNumber: env.KIS_ACCOUNT_NUMBER || "NOT PROVIDED"
+      },
+      balance
+    }, null, 2), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("[KIS Balance Test] Error:", error);
+    return new Response(JSON.stringify({
+      error: "Balance Test Failed",
+      message: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    }), { status: 500 });
   }
 }
 
