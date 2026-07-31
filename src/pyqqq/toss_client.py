@@ -82,28 +82,48 @@ class TossSecuritiesClient:
         }
 
     async def get_account_balance(self) -> Dict[str, Any]:
-        """계좌 잔고 조회"""
+        """계좌 잔고 조회 (보유주식 기반)"""
         if not await self._check_token():
             return {}
 
         try:
             session = await self._ensure_session()
-            url = f"{self.base_url}/api/v1/accounts"
+
+            # /api/v1/holdings에서 보유 주식 정보 조회
+            url = f"{self.base_url}/api/v1/holdings"
             headers = self._get_headers()
             headers["x-tossinvest-account"] = self.account_ref
 
             async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                 if resp.status == 200:
                     data = await resp.json()
+                    holdings_result = data.get("result", {})
+
+                    # 보유 주식의 시장가치 (KRW 기준)
+                    market_value = holdings_result.get("marketValue", {})
+                    market_value_krw = float(market_value.get("amount", {}).get("krw", 0))
+
+                    # USD 잔고 환산 (1 USD = 약 1300 KRW)
+                    market_value_usd = float(market_value.get("amount", {}).get("usd", 0))
+                    usd_to_krw_rate = 1300  # 환율
+                    market_value_usd_krw = market_value_usd * usd_to_krw_rate
+
+                    # 총 자산 = KRW 보유 + USD 보유 환산
+                    total_market_value = market_value_krw + market_value_usd_krw
+
+                    # 현금은 보통 총자산 - 보유주식으로 계산
+                    # 여기서는 보유주식만 있다고 가정
+                    cash = 0
+
                     result = {
-                        "cash": float(data.get("cashBalance", 0)),
-                        "total_value": float(data.get("totalAsset", 0)),
-                        "buying_power": float(data.get("buyingPower", 0)),
-                        "d2_cash": float(data.get("d2CashBalance", 0))
+                        "cash": cash,
+                        "total_value": total_market_value,
+                        "buying_power": total_market_value,  # 추정
+                        "d2_cash": cash
                     }
                     logger.info(
-                        f"💰 계좌 잔고: 현금 {result['cash']:,.0f}원, "
-                        f"총자산 {result['total_value']:,.0f}원"
+                        f"💰 계좌 잔고: KRW {market_value_krw:,.0f}원 + USD ${market_value_usd:.2f} "
+                        f"= 총자산 {result['total_value']:,.0f}원"
                     )
                     return result
                 else:
