@@ -59,10 +59,14 @@ export class KISTradingAgent {
     const text = response.content[0]?.type === "text" ? (response.content[0] as any).text : "";
     const json = this.parseJSON(text) as any;
 
+    // ✅ 디버그: 파싱 결과 로깅
+    console.log(`[KIS Analysis] ${context.symbol}: confidence=${json.confidence}, recommendation=${json.recommendation}`);
+
     const result: KISAnalysisResult = {
       symbol: context.symbol,
       recommendation: (json.recommendation || "HOLD") as "BUY" | "SELL" | "HOLD",
-      confidence: Math.min(1, Math.max(0, Number(json.confidence) || 0.5)),
+      // ✅ 기본값 개선: confidence가 undefined면 0.6 기본값 사용
+      confidence: json.confidence !== undefined ? Math.min(1, Math.max(0, Number(json.confidence))) : 0.6,
       reasoning: String(json.reasoning) || "Analysis inconclusive",
       currentPrice: context.currentPrice,
       entryPrice: Number(json.entryPrice) || context.currentPrice,
