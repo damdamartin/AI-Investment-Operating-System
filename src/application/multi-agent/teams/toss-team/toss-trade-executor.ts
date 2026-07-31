@@ -48,6 +48,27 @@ export interface TossPosition {
   status: "OPEN" | "CLOSED" | "AT_STOP_LOSS" | "AT_TAKE_PROFIT";
 }
 
+export interface TossApiError {
+  code: string;
+  message: string;
+  requestId?: string;
+  data?: Record<string, any>;
+}
+
+export interface TossOrderModifyRequest {
+  orderType: "LIMIT" | "MARKET";
+  price?: string;
+  quantity?: string;
+  confirmHighValueOrder?: boolean;
+}
+
+export interface TossOrderResponse {
+  result: {
+    orderId: string;
+    clientOrderId?: string | null;
+  };
+}
+
 export interface TossExecutionConfig {
   /** Maximum percentage of portfolio for a single position (default: 5%) */
   maxPositionSizePercent?: number;
@@ -323,6 +344,26 @@ export class TossTradeExecutor {
   /**
    * Execute order via Toss API
    */
+  /**
+   * Format price for Toss API (KR vs US market)
+   * KR: integer (원 단위)
+   * US: decimal (달러 단위, $1 미만: 소수점 4자리, $1 이상: 2자리)
+   */
+  private formatPrice(symbol: string, price: number): string {
+    const isKRStock = /^\d+$/.test(symbol); // Numeric = KR
+
+    if (isKRStock) {
+      return Math.round(price).toString();
+    } else {
+      // US stock: format decimal
+      if (price < 1) {
+        return price.toFixed(4);
+      } else {
+        return price.toFixed(2);
+      }
+    }
+  }
+
   private async executeTossOrder(
     request: TossOrderRequest,
     orderId: string,
@@ -335,36 +376,59 @@ export class TossTradeExecutor {
     // Get access token
     const accessToken = await this.getTossAccessToken();
 
-    // Place order via Toss API
-    const orderUrl = `${this.apiBaseUrl}/api/v1/accounts/${this.apiAccountRef}/orders`;
+    // Place order via Toss Open API (POST /api/v1/orders)
+    const orderUrl = `${this.apiBaseUrl}/api/v1/orders`;
+
+    const price = request.orderPrice ?? executionPrice;
+    const formattedPrice = this.formatPrice(request.symbol, price);
+    const formattedQuantity = request.quantity.toString();
 
     const orderPayload = {
+      // Required fields
       symbol: request.symbol,
-      quantity: request.quantity,
-      orderType: "LIMIT_ORDER",
-      orderPrice: Math.round(request.orderPrice ?? executionPrice),
-      side: "BUY"
+      side: "BUY",
+      orderType: "LIMIT", // Using LIMIT order
+      price: formattedPrice,
+      quantity: formattedQuantity,
+
+      // Optional but recommended
+      clientOrderId: orderId, // For idempotency
+      timeInForce: "DAY", // Valid until end of day
+
+      // Safety flag for high-value orders (1억원+)
+      confirmHighValueOrder: false
     };
+
+    console.log(
+      `[TossTradeExecutor] Posting order to Toss API:`,
+      { endpoint: orderUrl, payload: orderPayload }
+    );
 
     const response = await fetch(orderUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "x-tossinvest-account": this.apiAccountRef
+        "X-Tossinvest-Account": this.apiAccountRef
       },
       body: JSON.stringify(orderPayload)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Toss API order failed (${response.status}): ${errorText}`
-      );
+      const errorMsg = `Toss API order failed (${response.status}): ${errorText}`;
+      console.error(`[TossTradeExecutor] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
 
     const result = await response.json() as any;
-    console.log(`[TossTradeExecutor] Toss API response:`, result);
+    const serverOrderId = result?.result?.orderId;
+    const clientOrderId = result?.result?.clientOrderId;
+
+    console.log(
+      `[TossTradeExecutor] Toss API order created:`,
+      { serverOrderId, clientOrderId, symbol: request.symbol, quantity: formattedQuantity }
+    );
 
     // Mark order as filled
     const order = this.orders.get(orderId);
@@ -389,6 +453,281 @@ export class TossTradeExecutor {
 
       this.positions.set(request.symbol, position);
     }
+  }
+
+  /**
+   * Modify an existing order (주문 정정)
+   * KR: Can modify quantity
+   * US: Can only modify price (not quantity)
+   */
+  async modifyOrder(orderId: string, modification: TossOrderModifyRequest): Promise<string> {
+    if (!this.apiClientId || !this.apiClientSecret || !this.apiAccountRef) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    const order = this.orders.get(orderId);
+    if (!order) {
+      throw new Error(`Order not found: ${orderId}`);
+    }
+
+    const accessToken = await this.getTossAccessToken();
+    const modifyUrl = `${this.apiBaseUrl}/api/v1/orders/${orderId}`;
+
+    const modifyPayload = {
+      orderType: modification.orderType,
+      ...(modification.price && { price: modification.price }),
+      ...(modification.quantity && { quantity: modification.quantity }),
+      confirmHighValueOrder: modification.confirmHighValueOrder ?? false
+    };
+
+    console.log(
+      `[TossTradeExecutor] Modifying order ${orderId}:`,
+      modifyPayload
+    );
+
+    const response = await fetch(modifyUrl, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Tossinvest-Account": this.apiAccountRef
+      },
+      body: JSON.stringify(modifyPayload)
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      this.handleTossApiError(errorData);
+    }
+
+    const result = await response.json() as TossOrderResponse;
+    const newOrderId = result.result.orderId;
+
+    console.log(
+      `[TossTradeExecutor] Order modified: ${orderId} → ${newOrderId}`
+    );
+
+    // Update local order tracking
+    order.status = "PENDING";
+
+    return newOrderId;
+  }
+
+  /**
+   * Cancel an order (주문 취소)
+   * Note: Cannot cancel filled orders
+   */
+  async cancelOrder(orderId: string): Promise<void> {
+    if (!this.apiClientId || !this.apiClientSecret || !this.apiAccountRef) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    const order = this.orders.get(orderId);
+    if (!order) {
+      throw new Error(`Order not found: ${orderId}`);
+    }
+
+    if (order.status === "FILLED") {
+      throw new Error(`Cannot cancel filled order: ${orderId}`);
+    }
+
+    const accessToken = await this.getTossAccessToken();
+    const cancelUrl = `${this.apiBaseUrl}/api/v1/orders/${orderId}`;
+
+    console.log(`[TossTradeExecutor] Cancelling order ${orderId}`);
+
+    const response = await fetch(cancelUrl, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Tossinvest-Account": this.apiAccountRef
+      },
+      body: JSON.stringify({})
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      this.handleTossApiError(errorData);
+    }
+
+    const result = await response.json() as TossOrderResponse;
+    const cancelledOrderId = result.result.orderId;
+
+    console.log(
+      `[TossTradeExecutor] Order cancelled: ${orderId} → ${cancelledOrderId}`
+    );
+
+    // Update local order tracking
+    order.status = "CANCELLED";
+  }
+
+  /**
+   * Get order status by orderId (특정 주문 조회)
+   */
+  async getOrderStatus(orderId: string): Promise<any> {
+    if (!this.apiClientId || !this.apiClientSecret || !this.apiAccountRef) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    const accessToken = await this.getTossAccessToken();
+    const statusUrl = `${this.apiBaseUrl}/api/v1/orders/${orderId}`;
+
+    console.log(`[TossTradeExecutor] Fetching order status: ${orderId}`);
+
+    const response = await fetch(statusUrl, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Tossinvest-Account": this.apiAccountRef
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      this.handleTossApiError(errorData);
+    }
+
+    const result = await response.json() as any;
+    console.log(`[TossTradeExecutor] Order status:`, result);
+
+    return result.result;
+  }
+
+  /**
+   * Get all orders with optional filters (모든 주문 조회)
+   */
+  async getAllOrders(filters?: {
+    symbol?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<any[]> {
+    if (!this.apiClientId || !this.apiClientSecret || !this.apiAccountRef) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    const accessToken = await this.getTossAccessToken();
+    const params = new URLSearchParams();
+
+    if (filters?.symbol) params.append("symbol", filters.symbol);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.limit) params.append("limit", filters.limit.toString());
+
+    const allOrdersUrl = `${this.apiBaseUrl}/api/v1/orders?${params.toString()}`;
+
+    console.log(`[TossTradeExecutor] Fetching all orders:`, allOrdersUrl);
+
+    const response = await fetch(allOrdersUrl, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Tossinvest-Account": this.apiAccountRef
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await this.parseErrorResponse(response);
+      this.handleTossApiError(errorData);
+    }
+
+    const result = await response.json() as any;
+    console.log(`[TossTradeExecutor] Retrieved ${result.result?.length || 0} orders`);
+
+    return result.result || [];
+  }
+
+  /**
+   * Parse Toss API error response
+   */
+  private async parseErrorResponse(response: Response): Promise<TossApiError> {
+    try {
+      const errorBody = await response.json() as any;
+      return {
+        code: errorBody.error?.code || "unknown-error",
+        message: errorBody.error?.message || `HTTP ${response.status}`,
+        requestId: errorBody.error?.requestId,
+        data: errorBody.error?.data
+      };
+    } catch {
+      return {
+        code: "http-error",
+        message: `HTTP ${response.status}: ${response.statusText}`
+      };
+    }
+  }
+
+  /**
+   * Handle Toss API errors with specific error codes
+   */
+  private handleTossApiError(error: TossApiError): never {
+    const errorMap: Record<string, { message: string; retryable: boolean }> = {
+      "invalid-request": {
+        message: "Invalid request parameters",
+        retryable: false
+      },
+      "confirm-high-value-required": {
+        message: "Order exceeds ₩100M - confirmation flag required",
+        retryable: false
+      },
+      "order-not-found": {
+        message: "Order does not exist",
+        retryable: false
+      },
+      "us-modify-quantity-not-supported": {
+        message: "US stocks: cannot modify quantity (price only)",
+        retryable: false
+      },
+      "fractional-quantity-outside-regular-hours": {
+        message: "Fractional quantity orders only during regular hours",
+        retryable: true
+      },
+      "amount-order-outside-regular-hours": {
+        message: "Amount-based orders only during regular hours",
+        retryable: true
+      },
+      "order-already-filled": {
+        message: "Cannot modify/cancel already-filled orders",
+        retryable: false
+      },
+      "insufficient-balance": {
+        message: "Insufficient account balance",
+        retryable: false
+      },
+      "max-order-amount-exceeded": {
+        message: "Order amount exceeds ₩300B limit",
+        retryable: false
+      },
+      "rate-limit-exceeded": {
+        message: "Rate limit exceeded - try again later",
+        retryable: true
+      }
+    };
+
+    const errorInfo = errorMap[error.code] || {
+      message: error.message,
+      retryable: false
+    };
+
+    const fullMessage = `[TossTradeExecutor] ${error.code}: ${errorInfo.message}`;
+    if (error.requestId) {
+      console.error(`${fullMessage} (RequestId: ${error.requestId})`);
+    } else {
+      console.error(fullMessage);
+    }
+
+    if (error.data) {
+      console.error(`Error details:`, error.data);
+    }
+
+    // Add retry hint
+    if (errorInfo.retryable) {
+      const retryAfter = error.data?.retryAfterSeconds || error.data?.retryAfterAt;
+      if (retryAfter) {
+        console.error(`Retry after: ${retryAfter}`);
+      }
+    }
+
+    throw new Error(fullMessage);
   }
 
   /**
