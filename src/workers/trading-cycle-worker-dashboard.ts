@@ -98,6 +98,17 @@ export function getDashboardHTML(): string {
     <header>
       <h1>🤖 Dual-Team Auto-Trading Dashboard</h1>
       <div class="header-subtitle">Live tracking KIS + Toss teams • Updates every 3 seconds</div>
+
+      <div style="margin-top: 15px; padding: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 6px; font-size: 13px;">
+        <div style="color: #22c55e; margin-bottom: 8px;"><strong>🔴 실시간 거래 로그</strong></div>
+        <div id="trade-log" style="max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #aaa;">
+          <div style="color: #888;">로그 로딩 중...</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 11px; color: #666;">
+          <button onclick="location.reload()" style="padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">새로고침</button>
+          <button onclick="fetch('/api/recent-analysis').then(r => r.json()).then(d => console.log(d))" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 8px;">API 확인</button>
+        </div>
+      </div>
     </header>
 
     <div class="teams-wrapper">
