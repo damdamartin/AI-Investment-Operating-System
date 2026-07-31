@@ -1,0 +1,32 @@
+name = "ai-investment-trading-cycle"
+main = "src/workers/trading-cycle-worker.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ✅ Durable Object 바인딩
+[[durable_objects.bindings]]
+name = "REALTIME_TRADING_AGENT"
+class_name = "RealtimeTradingAgent"
+
+[env.production]
+vars = { ENVIRONMENT = "production", CLOUDFLARE_ACCOUNT_ID = "87b29e119026eda88a305476a9c28adb", CLOUDFLARE_D1_DATABASE_ID = "9d287512-e226-4d7f-b739-d54098b36e0d" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_id = "9d287512-e226-4d7f-b739-d54098b36e0d"
+preview_database_id = "9d287512-e226-4d7f-b739-d54098b36e0d"
+
+# ✅ Durable Object 마이그레이션
+[[durable_objects.migrations]]
+tag = "v1"
+new_classes = ["RealtimeTradingAgent"]
+
+# ❌ REMOVED: 3시간 배치 크론 작업 제거
+# 이전: 매 3시간마다 실행 (06:00, 09:00, 12:00, 15:00, 18:00, 21:00, 00:00 KST)
+# 변경: Durable Object 기반 실시간 매매 (24/7 지속 실행)
+#
+# 이제 Durable Object는:
+# - 시작 시 자동 초기화
+# - WebSocket으로 실시간 가격 스트리밍 (5초마다 폴링)
+# - 5분마다 신호 생성
+# - 10초마다 포지션 모니터링 (손절/익절)
