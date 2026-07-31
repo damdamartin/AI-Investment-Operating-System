@@ -12,8 +12,14 @@ storage = "sqlite"
 vars = { ENVIRONMENT = "production", CLOUDFLARE_ACCOUNT_ID = "87b29e119026eda88a305476a9c28adb", CLOUDFLARE_D1_DATABASE_ID = "9d287512-e226-4d7f-b739-d54098b36e0d" }
 
 # ✅ Durable Object 바인딩 (production 환경)
+# Toss 에이전트 (기존)
 [[env.production.durable_objects.bindings]]
-name = "REALTIME_TRADING_AGENT"
+name = "REALTIME_TRADING_AGENT_TOSS"
+class_name = "RealtimeTradingAgent"
+
+# KIS 에이전트 (신규)
+[[env.production.durable_objects.bindings]]
+name = "REALTIME_TRADING_AGENT_KIS"
 class_name = "RealtimeTradingAgent"
 
 # ✅ Durable Object 마이그레이션

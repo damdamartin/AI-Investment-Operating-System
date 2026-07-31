@@ -30,7 +30,8 @@ interface WorkerEnv {
   PIPELINE_WATCHLIST?: string;
   KIS_INITIAL_PORTFOLIO?: string;
   TOSS_INITIAL_PORTFOLIO?: string;
-  REALTIME_TRADING_AGENT: DurableObjectNamespace;
+  REALTIME_TRADING_AGENT_TOSS: DurableObjectNamespace;
+  REALTIME_TRADING_AGENT_KIS: DurableObjectNamespace;
 }
 
 interface Position {
@@ -107,9 +108,19 @@ export default {
       return await handleTossStatus(request, env);
     }
 
-    // Realtime Trading Agent status
+    // Realtime Trading Agent - Toss status
+    if (url.pathname === "/api/trading-agent/toss/status") {
+      return await handleRealtimeTradingAgentTossStatus(request, env);
+    }
+
+    // Realtime Trading Agent - KIS status
+    if (url.pathname === "/api/trading-agent/kis/status") {
+      return await handleRealtimeTradingAgentKISStatus(request, env);
+    }
+
+    // Combined status (both agents)
     if (url.pathname === "/api/trading-agent/status") {
-      return await handleRealtimeTradingAgentStatus(request, env);
+      return await handleRealtimeTradingAgentCombinedStatus(request, env);
     }
 
     return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
@@ -325,13 +336,60 @@ async function fetchTossAccountBalance(env: WorkerEnv): Promise<{ totalAsset: nu
       return { totalAsset: 10000000, cash: 10000000 };
     }
 
-    // Step 2: Get account list (올바른 엔드포인트)
-    // 참고: 공식 가이드에서는 getPrices, getHoldings, getBuyingPower를 제공
-    // 하지만 /v1/api/v1 엔드포인트는 지원되지 않으므로 기본값 반환
-    console.log("⚠️ Toss 계좌 조회 엔드포인트가 현재 지원되지 않음");
-    console.log("   → tossctl fallback 또는 수동 설정 필요");
+    // Step 2: Get account list
+    console.log("[Toss] 계좌 목록 조회 시작...");
+    const accountsResponse = await fetch("https://openapi.tossinvest.com/api/v1/accounts", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
 
-    return { totalAsset: 10000000, cash: 10000000 };
+    if (!accountsResponse.ok) {
+      console.error(`❌ Toss 계좌 조회 실패: ${accountsResponse.status}`);
+      console.error(`   응답:`, await accountsResponse.text());
+      return { totalAsset: 10000000, cash: 10000000 };
+    }
+
+    const accountsData = (await accountsResponse.json()) as any;
+    const accounts = accountsData.result || [];
+
+    if (accounts.length === 0) {
+      console.warn("⚠️ Toss 계좌 없음");
+      return { totalAsset: 10000000, cash: 10000000 };
+    }
+
+    const accountSeq = accounts[0].accountSeq;
+    console.log(`✅ Toss 계좌 획득: ${accounts[0].accountNo} (seq: ${accountSeq})`);
+
+    // Step 3: Get holdings
+    console.log("[Toss] 보유 주식 조회 시작...");
+    const holdingsResponse = await fetch("https://openapi.tossinvest.com/api/v1/holdings", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "X-Tossinvest-Account": String(accountSeq),
+      },
+    });
+
+    if (!holdingsResponse.ok) {
+      console.error(`❌ Toss 보유 주식 조회 실패: ${holdingsResponse.status}`);
+      console.error(`   응답:`, await holdingsResponse.text());
+      return { totalAsset: 10000000, cash: 10000000 };
+    }
+
+    const holdingsData = (await holdingsResponse.json()) as any;
+    const marketValue = holdingsData.result?.marketValue || {};
+
+    const krwAmount = Number(marketValue.amount?.krw) || 0;
+    const usdAmount = Number(marketValue.amount?.usd) || 0;
+
+    // USD를 KRW로 환산 (현재 환율 기준, 임시로 1:1300 사용)
+    const totalAsset = krwAmount + (usdAmount * 1300);
+    const cash = Number(holdingsData.result?.totalPurchaseAmount?.krw) || totalAsset;
+
+    console.log(`✅ Toss 잔고 조회 성공: 총자산 ₩${totalAsset}, 현금 ₩${cash}`);
+    return { totalAsset, cash };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("❌ Toss API 호출 실패:", errorMsg);
@@ -426,15 +484,22 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
 
     if (!accountNumber) {
       console.warn("⚠️ KIS 계좌번호 없음");
+      console.error("   env.KIS_ACCOUNT_NUMBER:", env.KIS_ACCOUNT_NUMBER);
       return { totalAsset: 10000000, cash: 10000000, positions: 0 };
     }
+
+    console.log(`[KIS 잔고] 계좌번호: ${accountNumber}`);
 
     // Get cached or new token
     const accessToken = await getKISAccessToken(env);
     if (!accessToken) {
       console.error("❌ KIS 토큰 발급 불가");
+      console.error("   appKey 설정:", !!appKey);
+      console.error("   appSecret 설정:", !!appSecret);
       return { totalAsset: 10000000, cash: 10000000, positions: 0 };
     }
+
+    console.log(`[KIS 잔고] 토큰 획득: ${accessToken.substring(0, 30)}...`);
 
     // Determine base URL and TR_ID
     const isVts = kisEnv === "vts" || kisEnv === "mock" || kisEnv === "paper";
@@ -1268,21 +1333,19 @@ async function handleTossStatus(request: Request, env: WorkerEnv): Promise<Respo
 }
 
 /**
- * Get Realtime Trading Agent Status
+ * Get Toss Trading Agent Status
  */
-async function handleRealtimeTradingAgentStatus(request: Request, env: WorkerEnv): Promise<Response> {
+async function handleRealtimeTradingAgentTossStatus(request: Request, env: WorkerEnv): Promise<Response> {
   try {
-    // Durable Object 가져오기
-    const id = env.REALTIME_TRADING_AGENT.idFromName("trading-agent-main");
-    const agent = env.REALTIME_TRADING_AGENT.get(id);
-
-    // 상태 조회
+    const id = env.REALTIME_TRADING_AGENT_TOSS.idFromName("trading-agent-toss");
+    const agent = env.REALTIME_TRADING_AGENT_TOSS.get(id);
     const response = await agent.fetch(new Request("https://agent.local/status"));
     const status = await response.json();
 
     return new Response(JSON.stringify({
       status: "success",
-      agent: "RealtimeTradingAgent",
+      agent: "RealtimeTradingAgent-Toss",
+      broker: "Toss",
       data: status,
       timestamp: new Date().toISOString()
     }), {
@@ -1290,10 +1353,91 @@ async function handleRealtimeTradingAgentStatus(request: Request, env: WorkerEnv
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error("[Realtime Trading Agent Error]", error);
+    console.error("[Toss Agent Error]", error);
     return new Response(JSON.stringify({
       status: "error",
-      agent: "RealtimeTradingAgent",
+      agent: "RealtimeTradingAgent-Toss",
+      error: String(error),
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+
+/**
+ * Get KIS Trading Agent Status
+ */
+async function handleRealtimeTradingAgentKISStatus(request: Request, env: WorkerEnv): Promise<Response> {
+  try {
+    const id = env.REALTIME_TRADING_AGENT_KIS.idFromName("trading-agent-kis");
+    const agent = env.REALTIME_TRADING_AGENT_KIS.get(id);
+    const response = await agent.fetch(new Request("https://agent.local/status"));
+    const status = await response.json();
+
+    return new Response(JSON.stringify({
+      status: "success",
+      agent: "RealtimeTradingAgent-KIS",
+      broker: "KIS",
+      data: status,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("[KIS Agent Error]", error);
+    return new Response(JSON.stringify({
+      status: "error",
+      agent: "RealtimeTradingAgent-KIS",
+      error: String(error),
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+
+/**
+ * Get Combined Status (Toss + KIS)
+ */
+async function handleRealtimeTradingAgentCombinedStatus(request: Request, env: WorkerEnv): Promise<Response> {
+  try {
+    const tosId = env.REALTIME_TRADING_AGENT_TOSS.idFromName("trading-agent-toss");
+    const tossAgent = env.REALTIME_TRADING_AGENT_TOSS.get(tosId);
+    const tossResponse = await tossAgent.fetch(new Request("https://agent.local/status"));
+    const tossStatus = await tossResponse.json();
+
+    const kisId = env.REALTIME_TRADING_AGENT_KIS.idFromName("trading-agent-kis");
+    const kisAgent = env.REALTIME_TRADING_AGENT_KIS.get(kisId);
+    const kisResponse = await kisAgent.fetch(new Request("https://agent.local/status"));
+    const kisStatus = await kisResponse.json();
+
+    return new Response(JSON.stringify({
+      status: "success",
+      agents: [
+        {
+          agent: "RealtimeTradingAgent-Toss",
+          broker: "Toss",
+          data: tossStatus
+        },
+        {
+          agent: "RealtimeTradingAgent-KIS",
+          broker: "KIS",
+          data: kisStatus
+        }
+      ],
+      timestamp: new Date().toISOString()
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("[Combined Status Error]", error);
+    return new Response(JSON.stringify({
+      status: "error",
       error: String(error),
       timestamp: new Date().toISOString()
     }), {
