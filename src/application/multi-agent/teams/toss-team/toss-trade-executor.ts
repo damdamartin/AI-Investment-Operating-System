@@ -57,13 +57,27 @@ export interface TossExecutionConfig {
   minConfidenceThreshold?: number;
   /** Base quantity for orders (default: 10 shares) */
   baseOrderQuantity?: number;
+  /** API credentials for live trading */
+  apiClientId?: string;
+  apiClientSecret?: string;
+  apiAccountRef?: string;
+  apiBaseUrl?: string;
 }
 
 export class TossTradeExecutor {
   private orders: Map<string, TossOrder> = new Map();
   private positions: Map<string, TossPosition> = new Map();
-  private config: Required<TossExecutionConfig>;
+  private config: {
+    maxPositionSizePercent: number;
+    maxOpenPositions: number;
+    minConfidenceThreshold: number;
+    baseOrderQuantity: number;
+  };
   private portfolioValue: number = 10_000_000; // Default: ₩10M
+  private apiClientId?: string;
+  private apiClientSecret?: string;
+  private apiAccountRef?: string;
+  private apiBaseUrl: string = "https://openapi.tossinvest.com";
 
   constructor(config: TossExecutionConfig = {}) {
     this.config = {
@@ -72,6 +86,12 @@ export class TossTradeExecutor {
       minConfidenceThreshold: config.minConfidenceThreshold ?? 0.6,
       baseOrderQuantity: config.baseOrderQuantity ?? 10
     };
+
+    // API credentials for live trading
+    if (config.apiClientId) this.apiClientId = config.apiClientId;
+    if (config.apiClientSecret) this.apiClientSecret = config.apiClientSecret;
+    if (config.apiAccountRef) this.apiAccountRef = config.apiAccountRef;
+    if (config.apiBaseUrl) this.apiBaseUrl = config.apiBaseUrl;
   }
 
   /**
@@ -131,7 +151,7 @@ export class TossTradeExecutor {
   }
 
   /**
-   * Place a BUY order
+   * Place a BUY order (calls Toss API if credentials available)
    */
   async placeBuyOrder(
     request: TossOrderRequest,
@@ -153,14 +173,28 @@ export class TossTradeExecutor {
 
     this.orders.set(orderId, order);
 
-    // Simulate order execution (in production, call Toss API)
-    setTimeout(() => {
-      this.fillOrder(orderId, analysis.entryPrice);
-    }, 1000);
+    // Try to execute real order via Toss API
+    if (this.apiClientId && this.apiClientSecret && this.apiAccountRef) {
+      try {
+        await this.executeTossOrder(request, orderId, analysis.entryPrice);
+        console.log(
+          `[TossTradeExecutor] Executed BUY order ${orderId} via Toss API: ${request.quantity} ${request.symbol} @ ${request.orderPrice}`
+        );
+      } catch (error) {
+        console.error(`[TossTradeExecutor] Toss API order failed:`, error);
+        order.status = "REJECTED";
+        order.reason = String(error);
+      }
+    } else {
+      // Fallback: simulate order execution
+      setTimeout(() => {
+        this.fillOrder(orderId, analysis.entryPrice);
+      }, 1000);
 
-    console.log(
-      `[TossTradeExecutor] Placed BUY order ${orderId}: ${request.quantity} ${request.symbol} @ ${request.orderPrice}`
-    );
+      console.log(
+        `[TossTradeExecutor] Simulated BUY order ${orderId}: ${request.quantity} ${request.symbol} @ ${request.orderPrice}`
+      );
+    }
 
     return order;
   }
@@ -284,6 +318,111 @@ export class TossTradeExecutor {
    */
   setPortfolioValue(value: number): void {
     this.portfolioValue = value;
+  }
+
+  /**
+   * Execute order via Toss API
+   */
+  private async executeTossOrder(
+    request: TossOrderRequest,
+    orderId: string,
+    executionPrice: number
+  ): Promise<void> {
+    if (!this.apiClientId || !this.apiClientSecret || !this.apiAccountRef) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    // Get access token
+    const accessToken = await this.getTossAccessToken();
+
+    // Place order via Toss API
+    const orderUrl = `${this.apiBaseUrl}/api/v1/accounts/${this.apiAccountRef}/orders`;
+
+    const orderPayload = {
+      symbol: request.symbol,
+      quantity: request.quantity,
+      orderType: "LIMIT_ORDER",
+      orderPrice: Math.round(request.orderPrice ?? executionPrice),
+      side: "BUY"
+    };
+
+    const response = await fetch(orderUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "x-tossinvest-account": this.apiAccountRef
+      },
+      body: JSON.stringify(orderPayload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Toss API order failed (${response.status}): ${errorText}`
+      );
+    }
+
+    const result = await response.json() as any;
+    console.log(`[TossTradeExecutor] Toss API response:`, result);
+
+    // Mark order as filled
+    const order = this.orders.get(orderId);
+    if (order) {
+      order.status = "FILLED";
+      order.executionPrice = executionPrice;
+      order.filledAt = new Date();
+
+      // Create position
+      const position: TossPosition = {
+        symbol: request.symbol,
+        quantity: request.quantity,
+        entryPrice: executionPrice,
+        currentPrice: executionPrice,
+        stopLossPrice: executionPrice * 0.95,
+        takeProfitPrice: executionPrice * 1.1,
+        pnl: 0,
+        pnlPercent: 0,
+        createdAt: new Date(),
+        status: "OPEN"
+      };
+
+      this.positions.set(request.symbol, position);
+    }
+  }
+
+  /**
+   * Get Toss API access token via OAuth2
+   */
+  private async getTossAccessToken(): Promise<string> {
+    if (!this.apiClientId || !this.apiClientSecret) {
+      throw new Error("Missing Toss API credentials");
+    }
+
+    const tokenUrl = `${this.apiBaseUrl}/oauth2/token`;
+
+    const response = await fetch(tokenUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: this.apiClientId,
+        client_secret: this.apiClientSecret,
+        scope: "read write"
+      }).toString()
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to get Toss access token (${response.status}): ${errorText}`
+      );
+    }
+
+    const tokenData = await response.json() as any;
+    return tokenData.access_token;
   }
 
   /**
