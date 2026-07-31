@@ -85,14 +85,22 @@ export class RealtimeTradingAgent {
     this.claude = new Anthropic({ apiKey: env.CLAUDE_API_KEY });
     this.watchlist = (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim());
 
-    // 증권사 선택 (환경 변수에 따라)
+    // 증권사 선택 (DO 이름 또는 환경 변수에 따라)
     const hasTossConfig = env.TOSS_CLIENT_ID && env.TOSS_CLIENT_SECRET;
     const hasKISConfig = env.KIS_APP_KEY && env.KIS_APP_SECRET;
 
-    if (hasTossConfig && hasKISConfig) {
-      this.broker = "Toss"; // Toss 우선 (변경 가능)
+    // DO 이름으로 broker 강제 선택
+    const doName = this.state.id.toString().toLowerCase();
+    if (doName.includes("kis")) {
+      this.broker = "KIS";
+    } else if (doName.includes("toss")) {
+      this.broker = "Toss";
+    } else if (hasTossConfig && hasKISConfig) {
+      this.broker = "Toss"; // 기본값: Toss 우선
     } else if (hasKISConfig) {
       this.broker = "KIS";
+    } else if (hasTossConfig) {
+      this.broker = "Toss";
     }
 
     // Order Executor 초기화
