@@ -28,8 +28,9 @@ export function getDashboardHTML(): string {
     h1 { font-size: 32px; margin-bottom: 10px; }
     .header-subtitle { color: #888; font-size: 14px; }
 
-    .teams-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 1200px) { .teams-wrapper { grid-template-columns: 1fr; } }
+    .teams-wrapper { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    @media (max-width: 1400px) { .teams-wrapper { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) { .teams-wrapper { grid-template-columns: 1fr; } }
 
     .team-panel {
       background: rgba(255,255,255, 0.02);
@@ -51,6 +52,7 @@ export function getDashboardHTML(): string {
     .team-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .badge-kis { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
     .badge-toss { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+    .badge-alpaca { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
 
     .status-dot {
       display: inline-block;
@@ -96,8 +98,8 @@ export function getDashboardHTML(): string {
 <body>
   <div class="container">
     <header>
-      <h1>🤖 Dual-Team Auto-Trading Dashboard</h1>
-      <div class="header-subtitle">Live tracking KIS + Toss teams • Updates every 3 seconds</div>
+      <h1>🤖 Triple-Team Auto-Trading Dashboard</h1>
+      <div class="header-subtitle">Live tracking KIS + Toss + Alpaca teams • Updates every 3 seconds</div>
 
       <div style="margin-top: 15px; padding: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 6px; font-size: 13px;">
         <div style="color: #22c55e; margin-bottom: 8px;"><strong>🔴 실시간 거래 로그</strong></div>
@@ -122,8 +124,12 @@ export function getDashboardHTML(): string {
 
         <div class="metrics-grid">
           <div class="metric-card">
-            <div class="metric-label">포트폴리오</div>
-            <div class="metric-value" id="kis-portfolio">₩10M</div>
+            <div class="metric-label">포트폴리오 (KRW)</div>
+            <div class="metric-value" id="kis-portfolio-krw">₩7M</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">포트폴리오 (USD)</div>
+            <div class="metric-value" id="kis-portfolio-usd">$2.3K</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">포지션</div>
@@ -132,10 +138,6 @@ export function getDashboardHTML(): string {
           <div class="metric-card">
             <div class="metric-label">P&L</div>
             <div class="metric-value" id="kis-pnl">₩0</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">현금</div>
-            <div class="metric-value" id="kis-cash">₩10M</div>
           </div>
         </div>
 
@@ -185,13 +187,57 @@ export function getDashboardHTML(): string {
 
         <div class="update-time">마지막 업데이트: <span id="toss-time">--:--:--</span></div>
       </div>
+
+      <!-- Alpaca Team -->
+      <div class="team-panel">
+        <div class="team-header">
+          <span class="status-dot" id="alpaca-status"></span>
+          <span class="team-name">Alpaca Team</span>
+          <span class="team-badge badge-alpaca">미국주식</span>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">포트폴리오</div>
+            <div class="metric-value" id="alpaca-portfolio">$10K</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">포지션</div>
+            <div class="metric-value" id="alpaca-positions">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">P&L</div>
+            <div class="metric-value" id="alpaca-pnl">$0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">매매력</div>
+            <div class="metric-value" id="alpaca-cash">$40K</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📊 포지션</div>
+          <div id="alpaca-positions-table">
+            <div class="empty-state">포지션 없음</div>
+          </div>
+        </div>
+
+        <div class="update-time">마지막 업데이트: <span id="alpaca-time">--:--:--</span></div>
+      </div>
     </div>
   </div>
 
   <script>
     const API_BASE = window.location.origin;
 
-    function formatCurrency(value) {
+    function formatCurrency(value, currency = 'KRW') {
+      if (currency === 'USD') {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 2
+        }).format(value);
+      }
       return new Intl.NumberFormat('ko-KR', {
         style: 'currency',
         currency: 'KRW',
@@ -217,55 +263,90 @@ export function getDashboardHTML(): string {
     }
 
     function updateTeamUI(teamName, data) {
-      const prefix = teamName.toLowerCase();
-      const statusDot = document.getElementById(\`\${prefix}-status\`);
+      try {
+        const prefix = teamName.toLowerCase();
+        const statusDot = document.getElementById(\`\${prefix}-status\`);
+        const isCurrency = teamName === 'alpaca' ? 'USD' : 'KRW';
 
-      if (!data) {
-        statusDot.classList.add('status-error');
-        document.getElementById(\`\${prefix}-portfolio\`).textContent = '❌ 오류';
-        document.getElementById(\`\${prefix}-positions-table\`).innerHTML = '<div class="empty-state">API 오류</div>';
-        return;
-      }
-
-      statusDot.classList.remove('status-error');
-
-      // Update metrics
-      const portfolio = data.portfolio;
-      document.getElementById(\`\${prefix}-portfolio\`).textContent = formatCurrency(portfolio.totalValue);
-      document.getElementById(\`\${prefix}-cash\`).textContent = formatCurrency(portfolio.cashValue);
-      document.getElementById(\`\${prefix}-positions\`).textContent = data.positions.length;
-
-      const pnlEl = document.getElementById(\`\${prefix}-pnl\`);
-      pnlEl.textContent = formatCurrency(portfolio.totalPnL);
-      pnlEl.className = 'metric-value ' + (portfolio.totalPnL >= 0 ? 'positive' : 'negative');
-
-      // Update positions table
-      const posTable = document.getElementById(\`\${prefix}-positions-table\`);
-      if (data.positions.length === 0) {
-        posTable.innerHTML = '<div class="empty-state">포지션 없음</div>';
-      } else {
-        let html = '<table><tr><th>종목</th><th>수량</th><th>진입가</th><th>P&L</th><th>수익률</th></tr>';
-        for (const pos of data.positions) {
-          const pnlClass = pos.pnl >= 0 ? 'positive' : 'negative';
-          html += \`<tr>
-            <td><strong>\${pos.symbol}</strong></td>
-            <td>\${pos.quantity}</td>
-            <td>\${formatCurrency(pos.entryPrice)}</td>
-            <td class="\${pnlClass}">\${formatCurrency(pos.pnl)}</td>
-            <td class="\${pnlClass}">\${pos.pnlPercent.toFixed(2)}%</td>
-          </tr>\`;
+        if (!data) {
+          if (statusDot) statusDot.classList.add('status-error');
+          const portfolioEl = document.getElementById(\`\${prefix}-portfolio\`);
+          if (portfolioEl) portfolioEl.textContent = '❌ 오류';
+          const posTableEl = document.getElementById(\`\${prefix}-positions-table\`);
+          if (posTableEl) posTableEl.innerHTML = '<div class="empty-state">API 오류</div>';
+          return;
         }
-        html += '</table>';
-        posTable.innerHTML = html;
-      }
 
-      document.getElementById(\`\${prefix}-time\`).textContent = new Date().toLocaleTimeString('ko-KR');
+        if (statusDot) statusDot.classList.remove('status-error');
+
+        // Update metrics
+        const portfolio = data.portfolio || {};
+
+        // KIS Team: Show KRW and USD separately
+        if (teamName === 'kis' && portfolio.krw !== undefined && portfolio.usd !== undefined) {
+          const krwEl = document.getElementById(\`\${prefix}-portfolio-krw\`);
+          const usdEl = document.getElementById(\`\${prefix}-portfolio-usd\`);
+          if (krwEl) krwEl.textContent = formatCurrency(portfolio.krw, 'KRW');
+          if (usdEl) usdEl.textContent = formatCurrency(portfolio.usd, 'USD');
+        } else {
+          // Toss/Alpaca: Show single portfolio value
+          const portfolioEl = document.getElementById(\`\${prefix}-portfolio\`);
+          if (portfolioEl) {
+            portfolioEl.textContent = formatCurrency(portfolio.totalValue || 0, isCurrency);
+          }
+        }
+
+        // Cash: only show for Alpaca (buying power)
+        if (teamName === 'alpaca') {
+          const cashEl = document.getElementById(\`\${prefix}-cash\`);
+          if (cashEl) {
+            cashEl.textContent = formatCurrency(portfolio.buyingPower || 0, isCurrency);
+          }
+        }
+
+        const posEl = document.getElementById(\`\${prefix}-positions\`);
+        if (posEl) posEl.textContent = (data.positions || []).length;
+
+        const pnlEl = document.getElementById(\`\${prefix}-pnl\`);
+        if (pnlEl) {
+          pnlEl.textContent = formatCurrency(portfolio.totalPnL || 0, isCurrency);
+          pnlEl.className = 'metric-value ' + ((portfolio.totalPnL || 0) >= 0 ? 'positive' : 'negative');
+        }
+
+        // Update positions table
+        const posTable = document.getElementById(\`\${prefix}-positions-table\`);
+        if (posTable) {
+          if (!data.positions || data.positions.length === 0) {
+            posTable.innerHTML = '<div class="empty-state">포지션 없음</div>';
+          } else {
+            let html = '<table><tr><th>종목</th><th>수량</th><th>진입가</th><th>P&L</th><th>수익률</th></tr>';
+            for (const pos of data.positions) {
+              const pnlClass = pos.pnl >= 0 ? 'positive' : 'negative';
+              html += \`<tr>
+                <td><strong>\${pos.symbol}</strong></td>
+                <td>\${pos.quantity}</td>
+                <td>\${formatCurrency(pos.entryPrice, isCurrency)}</td>
+                <td class="\${pnlClass}">\${formatCurrency(pos.pnl, isCurrency)}</td>
+                <td class="\${pnlClass}">\${pos.pnlPercent.toFixed(2)}%</td>
+              </tr>\`;
+            }
+            html += '</table>';
+            posTable.innerHTML = html;
+          }
+        }
+
+        const timeEl = document.getElementById(\`\${prefix}-time\`);
+        if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('ko-KR');
+      } catch (error) {
+        console.error(\`[Dashboard] Error updating \${teamName}:\`, error);
+      }
     }
 
     async function updateDashboard() {
       await Promise.all([
         updateTeam('kis'),
-        updateTeam('toss')
+        updateTeam('toss'),
+        updateTeam('alpaca')
       ]);
     }
 

@@ -34,6 +34,10 @@ export interface KISCycleSummary {
   openPositions: number;
   totalPnL: number;
   portfolioValue: number;
+  portfolio?: {
+    krw: number; // Korean stock portfolio value
+    usd: number; // US stock portfolio value
+  };
 }
 
 export class KISTeamOrchestrator {
@@ -43,6 +47,8 @@ export class KISTeamOrchestrator {
   private watchlist: Set<string>;
   private lastAnalysisBySymbol: Map<string, KISAnalysisResult> = new Map();
   private isRunning: boolean = false;
+  private portfolioKRW: number = 0; // Korean won portfolio
+  private portfolioUSD: number = 0; // US dollar portfolio
 
   constructor(config: KISTeamConfig) {
     // Initialize market data provider
@@ -75,10 +81,16 @@ export class KISTeamOrchestrator {
 
   /**
    * Run a single trading cycle
+   * @param krwBalance Portfolio value in Korean Won
+   * @param usdBalance Optional portfolio value in US Dollars (for US stocks)
    */
-  async runTradingCycle(currentBalance: number): Promise<KISCycleSummary> {
+  async runTradingCycle(krwBalance: number, usdBalance?: number): Promise<KISCycleSummary> {
     const startTime = Date.now();
+    this.portfolioKRW = krwBalance;
+    this.portfolioUSD = usdBalance ?? 0;
+
     console.log(`[KISTeamOrchestrator] Starting trading cycle at ${new Date().toISOString()}`);
+    console.log(`[KISTeamOrchestrator] Portfolio: KRW=${krwBalance}, USD=${this.portfolioUSD}`);
 
     try {
       // Step 1: Fetch market data
@@ -89,8 +101,9 @@ export class KISTeamOrchestrator {
       const analyses = await this.analyzeMarketData(snapshots);
       console.log(`[KISTeamOrchestrator] Completed ${analyses.length} analyses`);
 
-      // Step 3: Execute trades
-      const orders = await this.executeTrades(analyses, currentBalance);
+      // Step 3: Execute trades (use appropriate balance by currency)
+      const totalBalance = krwBalance + (this.portfolioUSD > 0 ? this.portfolioUSD * 1300 : 0); // Rough KRW conversion
+      const orders = await this.executeTrades(analyses, totalBalance);
       console.log(`[KISTeamOrchestrator] Executed ${orders.length} orders`);
 
       // Step 4: Monitor positions
@@ -237,7 +250,11 @@ export class KISTeamOrchestrator {
       ordersExecuted: orders.length,
       openPositions: positions.length,
       totalPnL: summary.totalPnL,
-      portfolioValue: summary.totalValue
+      portfolioValue: summary.totalValue,
+      portfolio: {
+        krw: this.portfolioKRW,
+        usd: this.portfolioUSD
+      }
     };
   }
 
