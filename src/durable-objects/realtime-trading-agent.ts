@@ -5,11 +5,12 @@
  * - 실시간 가격 스트리밍 (Toss WebSocket)
  * - 5분마다 신호 생성
  * - Claude AI 검증
- * - 즉시 주문 실행
+ * - 즉시 주문 실행 (KIS/Toss API)
  * - 실시간 손절/익절 모니터링
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { LiveOrderExecutor, type BrokerConfig } from "../application/orders/live-order-executor.js";
 
 interface WorkerEnv {
   DB: D1Database;
@@ -68,6 +69,7 @@ export class RealtimeTradingAgent {
   private state: DurableObjectState;
   private env: WorkerEnv;
   private claude: Anthropic;
+  private orderExecutor: LiveOrderExecutor;
   private priceCache: Map<string, PriceData[]> = new Map();
   private signalCache: Map<string, TradeSignal> = new Map();
   private watchlist: string[] = [];
@@ -75,12 +77,37 @@ export class RealtimeTradingAgent {
   private accessToken: string = "";
   private lastSignalTime: Map<string, number> = new Map();
   private initPromise: Promise<void>;
+  private broker: "KIS" | "Toss" = "Toss";
 
   constructor(state: DurableObjectState, env: WorkerEnv) {
     this.state = state;
     this.env = env;
     this.claude = new Anthropic({ apiKey: env.CLAUDE_API_KEY });
     this.watchlist = (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim());
+
+    // 증권사 선택 (환경 변수에 따라)
+    const hasTossConfig = env.TOSS_CLIENT_ID && env.TOSS_CLIENT_SECRET;
+    const hasKISConfig = env.KIS_APP_KEY && env.KIS_APP_SECRET;
+
+    if (hasTossConfig && hasKISConfig) {
+      this.broker = "Toss"; // Toss 우선 (변경 가능)
+    } else if (hasKISConfig) {
+      this.broker = "KIS";
+    }
+
+    // Order Executor 초기화
+    const brokerConfig: BrokerConfig = {
+      broker: this.broker,
+      appKey: env.KIS_APP_KEY,
+      appSecret: env.KIS_APP_SECRET,
+      clientId: env.TOSS_CLIENT_ID,
+      clientSecret: env.TOSS_CLIENT_SECRET,
+      accountNumber: env.KIS_ACCOUNT_NUMBER,
+    };
+
+    this.orderExecutor = new LiveOrderExecutor(brokerConfig);
+
+    console.log(`📍 Order Broker: ${this.broker}`);
 
     // 비동기 초기화 (병렬 실행)
     this.initPromise = this.initialize().catch(err => {
@@ -493,16 +520,29 @@ JSON으로만 응답하세요:
     }
   }
 
-  // Step 1️⃣1️⃣: 주문 DB 기록
+  // Step 1️⃣1️⃣: 실제 주문 실행 및 DB 기록
   private async recordOrder(decision: TradeDecision) {
     try {
+      // 1️⃣ 실제 주문 실행 (KIS 또는 Toss API)
+      const orderResult = await this.orderExecutor.executeBuyOrder(
+        decision.symbol,
+        decision.quantity,
+        decision.entryPrice
+      );
+
+      if (!orderResult.success) {
+        console.error(`❌ 주문 실패: ${orderResult.message}`);
+        // 실패해도 DB에 기록 (추적용)
+      }
+
+      // 2️⃣ DB에 포지션 기록 (실제 주문 결과 포함)
       const positionId = crypto.randomUUID();
       const now = new Date().toISOString();
 
       await this.env.DB.prepare(
         `INSERT INTO trading_positions
-          (id, symbol, quantity, entry_price, entry_date, stop_loss_price, take_profit_price, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?)`
+          (id, symbol, quantity, entry_price, entry_date, stop_loss_price, take_profit_price, status, created_at, updated_at, broker, order_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
         .bind(
           positionId,
@@ -512,12 +552,16 @@ JSON으로만 응답하세요:
           now,
           decision.stopLossPrice,
           decision.takeProfitPrice,
+          orderResult.success ? "OPEN" : "FAILED",
           now,
-          now
+          now,
+          orderResult.broker,
+          orderResult.orderId || null
         )
         .run();
 
-      console.log(`📝 Position recorded: ${positionId}`);
+      console.log(`✅ [${orderResult.broker}] 주문 ${orderResult.success ? "성공" : "실패"}: ${positionId}`);
+      console.log(`   ${orderResult.message}`);
     } catch (error) {
       console.error("❌ Record order error:", error);
     }
@@ -562,7 +606,7 @@ JSON으로만 응답하세요:
     }
   }
 
-  // Step 1️⃣4️⃣: 포지션 종료 (손절/익절)
+  // Step 1️⃣4️⃣: 포지션 종료 (손절/익절) - 실제 주문 실행
   private async closePosition(
     positionId: string,
     symbol: string,
@@ -571,24 +615,54 @@ JSON으로만 응답하세요:
     pnlPercent: number
   ) {
     try {
-      const now = new Date().toISOString();
+      // 포지션 데이터 조회
+      const position = await this.env.DB.prepare(
+        `SELECT quantity FROM trading_positions WHERE id = ?`
+      )
+        .bind(positionId)
+        .first() as any;
 
-      // 포지션 상태 업데이트
+      if (!position) {
+        console.warn(`⚠️ Position not found: ${positionId}`);
+        return;
+      }
+
+      const quantity = Number(position.quantity);
+
+      // 1️⃣ 실제 매도 주문 실행 (손절/익절)
+      const sellResult = await this.orderExecutor.executeSellOrder(
+        symbol,
+        quantity,
+        exitPrice
+      );
+
+      if (!sellResult.success) {
+        console.error(`❌ 매도 주문 실패: ${sellResult.message}`);
+      }
+
+      // 2️⃣ 포지션 상태 업데이트
+      const now = new Date().toISOString();
       await this.env.DB.prepare(
-        `UPDATE trading_positions SET status = ?, closed_at = ?, close_reason = ?, updated_at = ? WHERE id = ?`
+        `UPDATE trading_positions
+         SET status = ?, closed_at = ?, close_reason = ?, closing_price = ?, pnl_percent = ?, sell_order_id = ?, updated_at = ?
+         WHERE id = ?`
       )
         .bind(
           reason === "STOP_LOSS" ? "STOPPED_OUT" : "TAKEN_PROFIT",
           now,
           reason,
+          exitPrice,
+          pnlPercent,
+          sellResult.orderId || null,
           now,
           positionId
         )
         .run();
 
       console.log(
-        `🛑 [${symbol}] ${reason}: 종료가 ₩${exitPrice.toLocaleString()} (${pnlPercent.toFixed(2)}%)`
+        `🛑 [${symbol}] ${reason}: 매도 ₩${exitPrice.toLocaleString()} (${pnlPercent.toFixed(2)}%) - ${sellResult.broker}`
       );
+      console.log(`   주문ID: ${sellResult.orderId}`);
     } catch (error) {
       console.error("❌ Close position error:", error);
     }

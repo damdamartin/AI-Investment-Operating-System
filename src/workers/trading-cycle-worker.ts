@@ -465,20 +465,29 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
     if (appKey) headers["appkey"] = appKey;
     if (appSecret) headers["appsecret"] = appSecret;
 
+    console.log(`[KIS API 호출] URL: ${balanceUrl.toString()}`);
+    console.log(`[KIS API 호출] 계좌번호: ${cano}-${acntPrdtCd}`);
+    console.log(`[KIS API 호출] 토큰 길이: ${accessToken.length}`);
+
     const balanceResponse = await fetch(balanceUrl.toString(), {
       method: "GET",
       headers
     });
 
+    console.log(`[KIS API 응답] HTTP 상태: ${balanceResponse.status}`);
+
     const balanceData = (await balanceResponse.json()) as any;
 
     console.log(`[KIS 응답] rt_cd: ${balanceData.rt_cd}, msg_cd: ${balanceData.msg_cd}, msg1: ${balanceData.msg1}`);
+    console.log(`[KIS 응답 전체]`, JSON.stringify(balanceData, null, 2));
 
-    if (balanceData.rt_cd === "0") {
+    if (balanceData.rt_cd === "0" || balanceData.rt_cd === 0) {
       const holdings = Array.isArray(balanceData.output1) ? balanceData.output1 : [];
       const summary = Array.isArray(balanceData.output2)
         ? balanceData.output2[0] ?? {}
         : balanceData.output2 ?? {};
+
+      console.log(`[KIS 요약 데이터]`, JSON.stringify(summary));
 
       const cash = Number(summary.dnca_tot_amt) || 0;
       const stockValue = Number(summary.scts_evlu_amt) || 0;
@@ -488,7 +497,8 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
       return { totalAsset, cash, positions: holdings.length };
     } else {
       console.error(`❌ KIS 잔고 조회 실패: ${balanceData.msg_cd} - ${balanceData.msg1}`);
-      console.error(`   전체 응답:`, JSON.stringify(balanceData));
+      console.error(`   rt_cd 값: ${balanceData.rt_cd} (타입: ${typeof balanceData.rt_cd})`);
+      console.error(`   전체 응답:`, JSON.stringify(balanceData, null, 2));
       return { totalAsset: 10000000, cash: 10000000, positions: 0 };
     }
   } catch (error) {
