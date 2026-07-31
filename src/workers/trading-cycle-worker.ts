@@ -1634,7 +1634,12 @@ function _getDashboardHTMLOld(): string {
  */
 async function handleKISStatus(request: Request, env: WorkerEnv): Promise<Response> {
   try {
-    // 1. 환경변수에서 초기 포트폴리오 값 가져오기
+    // 1. DB에서 실시간 포지션 조회
+    const dbPositions = await env.DB.prepare(
+      `SELECT * FROM trading_positions WHERE status = 'OPEN' ORDER BY created_at DESC`
+    ).all() as any;
+
+    // 2. 환경변수에서 초기 포트폴리오 값 가져오기
     let actualBalance = await fetchKISAccountBalance(env);
 
     // 만약 API 호출이 실패했다면 환경변수 사용
@@ -1643,48 +1648,30 @@ async function handleKISStatus(request: Request, env: WorkerEnv): Promise<Respon
       actualBalance.cash = Number(env.KIS_INITIAL_PORTFOLIO);
     }
 
-    const kisConfig: any = {
-      appKey: env.KIS_APP_KEY || "",
-      appSecret: env.KIS_APP_SECRET || "",
-      apiKey: env.CLAUDE_API_KEY,
-      watchlist: (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim()),
-      maxPositionSizePercent: 5,
-      maxOpenPositions: 10,
-      minConfidenceThreshold: 0.6
-    };
-
-    if (env.KIS_ACCOUNT_NUMBER) {
-      kisConfig.accountNumber = env.KIS_ACCOUNT_NUMBER;
-    }
-
-    const kisTeam = new KISTeamOrchestrator(kisConfig);
-
-    // 2. 실제 잔고로 팀 설정
-    kisTeam.setPortfolioValue(actualBalance.totalAsset);
-
-    const positions = kisTeam.getOpenPositions();
-    const portfolio = kisTeam.getPortfolioSummary();
-    const watchlist = kisTeam.getWatchlist();
+    // 3. 포지션 가치 계산
+    const positions = (dbPositions.results || []) as any[];
+    const positionValue = positions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
+    const totalPnL = positions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
 
     return new Response(JSON.stringify({
       status: "success",
       team: "KIS",
-      isHealthy: kisTeam.isHealthy(),
-      watchlist,
+      isHealthy: true,
+      watchlist: (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim()),
       portfolio: {
-        totalValue: portfolio.totalValue,
-        positionValue: portfolio.positionValue,
-        cashValue: portfolio.cashValue,
-        totalPnL: portfolio.totalPnL,
-        totalPnLPercent: portfolio.totalPnLPercent
+        totalValue: actualBalance.totalAsset,
+        positionValue,
+        cashValue: actualBalance.totalAsset - positionValue,
+        totalPnL,
+        totalPnLPercent: actualBalance.totalAsset > 0 ? (totalPnL / actualBalance.totalAsset) * 100 : 0
       },
-      positions: positions.map(p => ({
+      positions: positions.map((p: any) => ({
         symbol: p.symbol,
         quantity: p.quantity,
-        entryPrice: p.entryPrice,
-        currentPrice: p.currentPrice,
-        pnl: p.pnl,
-        pnlPercent: p.pnlPercent,
+        entryPrice: p.entry_price,
+        currentPrice: p.current_price || p.entry_price,
+        pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
+        pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
         status: p.status
       })),
       timestamp: new Date().toISOString()
@@ -1711,7 +1698,12 @@ async function handleKISStatus(request: Request, env: WorkerEnv): Promise<Respon
  */
 async function handleTossStatus(request: Request, env: WorkerEnv): Promise<Response> {
   try {
-    // 1. 환경변수에서 초기 포트폴리오 값 가져오기
+    // 1. DB에서 실시간 포지션 조회 (KIS와 동일한 DB 사용)
+    const dbPositions = await env.DB.prepare(
+      `SELECT * FROM trading_positions WHERE status = 'OPEN' ORDER BY created_at DESC`
+    ).all() as any;
+
+    // 2. 환경변수에서 초기 포트폴리오 값 가져오기
     let actualBalance = await fetchTossAccountBalance(env);
 
     // Toss API 엔드포인트가 지원되지 않으므로 환경변수 사용
@@ -1720,42 +1712,30 @@ async function handleTossStatus(request: Request, env: WorkerEnv): Promise<Respo
       actualBalance.cash = Number(env.TOSS_INITIAL_PORTFOLIO);
     }
 
-    const tossTeam = new TossTeamOrchestrator({
-      clientId: env.TOSS_CLIENT_ID,
-      clientSecret: env.TOSS_CLIENT_SECRET,
-      apiKey: env.CLAUDE_API_KEY,
-      watchlist: (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim()),
-      maxPositionSizePercent: 5,
-      maxOpenPositions: 10,
-      minConfidenceThreshold: 0.6
-    });
-
-    // 2. 실제 잔고로 팀 설정
-    tossTeam.setPortfolioValue(actualBalance.totalAsset);
-
-    const positions = tossTeam.getOpenPositions();
-    const portfolio = tossTeam.getPortfolioSummary();
-    const watchlist = tossTeam.getWatchlist();
+    // 3. 포지션 가치 계산
+    const positions = (dbPositions.results || []) as any[];
+    const positionValue = positions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
+    const totalPnL = positions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
 
     return new Response(JSON.stringify({
       status: "success",
       team: "Toss",
-      isHealthy: tossTeam.isHealthy(),
-      watchlist,
+      isHealthy: true,
+      watchlist: (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim()),
       portfolio: {
-        totalValue: portfolio.totalValue,
-        positionValue: portfolio.positionValue,
-        cashValue: portfolio.cashValue,
-        totalPnL: portfolio.totalPnL,
-        totalPnLPercent: portfolio.totalPnLPercent
+        totalValue: actualBalance.totalAsset,
+        positionValue,
+        cashValue: actualBalance.totalAsset - positionValue,
+        totalPnL,
+        totalPnLPercent: actualBalance.totalAsset > 0 ? (totalPnL / actualBalance.totalAsset) * 100 : 0
       },
-      positions: positions.map(p => ({
+      positions: positions.map((p: any) => ({
         symbol: p.symbol,
         quantity: p.quantity,
-        entryPrice: p.entryPrice,
-        currentPrice: p.currentPrice,
-        pnl: p.pnl,
-        pnlPercent: p.pnlPercent,
+        entryPrice: p.entry_price,
+        currentPrice: p.current_price || p.entry_price,
+        pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
+        pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
         status: p.status
       })),
       timestamp: new Date().toISOString()
