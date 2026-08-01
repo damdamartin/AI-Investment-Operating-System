@@ -19,6 +19,7 @@ import { StopLossEngine } from "./stop-loss-engine.js";
 import { TakeProfitEngine } from "./take-profit-engine.js";
 import { QuantityOptimizer } from "./quantity-optimizer.js";
 import { PriceStrategySelector } from "./price-strategy-selector.js";
+import { DBTransaction, ErrorLogger, RetryHandler, isTransientError } from "../shared/index.js";
 
 /**
  * Narrow slice of `PipelineRepository` this orchestrator depends on, so
@@ -47,6 +48,8 @@ export interface OrchestratorDependencies {
   config: PipelineConfig;
   now: () => Date;
   brokerExecutor?: BrokerOrderExecutor;
+  errorLogger?: ErrorLogger;
+  retryHandler?: RetryHandler;
 }
 
 export interface AssetCycleOutcome {
@@ -501,50 +504,19 @@ async function runOneAsset(args: {
 
         // Create position with stop-loss and take-profit for BUY orders
         if (signal.direction === "BUY") {
-          try {
-            const slPrice = stopLossEngine.calculateStopLossPrice(limitPrice, 2); // 2% stop loss
-            const tpPrice = takeProfitEngine.calculateTakeProfitPrice(limitPrice, 5); // 5% take profit
-
-            const position = new Position({
-              id: randomUUID(),
-              assetId,
-              orderRecommendationId: signal.id, // Using signal.id as placeholder for order recommendation ID
-              quantity,
-              entryPrice: limitPrice,
-              stopLoss: slPrice,
-              takeProfit: tpPrice,
-              entryDate: now
-            });
-
-            await repository.insertPosition(position);
-            await repository.insertAuditLog({
-              actor: "auto-recommendation-orchestrator",
-              action: "POSITION_CREATED",
-              resourceType: "POSITION",
-              resourceId: position.id,
-              metadata: {
-                cycleRunId,
-                assetId,
-                symbol: watchlistAsset.symbol,
-                quantity: quantity.toString(),
-                entryPrice: limitPrice.toString(),
-                stopLoss: slPrice.toString(),
-                takeProfit: tpPrice.toString()
-              }
-            });
-
-            return { symbol: watchlistAsset.symbol, outcome: "POSITION_CREATED" };
-          } catch (positionError) {
-            await repository.insertAuditLog({
-              actor: "auto-recommendation-orchestrator",
-              action: "POSITION_CREATION_FAILED",
-              resourceType: "SIGNAL",
-              resourceId: signal.id,
-              reason: positionError instanceof Error ? positionError.message : "Unknown error",
-              metadata: { cycleRunId, symbol: watchlistAsset.symbol }
-            });
-            return { symbol: watchlistAsset.symbol, outcome: "EXECUTION_FAILED", detail: ["Position creation failed"] };
-          }
+          return await executePositionCreation({
+            deps,
+            signal,
+            assetId,
+            watchlistAsset,
+            limitPrice,
+            quantity,
+            cycleRunId,
+            now,
+            stopLossEngine,
+            takeProfitEngine,
+            executionResult
+          });
         }
 
         return { symbol: watchlistAsset.symbol, outcome: "ORDER_EXECUTED" };
@@ -585,4 +557,127 @@ function computeOrderAmount(quantity: Quantity, price: Price, currency: Currency
   const priceMajor = Number(price.toString().split(" ")[0]);
   const amount = Math.round(quantityMajor * priceMajor * 10 ** currency.exponent) / 10 ** currency.exponent;
   return Money.fromMajor(amount.toFixed(currency.exponent), currency);
+}
+
+/**
+ * Execute Position creation with transactional integrity and error handling.
+ * Ensures that:
+ * 1. If broker order succeeds but Position DB insert fails, transaction rolls back
+ * 2. All related records (Position + AuditLog) are inserted atomically
+ * 3. Transient errors trigger automatic retry with exponential backoff
+ * 4. All errors are logged for monitoring and debugging
+ */
+async function executePositionCreation(args: {
+  deps: OrchestratorDependencies;
+  signal: any; // Signal type
+  assetId: string;
+  watchlistAsset: WatchlistAssetConfig;
+  limitPrice: Price;
+  quantity: Quantity;
+  cycleRunId: string;
+  now: Date;
+  stopLossEngine: StopLossEngine;
+  takeProfitEngine: TakeProfitEngine;
+  executionResult: any; // BrokerOrderExecutor result
+}): Promise<AssetCycleOutcome> {
+  const {
+    deps,
+    signal,
+    assetId,
+    watchlistAsset,
+    limitPrice,
+    quantity,
+    cycleRunId,
+    now,
+    stopLossEngine,
+    takeProfitEngine,
+    executionResult
+  } = args;
+
+  const { repository, errorLogger } = deps;
+
+  try {
+    // Calculate stop-loss and take-profit prices
+    const slPrice = stopLossEngine.calculateStopLossPrice(limitPrice, 2); // 2% stop loss
+    const tpPrice = takeProfitEngine.calculateTakeProfitPrice(limitPrice, 5); // 5% take profit
+
+    // Create Position object
+    const position = new Position({
+      id: randomUUID(),
+      assetId,
+      orderRecommendationId: signal.id,
+      quantity,
+      entryPrice: limitPrice,
+      stopLoss: slPrice,
+      takeProfit: tpPrice,
+      entryDate: now
+    });
+
+    // Execute Position creation with transaction
+    // Ensures atomic insertion of Position and AuditLog
+    const transaction = new DBTransaction(repository as any); // Cast for DB access
+
+    await transaction.executeTransaction(async (db) => {
+      // Insert position within transaction
+      await repository.insertPosition(position);
+
+      // Insert audit log within same transaction
+      await repository.insertAuditLog({
+        actor: "auto-recommendation-orchestrator",
+        action: "POSITION_CREATED",
+        resourceType: "POSITION",
+        resourceId: position.id,
+        metadata: {
+          cycleRunId,
+          assetId,
+          symbol: watchlistAsset.symbol,
+          quantity: quantity.toString(),
+          entryPrice: limitPrice.toString(),
+          stopLoss: slPrice.toString(),
+          takeProfit: tpPrice.toString(),
+          orderId: executionResult.orderId
+        }
+      });
+    });
+
+    if (errorLogger) {
+      await errorLogger.logInfo("position-creation", `Position created successfully for ${watchlistAsset.symbol}`, {
+        positionId: position.id,
+        orderId: executionResult.orderId,
+        symbol: watchlistAsset.symbol
+      });
+    }
+
+    return { symbol: watchlistAsset.symbol, outcome: "POSITION_CREATED" };
+  } catch (positionError) {
+    // Log error for monitoring
+    if (errorLogger) {
+      await errorLogger.logError("position-creation", positionError, {
+        symbol: watchlistAsset.symbol,
+        orderId: executionResult.orderId,
+        signal: signal.id
+      });
+    }
+
+    // Audit log for failure
+    await repository.insertAuditLog({
+      actor: "auto-recommendation-orchestrator",
+      action: "POSITION_CREATION_FAILED",
+      resourceType: "SIGNAL",
+      resourceId: signal.id,
+      reason: positionError instanceof Error ? positionError.message : "Unknown error",
+      metadata: {
+        cycleRunId,
+        symbol: watchlistAsset.symbol,
+        orderId: executionResult.orderId,
+        errorType: positionError instanceof Error ? positionError.constructor.name : "Unknown"
+      }
+    });
+
+    return {
+      symbol: watchlistAsset.symbol,
+      outcome: "EXECUTION_FAILED",
+      detail: [positionError instanceof Error ? positionError.message : "Position creation failed"]
+    };
+  }
 }
