@@ -21,6 +21,7 @@ import { D1PriceCacheAdapter } from "../persistence/d1-price-cache-adapter.js";
 import { PerformanceRepository } from "../persistence/performance-repository.js";
 import { PerformanceAggregator } from "../application/analytics/performance-aggregator.js";
 import { D1PerformanceDatabaseAdapter } from "../persistence/d1-performance-adapter.js";
+import { PerformanceController } from "./performance-api-controller.js";
 
 // ✅ Durable Object 내보내기 (Cloudflare 배포 필수)
 export { RealtimeTradingAgent };
@@ -119,6 +120,70 @@ export default {
 
     if (url.pathname === "/api/dashboard") {
       return await handleGetDashboard(request, env);
+    }
+
+    // ✅ Performance API Endpoints
+    const performanceController = new PerformanceController(
+      new PerformanceRepository(new D1PerformanceDatabaseAdapter(env.DB))
+    );
+
+    // GET /api/performance/today?broker=KIS
+    if (url.pathname === "/api/performance/today") {
+      const broker = (url.searchParams.get("broker") || "KIS") as "KIS" | "TOSS";
+      return await performanceController.getTodayPerformance(broker);
+    }
+
+    // GET /api/performance/monthly?year=2026&month=8
+    if (url.pathname === "/api/performance/monthly") {
+      const year = parseInt(url.searchParams.get("year") || new Date().getFullYear().toString());
+      const month = parseInt(url.searchParams.get("month") || (new Date().getMonth() + 1).toString());
+      return await performanceController.getMonthlyPerformance(year, month);
+    }
+
+    // GET /api/performance/comparison?date=2026-08-01
+    if (url.pathname === "/api/performance/comparison") {
+      const date = url.searchParams.get("date") || undefined;
+      return await performanceController.getTeamComparison(date);
+    }
+
+    // GET /api/performance/symbol/:symbol
+    if (url.pathname.startsWith("/api/performance/symbol/")) {
+      const symbol = url.pathname.split("/").pop() || "";
+      if (symbol) {
+        return await performanceController.getSymbolPerformance(symbol);
+      }
+    }
+
+    // GET /api/performance/top-symbols?limit=10&broker=KIS
+    if (url.pathname === "/api/performance/top-symbols") {
+      const limit = parseInt(url.searchParams.get("limit") || "5");
+      const broker = (url.searchParams.get("broker") || "KIS") as "KIS" | "TOSS";
+      return await performanceController.getTopPerformingSymbols(limit, broker);
+    }
+
+    // GET /api/performance/worst-symbols?limit=5&broker=KIS
+    if (url.pathname === "/api/performance/worst-symbols") {
+      const limit = parseInt(url.searchParams.get("limit") || "5");
+      const broker = (url.searchParams.get("broker") || "KIS") as "KIS" | "TOSS";
+      return await performanceController.getWorstPerformingSymbols(limit, broker);
+    }
+
+    // GET /api/performance/range?start=2026-08-01&end=2026-08-31&broker=KIS
+    if (url.pathname === "/api/performance/range") {
+      const start = url.searchParams.get("start") || "";
+      const end = url.searchParams.get("end") || "";
+      const broker = (url.searchParams.get("broker") || "KIS") as "KIS" | "TOSS";
+      if (start && end) {
+        return await performanceController.getDailyPerformanceRange(start, end, broker);
+      } else {
+        return new Response(
+          JSON.stringify({
+            status: "error",
+            error: "Missing required parameters: start and end (YYYY-MM-DD format)"
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Test KIS Market Data Provider
