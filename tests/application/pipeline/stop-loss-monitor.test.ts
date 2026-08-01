@@ -216,8 +216,8 @@ describe("StopLossMonitor", () => {
       const results = await monitor.evaluatePositions();
 
       // Assert
-      expect(results[0].pnl).toBe(expectedPnL);
-      expect(Math.abs(results[0].pnlPercent! - expectedPnLPercent) < 0.01).toBe(true);
+      expect(results[0]!.pnl!).toBe(expectedPnL);
+      expect(Math.abs(results[0]!.pnlPercent! - expectedPnLPercent) < 0.01).toBe(true);
     });
   });
 
@@ -291,7 +291,7 @@ describe("StopLossMonitor", () => {
 
       // Assert - should trigger for KIS (66000 < 66500) but not for TOSS (67000 > 67450)
       expect(results).toHaveLength(1);
-      expect(results[0].positionId).toBe("kis-pos-1");
+      expect(results[0]!.positionId!).toBe("kis-pos-1");
     });
   });
 });
