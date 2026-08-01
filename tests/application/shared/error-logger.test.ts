@@ -13,17 +13,19 @@ describe("ErrorLogger", () => {
   beforeEach(() => {
     // Create mock database
     mockDb = {
-      query: vi.fn(async (sql: string) => {
+      query: vi.fn(async (sql: string, params?: any[]) => {
         // Mock insert returning
         if (sql.includes("RETURNING")) {
+          // Determine severity from params (4th parameter)
+          const severity = params && params[3] ? params[3] : "ERROR";
           return {
             results: [
               {
                 id: 1,
                 timestamp: new Date().toISOString(),
-                context: "test",
-                message: "Test error",
-                severity: "ERROR" as const,
+                context: params && params[0] ? params[0] : "test",
+                message: params && params[1] ? params[1] : "Test error",
+                severity: severity,
                 metadata: null
               }
             ]

@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,8 +19,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install
-        run: npm ci
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
 
-      - name: Check
-        run: npm run check
+      - name: Type Check
+        run: npm run typecheck
+
+      - name: Run Test Suite
+        run: npm run test:ci
+
+      - name: Test Summary
+        if: always()
+        run: echo "Test suite completed. Check logs above for details."
