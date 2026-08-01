@@ -18,6 +18,9 @@ import { StopLossMonitor } from "../application/pipeline/stop-loss-monitor.js";
 import { TakeProfitMonitor } from "../application/pipeline/take-profit-monitor.js";
 import { PriceCacheRepository } from "../persistence/price-cache-repository.js";
 import { D1PriceCacheAdapter } from "../persistence/d1-price-cache-adapter.js";
+import { PerformanceRepository } from "../persistence/performance-repository.js";
+import { PerformanceAggregator } from "../application/analytics/performance-aggregator.js";
+import { D1PerformanceDatabaseAdapter } from "../persistence/d1-performance-adapter.js";
 
 // ✅ Durable Object 내보내기 (Cloudflare 배포 필수)
 export { RealtimeTradingAgent };
@@ -2286,6 +2289,169 @@ async function runTakeProfitMonitoring(env: WorkerEnv) {
   } catch (error) {
     console.error("[TakeProfit Monitor] Error:", error);
     return [];
+  }
+}
+
+/**
+ * ✨ NEW: Record performance data from SL/TP triggers
+ * Called after each stop-loss/take-profit monitoring cycle
+ *
+ * For each triggered trade:
+ * 1. Fetch position details from DB
+ * 2. Call PerformanceAggregator.recordTradeCompletion()
+ * 3. Update daily/symbol/monthly performance
+ */
+async function recordPerformanceData(
+  env: WorkerEnv,
+  slResults: any[],
+  tpResults: any[]
+) {
+  try {
+    // Initialize PerformanceAggregator
+    const dbAdapter = new D1PerformanceDatabaseAdapter(env.DB);
+    const repository = new PerformanceRepository(dbAdapter);
+    const aggregator = new PerformanceAggregator(repository, env.DB);
+
+    console.log(`[PerformanceAggregation] Recording ${slResults.length + tpResults.length} trades...`);
+
+    // Process stop-loss results
+    for (const slResult of slResults) {
+      try {
+        // Fetch full position data from DB
+        const positionResult = await env.DB.prepare(
+          `SELECT id, symbol, quantity, entry_price, entry_date, stop_loss_price,
+                  take_profit_price, broker, status
+           FROM trading_positions WHERE id = ?`
+        ).bind(slResult.positionId).first() as any;
+
+        if (!positionResult) {
+          console.warn(`[Performance] Position not found: ${slResult.positionId}`);
+          continue;
+        }
+
+        const position = {
+          id: positionResult.id,
+          symbol: positionResult.symbol,
+          quantity: positionResult.quantity,
+          entry_price: positionResult.entry_price,
+          entry_date: positionResult.entry_date,
+          stop_loss_price: positionResult.stop_loss_price,
+          take_profit_price: positionResult.take_profit_price,
+          broker: positionResult.broker as "KIS" | "TOSS",
+        };
+
+        // Create mock order
+        const order = {
+          id: `order-${slResult.positionId}`,
+          positionId: slResult.positionId,
+          side: "SELL" as const,
+          quantity: positionResult.quantity,
+          price: slResult.currentPrice,
+          executedAt: new Date().toISOString(),
+          status: "EXECUTED" as const,
+        };
+
+        // Record trade completion
+        await aggregator.recordTradeCompletion(
+          position,
+          slResult.currentPrice,
+          "SL",
+          order
+        );
+
+        console.log(`[Performance] ✅ Recorded SL: ${position.symbol} (${position.broker})`);
+      } catch (error) {
+        console.error(`[Performance] Error recording SL for ${slResult.positionId}:`, error);
+      }
+    }
+
+    // Process take-profit results
+    for (const tpResult of tpResults) {
+      try {
+        // Fetch full position data from DB
+        const positionResult = await env.DB.prepare(
+          `SELECT id, symbol, quantity, entry_price, entry_date, stop_loss_price,
+                  take_profit_price, broker, status
+           FROM trading_positions WHERE id = ?`
+        ).bind(tpResult.positionId).first() as any;
+
+        if (!positionResult) {
+          console.warn(`[Performance] Position not found: ${tpResult.positionId}`);
+          continue;
+        }
+
+        const position = {
+          id: positionResult.id,
+          symbol: positionResult.symbol,
+          quantity: positionResult.quantity,
+          entry_price: positionResult.entry_price,
+          entry_date: positionResult.entry_date,
+          stop_loss_price: positionResult.stop_loss_price,
+          take_profit_price: positionResult.take_profit_price,
+          broker: positionResult.broker as "KIS" | "TOSS",
+        };
+
+        // Create mock order
+        const order = {
+          id: `order-${tpResult.positionId}`,
+          positionId: tpResult.positionId,
+          side: "SELL" as const,
+          quantity: tpResult.closeQuantity || positionResult.quantity,
+          price: tpResult.currentPrice,
+          executedAt: new Date().toISOString(),
+          status: "EXECUTED" as const,
+        };
+
+        // Record trade completion
+        await aggregator.recordTradeCompletion(
+          position,
+          tpResult.currentPrice,
+          "TP",
+          order
+        );
+
+        console.log(`[Performance] ✅ Recorded TP: ${position.symbol} (${position.broker})`);
+      } catch (error) {
+        console.error(`[Performance] Error recording TP for ${tpResult.positionId}:`, error);
+      }
+    }
+
+    console.log(
+      `[PerformanceAggregation] ✅ Completed: ${slResults.length} SL + ${tpResults.length} TP`
+    );
+  } catch (error) {
+    console.error(`[PerformanceAggregation] Fatal error:`, error);
+  }
+}
+
+/**
+ * ✨ NEW: Aggregate monthly performance (called daily at 00:00 UTC)
+ * Recalculates all metrics for both brokers
+ */
+async function aggregateMonthlyPerformance(env: WorkerEnv) {
+  try {
+    const dbAdapter = new D1PerformanceDatabaseAdapter(env.DB);
+    const repository = new PerformanceRepository(dbAdapter);
+    const aggregator = new PerformanceAggregator(repository, env.DB);
+
+    // Get yesterday's date (since we're running at 00:00 UTC)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    console.log(`[MonthlyAggregation] Starting for ${yesterday.toISOString().split("T")[0]}`);
+
+    // Aggregate for both brokers
+    for (const broker of ["KIS", "TOSS"] as const) {
+      try {
+        await aggregator.aggregateMonthlyPerformance(yesterday, broker);
+        console.log(`[MonthlyAggregation] ✅ Completed for ${broker}`);
+      } catch (error) {
+        console.error(`[MonthlyAggregation] Error for ${broker}:`, error);
+      }
+    }
+
+    console.log(`[MonthlyAggregation] ✅ All aggregations complete`);
+  } catch (error) {
+    console.error(`[MonthlyAggregation] Fatal error:`, error);
   }
 }
 
