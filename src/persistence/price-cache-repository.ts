@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { D1QueryResultRow } from "./d1-http-client.js";
 
+// Re-export for use in adapters
+export type { D1QueryResultRow };
+
 /**
  * Narrow dependency this repository needs from a D1 client.
  * Kept separate from `D1HttpClient` itself so tests can supply an in-memory fake.
