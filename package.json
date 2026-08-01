@@ -8,6 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ci": "vitest run --reporter=verbose",
     "test:migrations": "vitest run tests/persistence/migrations.test.ts",
     "check": "npm run typecheck && npm test",
     "phase5:toss:readiness": "node scripts/check-toss-readiness.mjs",
@@ -43,6 +45,7 @@
     "@cloudflare/workers-types": "^4.20260702.1",
     "@electric-sql/pglite": "^0.5.4",
     "@types/node": "^24.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",
     "wrangler": "^4.115.0"

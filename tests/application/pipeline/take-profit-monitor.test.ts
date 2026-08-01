@@ -18,18 +18,21 @@ describe("TakeProfitMonitor", () => {
   let mockPriceCache: any;
 
   beforeEach(() => {
-    // Mock D1Database
+    // Mock D1Database with proper method chaining
     mockDB = {
-      prepare: vi.fn((sql: string) => ({
-        all: vi.fn(),
-        bind: vi.fn(function (...params) {
-          return {
-            all: vi.fn(),
-            run: vi.fn()
-          };
-        }),
-        run: vi.fn()
-      }))
+      prepare: vi.fn((sql: string) => {
+        const stmt = {
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          bind: function (...params: any[]) {
+            return {
+              all: vi.fn().mockResolvedValue({ results: [] }),
+              run: vi.fn().mockResolvedValue({ success: true })
+            };
+          },
+          run: vi.fn().mockResolvedValue({ success: true })
+        };
+        return stmt;
+      })
     };
 
     // Mock PriceCacheRepository

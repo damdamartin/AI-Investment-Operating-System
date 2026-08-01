@@ -48,14 +48,16 @@ function determineSeverity(error: unknown): ErrorSeverity {
 
   const message = error.message.toLowerCase();
 
-  // Critical patterns: data loss, security, transaction failure
+  // Critical patterns: data loss, security, transaction failure, rate limits
   if (
     message.includes("rollback") ||
     message.includes("transaction failed") ||
     message.includes("deadlock") ||
     message.includes("constraint violation") ||
     message.includes("authentication failed") ||
-    message.includes("unauthorized")
+    message.includes("unauthorized") ||
+    message.includes("rate limit") ||
+    message.includes("connection refused")
   ) {
     return "CRITICAL";
   }
@@ -65,7 +67,6 @@ function determineSeverity(error: unknown): ErrorSeverity {
     message.includes("failed") ||
     message.includes("error") ||
     message.includes("timeout") ||
-    message.includes("connection refused") ||
     message.includes("no retries")
   ) {
     return "ERROR";
