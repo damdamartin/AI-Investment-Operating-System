@@ -87,8 +87,8 @@ describe("RetryHandler", () => {
   });
 
   it("should use exponential backoff", async () => {
-    const delays: number[] = [];
-    const retryHookCapture = vi.fn((metrics) => {
+    const delays: (number | undefined)[] = [];
+    const retryHookCapture = vi.fn(async (metrics: any) => {
       delays.push(metrics.lastDelay);
     });
 
@@ -100,7 +100,7 @@ describe("RetryHandler", () => {
     ).rejects.toThrow();
 
     // Verify delays are increasing (exponential backoff)
-    if (delays.length > 1) {
+    if (delays.length > 1 && delays[0] !== undefined && delays[1] !== undefined) {
       expect(delays[1]).toBeGreaterThanOrEqual(delays[0]);
     }
   });

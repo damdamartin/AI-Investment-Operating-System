@@ -181,7 +181,7 @@ describe("TakeProfitMonitor", () => {
 
       // Assert
       expect(results).toHaveLength(1);
-      expect(results[0].triggered).toBe(true);
+      expect(results[0]!.triggered).toBe(true);
     });
   });
 
@@ -228,8 +228,8 @@ describe("TakeProfitMonitor", () => {
       const results = await monitor.evaluatePositions();
 
       // Assert
-      expect(results[0].pnl).toBe(expectedPnL);
-      expect(Math.abs(results[0].pnlPercent! - expectedPnLPercent) < 0.01).toBe(true);
+      expect(results[0]!.pnl!).toBe(expectedPnL);
+      expect(Math.abs(results[0]!.pnlPercent! - expectedPnLPercent) < 0.01).toBe(true);
     });
   });
 
@@ -275,8 +275,8 @@ describe("TakeProfitMonitor", () => {
 
       // Assert - should close 50 shares (50% of 100)
       expect(results).toHaveLength(1);
-      expect(results[0].closeQuantity).toBe(50);
-      expect(results[0].partialClose).toBe(true);
+      expect(results[0]!.closeQuantity!).toBe(50);
+      expect(results[0]!.partialClose!).toBe(true);
     });
 
     it("should support full close when ratio is 1.0", async () => {
@@ -320,8 +320,8 @@ describe("TakeProfitMonitor", () => {
 
       // Assert - should close all 100 shares
       expect(results).toHaveLength(1);
-      expect(results[0].closeQuantity).toBe(100);
-      expect(results[0].partialClose).toBe(false);
+      expect(results[0]!.closeQuantity!).toBe(100);
+      expect(results[0]!.partialClose!).toBe(false);
     });
   });
 
@@ -395,7 +395,7 @@ describe("TakeProfitMonitor", () => {
 
       // Assert - should trigger for both (KIS at 77000 >= 77000, TOSS at 78000 >= 78100 is false, so only KIS)
       expect(results).toHaveLength(1);
-      expect(results[0].positionId).toBe("kis-pos-1");
+      expect(results[0]!.positionId!).toBe("kis-pos-1");
     });
   });
 });
