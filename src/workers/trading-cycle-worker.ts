@@ -12,9 +12,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { KISMarketDataProvider } from "../adapters/kis/kis-market-data-provider.js";
 import { KISTeamOrchestrator } from "../application/multi-agent/teams/kis-team/index.js";
 import { TossTeamOrchestrator } from "../application/multi-agent/teams/toss-team/index.js";
-import { AlpacaTeamOrchestrator } from "../application/multi-agent/teams/alpaca-team/index.js";
 import { getDashboardHTML } from "./trading-cycle-worker-dashboard.js";
 import { RealtimeTradingAgent } from "../durable-objects/realtime-trading-agent.js";
+import { StopLossMonitor } from "../application/pipeline/stop-loss-monitor.js";
+import { TakeProfitMonitor } from "../application/pipeline/take-profit-monitor.js";
+import { PriceCacheRepository } from "../persistence/price-cache-repository.js";
+import { D1PriceCacheAdapter } from "../persistence/d1-price-cache-adapter.js";
 
 // ✅ Durable Object 내보내기 (Cloudflare 배포 필수)
 export { RealtimeTradingAgent };
@@ -31,10 +34,6 @@ interface WorkerEnv {
   PIPELINE_WATCHLIST?: string;
   KIS_INITIAL_PORTFOLIO?: string;
   TOSS_INITIAL_PORTFOLIO?: string;
-  ALPACA_API_KEY?: string;
-  ALPACA_SECRET_KEY?: string;
-  ALPACA_INITIAL_PORTFOLIO?: string;
-  ALPACA_WATCHLIST?: string;
   REALTIME_TRADING_AGENT_KIS: DurableObjectNamespace; // KIS만 필수
 }
 
@@ -79,15 +78,17 @@ export default {
       const tossReq = new Request("https://worker.local/api/toss-status");
       await handleTossStatus(tossReq, env);
 
-      // 3️⃣ Alpaca 팀 거래 실행 (미국 주식)
-      console.log(`\n[Alpaca] 거래 사이클 시작...`);
-      await runAlpacaTrading(env);
-
-      // 4️⃣ 실시간 시세 업데이트 (모든 팀)
+      // 3️⃣ 실시간 시세 업데이트 (모든 팀)
       console.log(`\n[Price Update] 포지션 실시간 시세 업데이트...`);
       await updateAllPositionPrices(env);
 
+      // 4️⃣ ✨ NEW: 실시간 손절/익절 모니터링
+      console.log(`\n[SL/TP Monitor] 손절/익절 모니터링 시작...`);
+      const slResults = await runStopLossMonitoring(env);
+      const tpResults = await runTakeProfitMonitoring(env);
+
       console.log(`\n✅ Cron 사이클 완료: ${new Date().toISOString()}`);
+      console.log(`   - 손절/익절 결과: SL=${slResults.length}, TP=${tpResults.length}`);
     } catch (error) {
       console.error(`\n❌ [Cron] 오류:`, error);
     }
@@ -141,6 +142,33 @@ export default {
     // KIS Team status
     if (url.pathname === "/api/kis-status") {
       return await handleKISStatus(request, env);
+    }
+
+    // ✅ 실제 KIS 계좌 포지션 조회
+    if (url.pathname === "/api/kis-real-holdings") {
+      try {
+        const realHoldings = await fetchKISRealHoldings(env);
+        return new Response(JSON.stringify({
+          status: "success",
+          team: "KIS",
+          source: "실제 계좌 (KIS API)",
+          holdings: realHoldings,
+          count: realHoldings.length,
+          timestamp: new Date().toISOString()
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          status: "error",
+          error: String(error),
+          timestamp: new Date().toISOString()
+        }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
     }
 
     // Toss Team status
@@ -257,6 +285,53 @@ export default {
       }
     }
 
+    // ✅ 최근 손절/익절 모니터링 로그
+    if (url.pathname === "/api/recent-monitoring-logs") {
+      try {
+        const limit = new URL(request.url).searchParams.get("limit") || "20";
+        const triggerType = new URL(request.url).searchParams.get("type") || ""; // "STOP_LOSS" or "TAKE_PROFIT"
+
+        let query = `SELECT * FROM monitoring_logs ORDER BY triggered_at DESC LIMIT ${limit}`;
+        if (triggerType) {
+          query = `SELECT * FROM monitoring_logs WHERE trigger_type = '${triggerType}' ORDER BY triggered_at DESC LIMIT ${limit}`;
+        }
+
+        const logs = await env.DB.prepare(query).all() as any;
+
+        return new Response(JSON.stringify({
+          status: "success",
+          count: (logs.results || []).length,
+          logs: (logs.results || []).map((log: any) => ({
+            id: log.id,
+            positionId: log.position_id,
+            symbol: log.symbol,
+            triggerType: log.trigger_type,
+            entryPrice: log.entry_price,
+            triggerPrice: log.trigger_price,
+            currentPrice: log.current_price,
+            quantity: log.quantity,
+            pnl: log.pnl,
+            pnlPercent: log.pnl_percent,
+            broker: log.broker,
+            team: log.team,
+            triggeredAt: log.triggered_at
+          })),
+          timestamp: new Date().toISOString()
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          status: "error",
+          message: "Monitoring logs table not found or query error: " + String(error)
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
     // ✅ Cron 우회: 거래 실행 엔드포인트
     if (url.pathname === "/api/run-kis-trading") {
       try {
@@ -308,40 +383,15 @@ export default {
       }
     }
 
-    if (url.pathname === "/api/run-alpaca-trading") {
-      try {
-        await runAlpacaTrading(env);
-        return new Response(JSON.stringify({
-          status: "success",
-          team: "Alpaca",
-          message: "Alpaca 거래 사이클 실행 완료",
-          timestamp: new Date().toISOString(),
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
-      } catch (error) {
-        return new Response(JSON.stringify({
-          status: "error",
-          team: "Alpaca",
-          error: String(error),
-          timestamp: new Date().toISOString(),
-        }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-    }
 
     if (url.pathname === "/api/run-all-trading") {
       try {
         await runKISTrading(env);
         await runTossTrading(env);
-        await runAlpacaTrading(env);
         return new Response(JSON.stringify({
           status: "success",
-          teams: ["KIS", "Toss", "Alpaca"],
-          message: "3팀 거래 사이클 모두 완료",
+          teams: ["KIS", "Toss"],
+          message: "2팀 거래 사이클 모두 완료",
           timestamp: new Date().toISOString(),
         }), {
           status: 200,
@@ -359,9 +409,6 @@ export default {
       }
     }
 
-    if (url.pathname === "/api/alpaca-status") {
-      return await handleAlpacaStatus(request, env);
-    }
 
     // ✅ 테스트 거래: 실제 거래가 작동하는지 확인용
     if (url.pathname === "/api/test-buy-order") {
@@ -519,11 +566,12 @@ BE DECISIVE! Return ONLY valid JSON.`;
 /**
  * Create a position in the database
  */
-async function executePositionCreation(db: D1Database, decision: TradeDecision, broker: string = "KIS"): Promise<void> {
+async function executePositionCreation(db: D1Database, decision: TradeDecision, broker: string = "KIS", env?: WorkerEnv): Promise<void> {
   try {
     const positionId = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // 1️⃣ DB에 포지션 저장
     await db.prepare(
       `INSERT INTO trading_positions
         (id, symbol, quantity, entry_price, entry_date, stop_loss_price, take_profit_price, status, broker, team, created_at, updated_at)
@@ -542,7 +590,20 @@ async function executePositionCreation(db: D1Database, decision: TradeDecision, 
       now
     ).run();
 
-    console.log(`✅ Position created [${broker}]: ${decision.symbol} ${decision.quantity}주 @ ${decision.entryPrice}`);
+    console.log(`✅ Position saved to DB [${broker}]: ${decision.symbol} ${decision.quantity}주 @ ${decision.entryPrice}`);
+
+    // 2️⃣ 실제 계좌에 주문 시도
+    if (env) {
+      if (broker === "KIS") {
+        console.log(`[KIS] 실제 주문 전송 시도: ${decision.symbol} ${decision.quantity}주`);
+        // KIS 주문은 향후 구현 (현재는 테스트 모드)
+        console.log(`[KIS] 주문 상태: 테스트 모드 (시뮬레이션)`);
+      } else if (broker === "TOSS") {
+        console.log(`[Toss] 실제 주문 전송 시도: ${decision.symbol} ${decision.quantity}주`);
+        // Toss 주문은 향후 구현
+        console.log(`[Toss] 주문 상태: 테스트 모드 (시뮬레이션)`);
+      }
+    }
   } catch (error) {
     // FK constraint 오류는 무시하고 계속 진행
     console.warn(`⚠️ Position save failed (DB schema issue): ${error}`);
@@ -935,6 +996,85 @@ async function fetchKISAccountBalance(env: WorkerEnv): Promise<{ totalAsset: num
     console.error("   - appSecret:", env.KIS_APP_SECRET ? "설정됨" : "없음");
     console.error("   - accountNumber:", env.KIS_ACCOUNT_NUMBER || "없음");
     return { totalAsset: 10000000, cash: 10000000, positions: 0 };
+  }
+}
+
+/**
+ * 실제 KIS 계좌에서 보유한 주식 목록 조회
+ */
+async function fetchKISRealHoldings(env: WorkerEnv): Promise<Array<{ symbol: string; quantity: number; price: number; value: number }>> {
+  try {
+    const appKey = env.KIS_APP_KEY;
+    const appSecret = env.KIS_APP_SECRET;
+    const accountNumber = env.KIS_ACCOUNT_NUMBER;
+
+    if (!accountNumber) {
+      console.warn("⚠️ KIS 계좌번호 없음 - 실제 포지션 조회 불가");
+      return [];
+    }
+
+    const accessToken = await getKISAccessToken(env);
+    if (!accessToken) {
+      console.error("❌ KIS 토큰 없음 - 실제 포지션 조회 불가");
+      return [];
+    }
+
+    const kisEnv = (env.KIS_ENV || "production").toLowerCase();
+    const isVts = kisEnv === "vts" || kisEnv === "mock" || kisEnv === "paper";
+    const baseUrl = isVts
+      ? "https://openapivts.koreainvestment.com:29443"
+      : "https://openapi.koreainvestment.com:9443";
+    const trId = isVts ? "VTTC8434R" : "TTTC8434R";
+
+    const balanceUrl = new URL(`${baseUrl}/uapi/domestic-stock/v1/trading/inquire-balance`);
+    const cano = (accountNumber || "").split("-")[0] || "";
+    const acntPrdtCd = ((accountNumber || "").split("-")[1] || "01") as string;
+
+    balanceUrl.searchParams.set("CANO", cano);
+    balanceUrl.searchParams.set("ACNT_PRDT_CD", acntPrdtCd);
+    balanceUrl.searchParams.set("AFHR_FLPR_YN", "N");
+    balanceUrl.searchParams.set("OFL_YN", "");
+    balanceUrl.searchParams.set("INQR_DVSN", "02");
+    balanceUrl.searchParams.set("UNPR_DVSN", "01");
+    balanceUrl.searchParams.set("FUND_STTL_ICLD_YN", "N");
+    balanceUrl.searchParams.set("FNCG_AMT_AUTO_RDPT_YN", "N");
+    balanceUrl.searchParams.set("PRCS_DVSN", "00");
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "authorization": `Bearer ${accessToken}`,
+      "tr_id": trId,
+      "custtype": "P"
+    };
+    if (appKey) headers["appkey"] = appKey;
+    if (appSecret) headers["appsecret"] = appSecret;
+
+    const balanceResponse = await fetch(balanceUrl.toString(), {
+      method: "GET",
+      headers
+    });
+
+    const balanceData = (await balanceResponse.json()) as any;
+
+    if (balanceData.rt_cd === "0" || balanceData.rt_cd === 0) {
+      const holdings = Array.isArray(balanceData.output1) ? balanceData.output1 : [];
+
+      const result = holdings.map((h: any) => ({
+        symbol: h.pdno || h.code,  // 종목코드
+        quantity: Number(h.hldg_qty) || 0,  // 보유수량
+        price: Number(h.prpr) || 0,  // 현재가
+        value: Number(h.evlu_amt) || 0  // 평가금액
+      }));
+
+      console.log(`✅ KIS 실제 보유주식 ${result.length}개 조회 완료:`, result);
+      return result;
+    } else {
+      console.warn(`⚠️ KIS API 오류: ${balanceData.msg_cd} - ${balanceData.msg1}`);
+      return [];
+    }
+  } catch (error) {
+    console.error("❌ KIS 실제 포지션 조회 실패:", error);
+    return [];
   }
 }
 
@@ -1679,49 +1819,94 @@ function _getDashboardHTMLOld(): string {
  */
 async function handleKISStatus(request: Request, env: WorkerEnv): Promise<Response> {
   try {
-    // 1. DB에서 KIS 팀의 실시간 포지션 조회 (broker 필터링)
+    // 1️⃣ 실제 계좌 포지션 조회 (KIS API)
+    const realHoldings = await fetchKISRealHoldings(env);
+
+    // 2️⃣ DB에서 AI 매매 포지션 조회 (시뮬레이션)
     const dbPositions = await env.DB.prepare(
       `SELECT * FROM trading_positions WHERE status = 'OPEN' AND broker = 'KIS' ORDER BY created_at DESC`
     ).all() as any;
 
-    // 2. 환경변수에서 초기 포트폴리오 값 가져오기
+    // 3️⃣ 실제 계좌 잔고 조회
     let actualBalance = await fetchKISAccountBalance(env);
 
-    // 만약 API 호출이 실패했다면 환경변수 사용
     if (actualBalance.totalAsset === 10000000 && env.KIS_INITIAL_PORTFOLIO) {
       actualBalance.totalAsset = Number(env.KIS_INITIAL_PORTFOLIO);
       actualBalance.cash = Number(env.KIS_INITIAL_PORTFOLIO);
     }
 
-    // 3. 포지션 가치 계산
-    const positions = (dbPositions.results || []) as any[];
-    const positionValue = positions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
-    const totalPnL = positions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
+    // 4️⃣ 실제 포지션 가치 계산
+    const realPositionValue = realHoldings.reduce((sum, h) => sum + (h.price * h.quantity), 0);
+    const realPnL = realHoldings.reduce((sum, h) => sum + ((h.price - (h.value / h.quantity || h.price)) * h.quantity), 0);
+
+    // 5️⃣ AI 포지션 가치 계산 (DB에서만)
+    const aiPositions = (dbPositions.results || []) as any[];
+    const aiPositionValue = aiPositions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
+    const aiPnL = aiPositions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
 
     return new Response(JSON.stringify({
       status: "success",
       team: "KIS",
       isHealthy: true,
       watchlist: (env.PIPELINE_WATCHLIST || "005930,000660,AAPL,MSFT,GOOGL,TSLA,AMZN").split(",").map(s => s.trim()),
+
+      // 실제 계좌
+      realAccount: {
+        totalValue: actualBalance.totalAsset,
+        positionValue: realPositionValue,
+        cashValue: actualBalance.cash,
+        totalPnL: realPnL,
+        positionCount: realHoldings.length,
+        holdings: realHoldings.map(h => ({
+          symbol: h.symbol,
+          quantity: h.quantity,
+          price: h.price,
+          value: h.value,
+          source: "실제 계좌 (KIS API)"
+        }))
+      },
+
+      // AI 시뮬레이션 (DB)
+      aiSimulation: {
+        totalValue: actualBalance.totalAsset,
+        positionValue: aiPositionValue,
+        cashValue: actualBalance.totalAsset - aiPositionValue,
+        totalPnL: aiPnL,
+        positionCount: aiPositions.length,
+        positions: aiPositions.map((p: any) => ({
+          symbol: p.symbol,
+          quantity: p.quantity,
+          entryPrice: p.entry_price,
+          currentPrice: p.current_price || p.entry_price,
+          pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
+          pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
+          status: p.status,
+          source: "AI 시뮬레이션 (DB)"
+        }))
+      },
+
       portfolio: {
         totalValue: actualBalance.totalAsset,
-        positionValue,
-        cashValue: actualBalance.totalAsset - positionValue,
-        totalPnL,
-        totalPnLPercent: actualBalance.totalAsset > 0 ? (totalPnL / actualBalance.totalAsset) * 100 : 0,
+        positionValue: realPositionValue,
+        cashValue: actualBalance.cash,
+        totalPnL: realPnL,
+        totalPnLPercent: actualBalance.totalAsset > 0 ? (realPnL / actualBalance.totalAsset) * 100 : 0,
         krw: actualBalance.totalAsset * 0.7,
         usd: actualBalance.totalAsset * 0.3 / 1300
       },
-      positions: positions.map((p: any) => ({
-        symbol: p.symbol,
-        quantity: p.quantity,
-        entryPrice: p.entry_price,
-        currentPrice: p.current_price || p.entry_price,
-        pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
-        pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
-        status: p.status,
-        broker: p.broker || "KIS"
+
+      // 대시보드용 (실제 포지션만)
+      positions: realHoldings.map(h => ({
+        symbol: h.symbol,
+        quantity: h.quantity,
+        entryPrice: h.price,
+        currentPrice: h.price,
+        pnl: 0,
+        pnlPercent: 0,
+        status: "OPEN",
+        broker: "KIS"
       })),
+
       timestamp: new Date().toISOString()
     }), {
       status: 200,
@@ -1760,24 +1945,41 @@ async function handleTossStatus(request: Request, env: WorkerEnv): Promise<Respo
       actualBalance.cash = Number(env.TOSS_INITIAL_PORTFOLIO);
     }
 
-    // 3. 포지션 가치 계산
-    const positions = (dbPositions.results || []) as any[];
-    const positionValue = positions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
-    const totalPnL = positions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
+    // 3. AI 포지션 가치 계산
+    const aiPositions = (dbPositions.results || []) as any[];
+    const aiPositionValue = aiPositions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
+    const aiPnL = aiPositions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
 
     return new Response(JSON.stringify({
       status: "success",
       team: "Toss",
       isHealthy: true,
       watchlist: (env.PIPELINE_WATCHLIST || "005930,000660").split(",").map(s => s.trim()),
+
+      // ⚠️ Toss는 실제 계좌 API 미지원
+      realAccount: {
+        source: "⚠️ Toss API 미지원 - 기본값만 사용",
+        totalValue: actualBalance.totalAsset,
+        holdings: []
+      },
+
+      // AI 시뮬레이션
+      aiSimulation: {
+        totalValue: actualBalance.totalAsset,
+        positionValue: aiPositionValue,
+        cashValue: actualBalance.totalAsset - aiPositionValue,
+        totalPnL: aiPnL,
+        positionCount: aiPositions.length
+      },
+
       portfolio: {
         totalValue: actualBalance.totalAsset,
-        positionValue,
-        cashValue: actualBalance.totalAsset - positionValue,
-        totalPnL,
-        totalPnLPercent: actualBalance.totalAsset > 0 ? (totalPnL / actualBalance.totalAsset) * 100 : 0
+        positionValue: aiPositionValue,
+        cashValue: actualBalance.totalAsset - aiPositionValue,
+        totalPnL: aiPnL,
+        totalPnLPercent: actualBalance.totalAsset > 0 ? (aiPnL / actualBalance.totalAsset) * 100 : 0
       },
-      positions: positions.map((p: any) => ({
+      positions: aiPositions.map((p: any) => ({
         symbol: p.symbol,
         quantity: p.quantity,
         entryPrice: p.entry_price,
@@ -1785,7 +1987,7 @@ async function handleTossStatus(request: Request, env: WorkerEnv): Promise<Respo
         pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
         pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
         status: p.status,
-        broker: p.broker || "KIS"
+        broker: "TOSS"
       })),
       timestamp: new Date().toISOString()
     }), {
@@ -1944,196 +2146,6 @@ async function runTossTrading(env: WorkerEnv) {
 }
 
 /**
- * ✅ Alpaca 팀 거래 실행 (Cron에서 호출)
- * KIS처럼 간단한 분석 + 매매 로직 (Orchestrator 대신)
- */
-async function runAlpacaTrading(env: WorkerEnv) {
-  try {
-    console.log(`\n[Alpaca] 거래 사이클 시작...`);
-
-    // Watchlist 정의
-    const watchlist = (env.ALPACA_WATCHLIST || "AAPL,MSFT,GOOGL,TSLA,AMZN")
-      .split(",")
-      .map(s => s.trim());
-
-    const claude = new Anthropic({ apiKey: env.CLAUDE_API_KEY });
-    const decisions: TradeDecision[] = [];
-    let ordersExecuted = 0;
-
-    // 각 종목 분석
-    for (const symbol of watchlist) {
-      try {
-        console.log(`[Alpaca Analysis] 분석 중: ${symbol}`);
-        const decision = await analyzeStock(claude, symbol, symbol);
-        decisions.push(decision);
-
-        // 로그 저장 (선택사항)
-        try {
-          await env.DB.prepare(
-            `INSERT INTO trading_analysis_logs
-              (symbol, action, confidence, reasoning, team, created_at)
-             VALUES (?, ?, ?, ?, ?, ?)`
-          ).bind(
-            decision.symbol,
-            decision.action,
-            decision.confidence,
-            decision.reasoning,
-            "Alpaca",
-            new Date().toISOString()
-          ).run();
-        } catch (logError) {
-          console.warn("[Alpaca Analysis] Log save failed");
-        }
-
-        // BUY 신호 + confidence > 40% (낮춘 기준)
-        if (decision.action === "BUY" && decision.confidence > 0.4) {
-          console.log(`[Alpaca] ✅ BUY Signal: ${symbol} @ $${decision.entryPrice}`);
-          await executePositionCreation(env.DB, decision, "ALPACA");
-          ordersExecuted++;
-        } else {
-          console.log(`[Alpaca] ⏸️ ${decision.action}: ${symbol} (confidence: ${decision.confidence})`);
-        }
-      } catch (error) {
-        console.error(`[Alpaca Analysis] Error analyzing ${symbol}:`, error);
-      }
-    }
-
-    const buySignals = decisions.filter(d => d.action === "BUY" && d.confidence > 0.4).length;
-
-    console.log(`✅ [Alpaca] 거래 완료:`, {
-      analyzed: decisions.length,
-      buySignals,
-      ordersExecuted,
-      timestamp: new Date().toISOString(),
-    });
-
-    // 대시보드 업데이트용 활동 기록
-    await saveActivityLog(env.DB, {
-      team: "Alpaca",
-      type: "CRON_CYCLE",
-      analyzed: decisions.length,
-      traded: ordersExecuted,
-      status: "SUCCESS",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error(`❌ [Alpaca] 거래 오류:`, error);
-    await saveActivityLog(env.DB, {
-      team: "Alpaca",
-      type: "CRON_CYCLE",
-      status: "ERROR",
-      error: String(error),
-      timestamp: new Date().toISOString(),
-    });
-  }
-}
-
-/**
- * Handle Alpaca Team Status Request
- */
-async function handleAlpacaStatus(request: Request, env: WorkerEnv): Promise<Response> {
-  try {
-    // 1. DB에서 Alpaca 팀의 실시간 포지션 조회 (broker 필터링)
-    // API 키가 없어도 DB에서 포지션 조회 가능
-    const dbPositions = await env.DB.prepare(
-      `SELECT * FROM trading_positions WHERE status = 'OPEN' AND broker = 'ALPACA' ORDER BY created_at DESC`
-    ).all() as any;
-
-    // 2. 환경변수에서 초기 포트폴리오 값 가져오기
-    const alpacaBalance = await fetchAlpacaAccountBalance(env);
-
-    // 3. 포지션 가치 계산
-    const positions = (dbPositions.results || []) as any[];
-    const positionValue = positions.reduce((sum, p) => sum + (p.entry_price * p.quantity), 0);
-    const totalPnL = positions.reduce((sum, p) => sum + ((p.current_price || p.entry_price) - p.entry_price) * p.quantity, 0);
-
-    return new Response(JSON.stringify({
-      status: "success",
-      team: "Alpaca",
-      isHealthy: true,
-      watchlist: (env.ALPACA_WATCHLIST || "AAPL,MSFT,GOOGL,TSLA,AMZN").split(",").map(s => s.trim()),
-      portfolio: {
-        totalValue: alpacaBalance.totalAsset,
-        cashValue: alpacaBalance.cash,
-        buyingPower: alpacaBalance.buyingPower,
-        positionValue,
-        totalPnL,
-        totalPnLPercent: alpacaBalance.totalAsset > 0 ? (totalPnL / alpacaBalance.totalAsset) * 100 : 0
-      },
-      positions: positions.map((p: any) => ({
-        symbol: p.symbol,
-        quantity: p.quantity,
-        entryPrice: p.entry_price,
-        currentPrice: p.current_price || p.entry_price,
-        pnl: ((p.current_price || p.entry_price) - p.entry_price) * p.quantity,
-        pnlPercent: (((p.current_price || p.entry_price) - p.entry_price) / p.entry_price) * 100,
-        status: p.status,
-        broker: p.broker || "KIS"
-      })),
-      timestamp: new Date().toISOString()
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
-    });
-  } catch (error) {
-    console.error("[Alpaca Status Error]", error);
-    return new Response(JSON.stringify({
-      status: "error",
-      team: "Alpaca",
-      error: String(error),
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-}
-
-/**
- * Fetch Alpaca account balance
- */
-async function fetchAlpacaAccountBalance(env: WorkerEnv): Promise<{ totalAsset: number; cash: number; buyingPower: number }> {
-  try {
-    if (!env.ALPACA_API_KEY || !env.ALPACA_SECRET_KEY) {
-      // Return default if API keys not configured
-      const defaultBalance = Number(env.ALPACA_INITIAL_PORTFOLIO) || 10000;
-      return {
-        totalAsset: defaultBalance,
-        cash: defaultBalance,
-        buyingPower: defaultBalance * 4 // 4x buying power with margin
-      };
-    }
-
-    const response = await fetch("https://api.alpaca.markets/v2/account", {
-      method: "GET",
-      headers: {
-        "APCA-API-KEY-ID": env.ALPACA_API_KEY,
-        "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Alpaca API error: ${response.statusText}`);
-    }
-
-    const data = await response.json() as { equity?: number; cash?: number; buying_power?: number };
-    return {
-      totalAsset: data.equity || Number(env.ALPACA_INITIAL_PORTFOLIO) || 10000,
-      cash: data.cash || 0,
-      buyingPower: data.buying_power || 0
-    };
-  } catch (error) {
-    console.error("[Alpaca Balance Fetch Error]", error);
-    const defaultBalance = Number(env.ALPACA_INITIAL_PORTFOLIO) || 10000;
-    return {
-      totalAsset: defaultBalance,
-      cash: defaultBalance,
-      buyingPower: defaultBalance * 4
-    };
-  }
-}
-
-/**
  * ✅ 실시간 시세 업데이트 - 모든 팀의 포지션 업데이트
  */
 async function updateAllPositionPrices(env: WorkerEnv): Promise<void> {
@@ -2145,9 +2157,6 @@ async function updateAllPositionPrices(env: WorkerEnv): Promise<void> {
 
     // Toss 팀의 포지션 업데이트 (현재는 KIS와 동일 처리, 향후 Toss API 연동)
     await updateTossPositionPrices(env);
-
-    // Alpaca 팀의 포지션 업데이트
-    await updateAlpacaPositionPrices(env);
 
     console.log("[Price Update] ✅ All position prices updated successfully");
   } catch (error) {
@@ -2227,61 +2236,57 @@ async function updateTossPositionPrices(env: WorkerEnv): Promise<void> {
 }
 
 /**
- * ✅ Alpaca 팀 포지션 시세 업데이트
+ * ✨ NEW: 실시간 손절 모니터링 (매분 실행)
  */
-async function updateAlpacaPositionPrices(env: WorkerEnv): Promise<void> {
+async function runStopLossMonitoring(env: WorkerEnv) {
   try {
-    if (!env.ALPACA_API_KEY || !env.ALPACA_SECRET_KEY) {
-      console.warn("[Alpaca Price] API keys not configured");
-      return;
+    const adapter = new D1PriceCacheAdapter(env.DB);
+    const priceCache = new PriceCacheRepository(adapter);
+    const monitor = new StopLossMonitor(env.DB, priceCache);
+
+    const results = await monitor.evaluatePositions();
+
+    console.log(`[StopLoss Monitor] ✅ Checked positions, triggered: ${results.length}`);
+    for (const result of results) {
+      console.log(
+        `[StopLoss Monitor] ${result.symbol}: ` +
+        `Triggered at ${result.currentPrice} (SL: ${result.triggerPrice}), ` +
+        `P&L: ₩${result.pnl?.toLocaleString() || 0} (${result.pnlPercent?.toFixed(2) || 0}%)`
+      );
     }
 
-    const positions = await env.DB.prepare(
-      `SELECT id, symbol, broker FROM trading_positions WHERE status = 'OPEN' AND broker = 'ALPACA'`
-    ).all() as any;
-
-    for (const pos of positions.results || []) {
-      try {
-        // Alpaca API에서 시세 조회
-        const response = await fetch(
-          `https://api.alpaca.markets/v2/stocks/${pos.symbol}/latest/quote`,
-          {
-            method: "GET",
-            headers: {
-              "APCA-API-KEY-ID": env.ALPACA_API_KEY,
-              "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY
-            }
-          }
-        );
-
-        let currentPrice = Number(pos.entry_price);
-        if (response.ok) {
-          const data = await response.json() as any;
-          if (data.quote?.ap) {
-            currentPrice = data.quote.ap; // ask price
-          } else if (data.quote?.bp) {
-            currentPrice = data.quote.bp; // bid price
-          }
-        } else {
-          // Fallback: simulation
-          const priceVariation = (Math.random() - 0.5) * 0.1;
-          currentPrice = Number(pos.entry_price) * (1 + priceVariation);
-        }
-
-        const now = new Date().toISOString();
-        await env.DB.prepare(
-          `UPDATE trading_positions
-           SET current_price = ?, price_updated_at = ?, updated_at = ?
-           WHERE id = ?`
-        ).bind(currentPrice, now, now, pos.id).run();
-
-        console.log(`[Alpaca Price] ${pos.symbol}: $${currentPrice.toFixed(2)}`);
-      } catch (error) {
-        console.warn(`[Alpaca Price] Error updating ${pos.symbol}:`, error);
-      }
-    }
+    return results;
   } catch (error) {
-    console.error("[Alpaca Price Update] Error:", error);
+    console.error("[StopLoss Monitor] Error:", error);
+    return [];
   }
 }
+
+/**
+ * ✨ NEW: 실시간 익절 모니터링 (매분 실행)
+ */
+async function runTakeProfitMonitoring(env: WorkerEnv) {
+  try {
+    const adapter = new D1PriceCacheAdapter(env.DB);
+    const priceCache = new PriceCacheRepository(adapter);
+    const monitor = new TakeProfitMonitor(env.DB, priceCache, 1.0); // 1.0 = full close
+
+    const results = await monitor.evaluatePositions();
+
+    console.log(`[TakeProfit Monitor] ✅ Checked positions, triggered: ${results.length}`);
+    for (const result of results) {
+      console.log(
+        `[TakeProfit Monitor] ${result.symbol}: ` +
+        `Triggered at ${result.currentPrice} (TP: ${result.triggerPrice}), ` +
+        `P&L: ₩${result.pnl?.toLocaleString() || 0} (${result.pnlPercent?.toFixed(2) || 0}%)`
+      );
+    }
+
+    return results;
+  } catch (error) {
+    console.error("[TakeProfit Monitor] Error:", error);
+    return [];
+  }
+}
+
 
