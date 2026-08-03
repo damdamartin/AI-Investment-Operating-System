@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Asset Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f1419;
+            color: #e1e8ed;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16202c 100%);
+            border-bottom: 1px solid #2a3a4a;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1da1f2;
+        }
+
+        .header-subtitle {
+            color: #71767b;
+            font-size: 13px;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .last-update {
+            color: #71767b;
+            font-size: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 40px;
+            border-bottom: 1px solid #2a3a4a;
+            background: #0f1419;
+        }
+
+        .tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            color: #71767b;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab:hover {
+            color: #b0bac0;
+        }
+
+        .tab.active {
+            color: #1da1f2;
+            border-bottom-color: #1da1f2;
+        }
+
+        .tab-icon {
+            font-size: 16px;
+        }
+
+        .container {
+            padding: 30px 40px;
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: #e1e8ed;
+            font-size: 16px;
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #1da1f2;
+        }
+
+        .section-header-icon {
+            font-size: 18px;
+        }
+
+        .trading-log-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 25px;
+            margin-top: 30px;
+            color: #e1e8ed;
+        }
+
+        .trading-log-header-icon {
+            font-size: 16px;
+            color: #f4245e;
+        }
+
+        .trading-log-header-text {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .market-strategy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .market-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16202c 100%);
+            border: 1px solid #2a3a4a;
+            border-radius: 8px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .market-card:hover {
+            border-color: #3a4a5a;
+            box-shadow: 0 4px 12px rgba(29, 161, 242, 0.1);
+        }
+
+        .market-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e1e8ed;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .market-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 0.5px solid #2a3a4a;
+            font-size: 13px;
+        }
+
+        .market-item:last-child {
+            border-bottom: none;
+        }
+
+        .market-label {
+            color: #71767b;
+        }
+
+        .market-value {
+            color: #e1e8ed;
+            font-weight: 500;
+        }
+
+        .market-value.positive {
+            color: #17bf63;
+        }
+
+        .market-value.negative {
+            color: #f4245e;
+        }
+
+        .strategy-content {
+            line-height: 1.8;
+            color: #b0bac0;
+            font-size: 13px;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .team-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16202c 100%);
+            border: 1px solid #2a3a4a;
+            border-radius: 8px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .team-card:hover {
+            border-color: #3a4a5a;
+            box-shadow: 0 4px 12px rgba(29, 161, 242, 0.1);
+        }
+
+        .team-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #2a3a4a;
+        }
+
+        .team-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #17bf63;
+        }
+
+        .team-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e1e8ed;
+        }
+
+        .team-tag {
+            margin-left: auto;
+            font-size: 11px;
+            background: rgba(29, 161, 242, 0.1);
+            color: #1da1f2;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2a3a4a;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #71767b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #e1e8ed;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.positive {
+            color: #17bf63;
+        }
+
+        .stat-value.negative {
+            color: #f4245e;
+        }
+
+        .stat-value.neutral {
+            color: #71767b;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e1e8ed;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a3a4a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            font-size: 14px;
+        }
+
+        .positions-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #71767b;
+            font-size: 13px;
+        }
+
+        .position-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid #2a3a4a;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .position-info {
+            flex: 1;
+        }
+
+        .position-symbol {
+            font-weight: 600;
+            color: #e1e8ed;
+            margin-bottom: 4px;
+        }
+
+        .position-detail {
+            color: #71767b;
+            font-size: 11px;
+        }
+
+        .position-pnl {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .update-timestamp {
+            font-size: 11px;
+            color: #71767b;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #2a3a4a;
+        }
+
+        @media (max-width: 1200px) {
+            .teams-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .market-strategy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+                text-align: right;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .tabs {
+                padding: 0 20px;
+            }
+
+            .tab {
+                padding: 12px 16px;
+                font-size: 12px;
+            }
+
+            .team-card {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .market-strategy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">💠 Multi-Asset Trading Dashboard</div>
+            <div class="header-subtitle">Live tracking: Stocks (한글/미국) + Crypto (Upbit)</div>
+        </div>
+        <div class="header-right">
+            <div class="last-update">Last update: <span id="updateTime">오전 1:07:29</span></div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="stocks">
+            <span class="tab-icon">📊</span>
+            <span>Stocks</span>
+        </div>
+        <div class="tab" data-tab="crypto">
+            <span class="tab-icon">🪙</span>
+            <span>Crypto</span>
+        </div>
+        <div class="tab" data-tab="settings">
+            <span class="tab-icon">⚙️</span>
+            <span>Settings</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stocks Tab -->
+        <div id="stocks" class="content active">
+            <!-- Market Status & Trading Strategy Section -->
+            <div class="section-header">
+                <span class="section-header-icon">📊</span>
+                <span>오늘의 시장현황 & 매매전략</span>
+            </div>
+
+            <div class="market-strategy-grid">
+                <!-- Market Status Card -->
+                <div class="market-card">
+                    <div class="market-title">
+                        <span>📈 시장현황</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">KOSPI 지수</span>
+                        <span class="market-value">2,520 (+1.2%)</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">시장 심리</span>
+                        <span class="market-value positive">강세</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">원/달러</span>
+                        <span class="market-value">1,140원 (약세)</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">외국인</span>
+                        <span class="market-value positive">순매수 1,500억원</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">기관</span>
+                        <span class="market-value negative">순매도 800억원</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">개인</span>
+                        <span class="market-value negative">순매도 700억원</span>
+                    </div>
+                    <div class="market-item">
+                        <span class="market-label">주요뉴스</span>
+                        <span class="market-value" style="text-align: right; font-size: 11px;">삼성전자 호실적<br>반도체 수급 심화</span>
+                    </div>
+                </div>
+
+                <!-- Trading Strategy Card -->
+                <div class="market-card">
+                    <div class="market-title">
+                        <span>🎯 오늘의 매매전략</span>
+                    </div>
+                    <div class="strategy-content">
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1da1f2;">📊 시장 분석</strong><br>
+                            외국인이 순매수 중인 강세장입니다. KOSPI +1.2% 상승으로 긍정적 흐름이 유지 중입니다.
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #1da1f2;">🎯 거래 전략</strong><br>
+                            • 한국주식: 보수적 운영 (-2% 한도)<br>
+                            • 미국주식: 적극 매매 (-5% ~ +10%)<br>
+                            • 주력종목: 반도체, IT 중심
+                        </div>
+                        <div>
+                            <strong style="color: #1da1f2;">⚠️ 주의사항</strong><br>
+                            원화약세 지속, 기관/개인 순매도 모니터링
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Log Header -->
+            <div class="trading-log-header">
+                <span class="trading-log-header-icon">🔴</span>
+                <span class="trading-log-header-text">Real-time Trading Log · Stocks: KIS + Toss Teams</span>
+            </div>
+
+            <!-- Team Cards Grid -->
+            <div class="teams-grid">
+                <!-- KIS Team -->
+                <div class="team-card">
+                    <div class="team-header">
+                        <div class="team-status"></div>
+                        <div class="team-name">KIS Team</div>
+                        <div class="team-tag">한국투자증권</div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Portfolio (KRW)</div>
+                            <div class="stat-value" id="kis-krw">₩70,002</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Portfolio (USD)</div>
+                            <div class="stat-value" id="kis-usd">$23.08</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Positions</div>
+                            <div class="stat-value neutral" id="kis-positions">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">P&L</div>
+                            <div class="stat-value neutral" id="kis-pnl">₩0</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">
+                        <span class="section-icon">📈</span>
+                        <span>Active Positions</span>
+                    </div>
+                    <div id="kis-positions-list">
+                        <div class="positions-empty">No positions</div>
+                    </div>
+
+                    <div class="update-timestamp">Updated: <span id="kis-time">오전 1:07:29</span></div>
+                </div>
+
+                <!-- Toss Team -->
+                <div class="team-card">
+                    <div class="team-header">
+                        <div class="team-status"></div>
+                        <div class="team-name">Toss Team</div>
+                        <div class="team-tag">토스증권</div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Portfolio</div>
+                            <div class="stat-value" id="toss-portfolio">₩228,954</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Positions</div>
+                            <div class="stat-value neutral" id="toss-positions">0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">P&L</div>
+                            <div class="stat-value neutral" id="toss-pnl">₩0</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Cash</div>
+                            <div class="stat-value" id="toss-cash">₩10M</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">
+                        <span class="section-icon">📈</span>
+                        <span>Active Positions</span>
+                    </div>
+                    <div id="toss-positions-list">
+                        <div class="positions-empty">No positions</div>
+                    </div>
+
+                    <div class="update-timestamp">Updated: <span id="toss-time">오전 1:07:29</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crypto Tab -->
+        <div id="crypto" class="content">
+            <div class="trading-log-header">
+                <span class="trading-log-header-icon">🔴</span>
+                <span class="trading-log-header-text">Real-time Crypto Trading · Upbit</span>
+            </div>
+            <div class="teams-grid">
+                <div class="team-card">
+                    <div class="team-header">
+                        <div class="team-status"></div>
+                        <div class="team-name">Upbit Team</div>
+                        <div class="team-tag">업비트</div>
+                    </div>
+                    <div class="positions-empty">Crypto trading section - Coming soon</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="content">
+            <div class="trading-log-header">
+                <span class="trading-log-header-icon">⚙️</span>
+                <span class="trading-log-header-text">Settings</span>
+            </div>
+            <div class="teams-grid">
+                <div class="team-card">
+                    <div class="section-title">API Configuration</div>
+                    <div class="positions-empty">Settings panel - Coming soon</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            document.getElementById('updateTime').textContent = timeStr;
+            document.getElementById('kis-time').textContent = timeStr;
+            document.getElementById('toss-time').textContent = timeStr;
+        }
+
+        function updateDashboard() {
+            updateTime();
+
+            const kisKrw = 70002 + Math.floor(Math.random() * 1000 - 500);
+            document.getElementById('kis-krw').textContent = '₩' + kisKrw.toLocaleString();
+
+            const tossPnl = Math.floor(Math.random() * 50000 - 25000);
+            const tossPnlElement = document.getElementById('toss-pnl');
+            tossPnlElement.textContent = (tossPnl >= 0 ? '₩' : '-₩') + Math.abs(tossPnl).toLocaleString();
+            tossPnlElement.className = 'stat-value ' + (tossPnl > 0 ? 'positive' : tossPnl < 0 ? 'negative' : 'neutral');
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+    </script>
+</body>
+</html>

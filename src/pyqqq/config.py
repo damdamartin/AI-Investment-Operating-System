@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     model_config = ConfigDict(extra='ignore')
 
     # Claude API
-    claude_api_key: str = os.getenv("CLAUDE_API_KEY", "")
+    claude_api_key: str = os.getenv("CLAUDE_API_KEY", "") or "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"
+    claude_model: str = os.getenv("CLAUDE_MODEL", "claude-opus-5")
 
     # Toss Securities API
     toss_client_id: str = os.getenv("TOSS_CLIENT_ID", "")
@@ -19,6 +20,15 @@ class Settings(BaseSettings):
     toss_api_base_url: str = os.getenv("TOSS_API_BASE_URL", "https://openapi.tossinvest.com")
     toss_account_ref: str = os.getenv("TOSS_ACCOUNT_REF", "1")
     toss_read_only_mode: str = os.getenv("TOSS_READ_ONLY_MODE", "true")
+
+    # Upbit API (암호화폐)
+    upbit_access_key: str = os.getenv("UPBIT_ACCESS_KEY", "")
+    upbit_secret_key: str = os.getenv("UPBIT_SECRET_KEY", "")
+    upbit_markets: str = os.getenv(
+        "UPBIT_MARKETS",
+        "KRW-BTC,KRW-ETH,KRW-SOL,KRW-ADA"
+    )
+    upbit_trading_enabled: str = os.getenv("UPBIT_TRADING_ENABLED", "false")
 
     # Trading Config
     watchlist: str = os.getenv(

@@ -1,2324 +1,463 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Investment OS</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 암호화폐 자동매매 대시보드</title>
     <style>
-      :root {
-        color-scheme: light;
-        --bg: #f6f7f9;
-        --panel: #ffffff;
-        --ink: #182230;
-        --muted: #667386;
-        --line: #d9e0ea;
-        --soft: #eef2f6;
-        --blue: #1f66d1;
-        --green: #087a4b;
-        --amber: #946200;
-        --red: #b42318;
-        --shadow: 0 10px 24px rgba(24, 34, 48, 0.08);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--ink);
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        letter-spacing: 0;
-      }
-
-      button,
-      input,
-      select,
-      textarea {
-        font: inherit;
-      }
-
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 18px 28px;
-        border-bottom: 1px solid var(--line);
-        background: #ffffff;
-      }
-
-      h1,
-      h2,
-      h3,
-      p {
-        margin-top: 0;
-      }
-
-      h1 {
-        margin-bottom: 4px;
-        font-size: 22px;
-      }
-
-      header p {
-        margin-bottom: 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      main {
-        display: grid;
-        gap: 18px;
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 24px 28px 42px;
-      }
-
-      .button {
-        min-height: 38px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 8px 12px;
-        background: #ffffff;
-        color: var(--ink);
-        cursor: pointer;
-      }
-
-      .button.primary {
-        border-color: #1559bb;
-        background: var(--blue);
-        color: #ffffff;
-      }
-
-      .button[aria-pressed="true"] {
-        border-color: var(--blue);
-        background: #eaf2ff;
-        color: var(--blue);
-      }
-
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: flex-end;
-      }
-
-      .panel {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-      }
-
-      .section {
-        padding: 18px;
-      }
-
-      .section-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-
-      .section h2 {
-        margin-bottom: 0;
-        font-size: 18px;
-      }
-
-      .top-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
-        gap: 18px;
-      }
-
-      .mode-card {
-        padding: 22px;
-      }
-
-      .mode-card h2 {
-        margin: 12px 0 8px;
-        font-size: 30px;
-        line-height: 1.15;
-      }
-
-      .mode-card p {
-        margin-bottom: 0;
-        color: var(--muted);
-        line-height: 1.55;
-      }
-
-      .traffic-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 16px;
-      }
-
-      .traffic-light {
-        display: grid;
-        gap: 8px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 14px;
-        background: #fbfcfe;
-      }
-
-      .traffic-dot {
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
-      }
-
-      .traffic-dot.green {
-        background: var(--green);
-      }
-
-      .traffic-dot.amber {
-        background: var(--amber);
-      }
-
-      .traffic-dot.red {
-        background: var(--red);
-      }
-
-      .traffic-light strong {
-        font-size: 14px;
-      }
-
-      .traffic-light span {
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        min-height: 27px;
-        border-radius: 999px;
-        padding: 5px 9px;
-        background: var(--soft);
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .tag.red {
-        background: #fff0ee;
-        color: var(--red);
-      }
-
-      .tag.green {
-        background: #e8f6ef;
-        color: var(--green);
-      }
-
-      .tag.amber {
-        background: #fff4df;
-        color: var(--amber);
-      }
-
-      .form-grid {
-        display: grid;
-        gap: 12px;
-      }
-
-      label {
-        display: grid;
-        gap: 6px;
-        color: var(--ink);
-        font-size: 13px;
-        font-weight: 800;
-      }
-
-      select,
-      input,
-      textarea {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 9px 10px;
-        background: #ffffff;
-        color: var(--ink);
-      }
-
-      textarea {
-        min-height: 120px;
-        resize: vertical;
-        line-height: 1.5;
-      }
-
-      .help {
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .mode-output {
-        border-left: 4px solid var(--blue);
-        border-radius: 8px;
-        padding: 12px;
-        background: #f8fbff;
-      }
-
-      .mode-output strong {
-        display: block;
-        margin-bottom: 5px;
-      }
-
-      .content-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-        gap: 18px;
-        align-items: start;
-      }
-
-      .chart-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 18px;
-      }
-
-      .chart-box {
-        min-height: 250px;
-      }
-
-      .chart-toolbar {
-        display: inline-flex;
-        gap: 6px;
-      }
-
-      .chart-toolbar button {
-        min-height: 30px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 5px 9px;
-        background: #ffffff;
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .chart-toolbar button[aria-pressed="true"] {
-        border-color: var(--blue);
-        background: #eaf2ff;
-        color: var(--blue);
-      }
-
-      canvas {
-        display: block;
-        width: 100%;
-        height: 190px;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      th,
-      td {
-        padding: 11px 10px;
-        border-bottom: 1px solid var(--line);
-        text-align: left;
-        vertical-align: top;
-        font-size: 13px;
-      }
-
-      th {
-        color: var(--muted);
-        background: var(--soft);
-        font-weight: 800;
-      }
-
-      .list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .item {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-        background: #fbfcfe;
-      }
-
-      .item strong {
-        display: block;
-        font-size: 14px;
-      }
-
-      .item span {
-        display: block;
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .settings-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .settings-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 14px;
-        background: #fbfcfe;
-      }
-
-      .settings-card h3 {
-        margin-bottom: 12px;
-        font-size: 15px;
-      }
-
-      .auth-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 14px;
-      }
-
-      .auth-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 14px;
-        background: #fbfcfe;
-      }
-
-      .auth-card h3 {
-        margin-bottom: 8px;
-        font-size: 15px;
-      }
-
-      .auth-card .form-grid {
-        margin-top: 12px;
-      }
-
-      .auth-fields {
-        display: grid;
-        grid-template-columns: 220px 180px minmax(0, 1fr);
-        gap: 10px;
-      }
-
-      .checklist-grid {
-        display: grid;
-        gap: 10px;
-      }
-
-      .check-row {
-        display: grid;
-        grid-template-columns: 24px minmax(0, 1fr);
-        gap: 10px;
-        align-items: start;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 12px;
-        background: #fbfcfe;
-      }
-
-      .check-row input {
-        width: 18px;
-        height: 18px;
-        margin-top: 2px;
-      }
-
-      .check-row strong {
-        display: block;
-        font-size: 14px;
-      }
-
-      .check-row span {
-        display: block;
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      .toast {
-        position: fixed;
-        right: 24px;
-        bottom: 24px;
-        max-width: 360px;
-        border-radius: 8px;
-        padding: 12px 14px;
-        background: #182230;
-        color: #ffffff;
-        box-shadow: var(--shadow);
-      }
-
-      @media (max-width: 980px) {
-        .top-grid,
-        .traffic-grid,
-        .content-grid,
-        .chart-grid,
-        .settings-grid,
-        .auth-fields {
-          grid-template-columns: 1fr;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      }
 
-      @media (max-width: 680px) {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
         header {
-          align-items: stretch;
-          flex-direction: column;
-          padding: 16px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
-        main {
-          padding: 16px;
+        h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #333;
         }
-      }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .report-section {
+            margin-bottom: 20px;
+        }
+
+        .report-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .report-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .market-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .market-symbol {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .market-price {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .portfolio-stat {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .portfolio-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .portfolio-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .positive {
+            color: #00b347;
+        }
+
+        .negative {
+            color: #e74c3c;
+        }
+
+        .positions-list {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .position-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .position-item:last-child {
+            border-bottom: none;
+        }
+
+        .position-symbol {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .position-qty {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .position-pnl {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .strategy-list {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .strategy-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .strategy-item:last-child {
+            border-bottom: none;
+        }
+
+        .strategy-symbol {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .strategy-text {
+            color: #666;
+        }
+
+        .timestamp {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .market-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .portfolio-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .position-item {
+                grid-template-columns: 1fr;
+                gap: 5px;
+            }
+        }
     </style>
-  </head>
-  <body>
-    <header>
-      <div>
-        <h1>AI Investment OS</h1>
-        <p>개인 자동투자 운영 대시보드</p>
-      </div>
-      <div class="actions">
-        <button class="button" type="button" id="principlesButton">운영원칙</button>
-        <button class="button" type="button" id="firstTradeButton">최소실전</button>
-        <button class="button primary" type="button" id="exportButton">운영 데이터 내보내기</button>
-        <button class="button" type="button" id="settingsButton">설정</button>
-      </div>
-    </header>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-info">
+                <div>
+                    <h1>🚀 AI 암호화폐 자동매매</h1>
+                    <p class="status-text">실제 Upbit 계정 | 자동 갱신</p>
+                </div>
+                <button class="refresh-btn" onclick="refreshDashboard()">🔄 새로고침</button>
+            </div>
+        </header>
 
-    <main>
-      <section class="top-grid dashboard-view">
-        <div class="panel mode-card">
-          <span class="tag green">신호등: 정상</span>
-          <h2>사이트 운영 현황</h2>
-          <p>
-            자동매매가 정상적으로 돌아가는지, 오류가 있는지, 문제가 생겼다면 무엇을 봐야 하는지
-            가장 먼저 확인합니다. 현재 화면은 잠금 상태라 실거래 주문과 현금화는 실행하지 않습니다.
-          </p>
-          <div class="traffic-grid">
-            <div class="traffic-light">
-              <span class="traffic-dot green" aria-hidden="true"></span>
-              <strong>운영 상태</strong>
-              <span>정상 감시 중</span>
-            </div>
-            <div class="traffic-light">
-              <span class="traffic-dot green" aria-hidden="true"></span>
-              <strong>오류 상태</strong>
-              <span>확인된 오류 없음</span>
-            </div>
-            <div class="traffic-light">
-              <span class="traffic-dot amber" aria-hidden="true"></span>
-              <strong>자동매매</strong>
-              <span>실거래 잠금 · Paper 기준</span>
-            </div>
-          </div>
+        <div class="card">
+            <div class="card-title">📋 팀장 일일 종합 보고서</div>
+            <div id="reportContent"></div>
         </div>
 
-        <div class="panel section">
-          <div class="section-head">
-            <h2>운영 모드</h2>
-            <span class="tag amber">정책</span>
-          </div>
-          <div class="form-grid">
-            <label>
-              운영 방식
-              <select id="operationMode">
-                <option value="STABLE">안정적</option>
-                <option value="AGGRESSIVE">공격적</option>
-                <option value="CONSERVATIVE">보수적</option>
-              </select>
-            </label>
-            <label>
-              문제가 생기면
-              <select id="incidentMode">
-                <option value="PAUSE">활동 멈춤</option>
-                <option value="SELL_ALL">전량 매도</option>
-                <option value="SELL_PARTIAL">일부 매도</option>
-              </select>
-            </label>
-            <div class="mode-output" id="modeOutput"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel section hidden" id="principlesPanel">
-        <div class="section-head">
-          <h2>자동매매 운영원칙</h2>
-          <span class="tag green">원금 보호 우선</span>
-        </div>
-        <div class="list">
-          <div class="item">
-            <div>
-              <strong>핵심 철학</strong>
-              <span>돈을 버는 것보다 살아남는 것이 먼저입니다. 자동매매의 목적은 단기 고수익이 아니라 큰 손실을 피하고 장기간 시장에 머무는 것입니다.</span>
-            </div>
-            <span class="tag red">최우선</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>원금 보호</strong>
-              <span>원금 보호는 손실이 전혀 없다는 뜻이 아니라, 계좌가 회복하기 어려운 손실을 입지 않도록 최대 예상 손실을 먼저 통제한다는 뜻입니다.</span>
-            </div>
-            <span class="tag red">헌법</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>이해 가능한 자산만 거래</strong>
-              <span>수익 근거, 손실 조건, 최대 손실 가능성, 보유 목적을 설명할 수 없는 자산은 매수하지 않습니다. 초기 버전은 주식과 ETF 중심이며 레버리지, 옵션, 복잡한 상품은 제외합니다.</span>
-            </div>
-            <span class="tag">scope</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>분산과 한도</strong>
-              <span>한 종목, 한 산업, 한 국가, 한 전략에 계좌 전체를 의존하지 않습니다. 고위험·고변동성 후보는 일반 후보보다 낮은 투자 한도를 적용합니다.</span>
-            </div>
-            <span class="tag">risk</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>현금도 투자 자산</strong>
-              <span>현금은 기회와 방어를 위한 자산입니다. 비상자금과 사업 운영자금은 투자금과 분리하고, 최소 현금 비중 이하에서는 신규 매수를 막습니다.</span>
-            </div>
-            <span class="tag">cash</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>입금액은 투자원금</strong>
-              <span>증권 계좌에 입금된 금액은 비정기 입금이라도 보호해야 할 투자금으로 취급합니다.</span>
-            </div>
-            <span class="tag">principal</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>규칙 기반 매매</strong>
-              <span>공포, 욕심, 뉴스, 커뮤니티 의견만으로 매매하지 않습니다. 손실 만회를 위한 복수매매와 급등 추격매수를 금지합니다.</span>
-            </div>
-            <span class="tag">rules</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>매수 전 매도 계획</strong>
-              <span>모든 매수에는 투자 목적, 보유 기간, 목표 기준, 손실 제한, 추가매수 가능 여부, 가설 무효 조건이 있어야 합니다.</span>
-            </div>
-            <span class="tag">exit</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>복리 훼손 금지</strong>
-              <span>한 번의 큰 수익보다 반복 가능한 수익 구조를 우선합니다. 수익금도 원금과 동일하게 보호하고, 위험한 비중 확대를 금지합니다.</span>
-            </div>
-            <span class="tag">compound</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>순수익률 기준</strong>
-              <span>수익률은 수익 금액에서 증권사 수수료, 세금, 환전 비용, 슬리피지, AI 토큰 비용을 제외한 값으로 봅니다.</span>
-            </div>
-            <span class="tag">net</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>자동 현금화 없음</strong>
-              <span>수익이 났다는 이유만으로 자동 현금화하지 않습니다. 현금화 목표 금액이 입력될 때만 매도 후보와 순서를 산출합니다.</span>
-            </div>
-            <span class="tag">cash target</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>운영 모드별 위험 한도</strong>
-              <span>보수적, 안정적, 공격적 모드는 투자 비중과 1회 거래 위험 한도를 다르게 적용하되, 어떤 모드도 원금 보호 게이트를 우회하지 않습니다.</span>
-            </div>
-            <span class="tag">mode</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>손실 한도와 킬 스위치</strong>
-              <span>일일·주간·월간 손실, 전체 낙폭, 중복 주문, 비정상 가격, API·인증 오류, 주문금액 이상이 발생하면 신규 주문을 중단하고 문제 상황을 알립니다.</span>
-            </div>
-            <span class="tag red">stop</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>연속 손실 후 축소</strong>
-              <span>연속 손실이 발생하면 투자금을 늘리지 않습니다. 일정 횟수 이상 손실이 이어지면 투자 비중을 줄이거나 신규 매매를 중단하고 재검증합니다.</span>
-            </div>
-            <span class="tag">cooldown</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>추가매수 제한</strong>
-              <span>가격이 하락했다는 이유만으로 추가매수하지 않습니다. 추가매수는 최초 전략에 포함되어 있고 전체 투자 한도를 넘지 않을 때만 허용합니다.</span>
-            </div>
-            <span class="tag">no averaging</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>검증 후 실전</strong>
-              <span>전략은 백테스트, 구간 외 검증, 페이퍼 트레이딩, 최소 금액 실전, 점진적 증액 순서를 건너뛰지 않습니다.</span>
-            </div>
-            <span class="tag">staged</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>판단 유예</strong>
-              <span>최소 30회 거래 또는 약 3개월 전에는 성급하게 전략을 폐기하거나 수정하지 않습니다. 단, 손실 한도 초과, 시스템 오류, 전략 가설 붕괴는 즉시 중단 사유입니다.</span>
-            </div>
-            <span class="tag">review</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>수정은 매매만큼 엄격하게</strong>
-              <span>손실 직후 48시간 동안 전략 수정과 투자금 확대를 금지합니다. 수정은 정기 검토에서 한 번에 하나의 핵심 조건만 바꾸고, 기록과 재검증을 남깁니다.</span>
-            </div>
-            <span class="tag">change</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>과최적화 방지</strong>
-              <span>조건이 지나치게 많거나 특정 기간에만 맞는 전략, 매개변수 변화에 취약한 전략, 비용 차감 후 수익이 사라지는 전략은 실전 투입을 제한합니다.</span>
-            </div>
-            <span class="tag">overfit</span>
-          </div>
-          <div class="item">
-            <div>
-              <strong>운영 순서</strong>
-              <span>생존 → 손실 통제 → 검증 → 실행 → 평가 → 개선 → 점진적 확대 순서를 바꾸지 않습니다.</span>
-            </div>
-            <span class="tag red">order</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="chart-grid dashboard-view">
-        <div class="panel section chart-box">
-          <div class="section-head">
-            <h2>순수익률 현황</h2>
-            <div class="chart-toolbar">
-              <button type="button" data-range="week" data-chart="return" aria-pressed="true">주간</button>
-              <button type="button" data-range="month" data-chart="return" aria-pressed="false">월간</button>
-            </div>
-          </div>
-          <canvas id="returnChart" width="560" height="190" aria-label="순수익률 선그래프"></canvas>
-        </div>
-
-        <div class="panel section chart-box">
-          <div class="section-head">
-            <h2>잔고 현황</h2>
-            <div class="chart-toolbar">
-              <button type="button" data-range="week" data-chart="balance" aria-pressed="true">주간</button>
-              <button type="button" data-range="month" data-chart="balance" aria-pressed="false">월간</button>
-            </div>
-          </div>
-          <canvas id="balanceChart" width="560" height="190" aria-label="잔고 막대그래프"></canvas>
-        </div>
-      </section>
-
-      <section class="content-grid dashboard-view">
-        <div class="panel section">
-          <div class="section-head">
-            <h2>뉴스 + AI 관심 종목</h2>
-            <span class="tag">후보, 주문 아님</span>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>종목 / 후보</th>
-                <th>근거</th>
-                <th>상태</th>
-                <th>할 일</th>
-              </tr>
-            </thead>
-            <tbody id="signalsBody"></tbody>
-          </table>
-        </div>
-
-        <div class="panel section">
-          <div class="section-head">
-            <h2>계좌현황</h2>
-            <span class="tag red">현재 잠금</span>
-          </div>
-          <div class="form-grid">
-            <label>
-              현금화 목표 금액
-              <input id="withdrawalTarget" inputmode="numeric" placeholder="예: 100000" />
-            </label>
-            <div class="mode-output" id="withdrawalOutput"></div>
-            <div class="list" id="accountList"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel section hidden" id="liveAuthPanel">
-        <div class="section-head">
-          <h2>실매매 인증</h2>
-          <button class="button primary" type="button" id="liveAuthSaveButton">인증 기록 저장</button>
-        </div>
-        <div class="mode-output">
-          <strong>현재 의미</strong>
-          <div>
-            실매매 인증과 최소금액 실전 승인 기록은 저장되었습니다. 다만 실제 Toss 주문 전송은
-            별도 주문 어댑터 구현, 코드 리뷰, 공식 endpoint 검증, 최종 실행 게이트가 끝나기 전까지
-            실행되지 않습니다.
-          </div>
-          <div id="liveAuthSaveStatus" style="margin-top: 6px"></div>
-        </div>
-
-        <div class="auth-grid" style="margin-top: 14px">
-          <div class="auth-card">
-            <h3>LCB-001 · Toss 자동매매 허용 근거</h3>
-            <p class="help">
-              토스증권이 API 기반 자동매매 또는 클라우드 자동운영을 허용하는지 확인한 근거를 적습니다.
-              약관, 공식 문서, 고객센터 답변, 담당자 확인 내용 등을 요약합니다.
-            </p>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  상태
-                  <select id="authLcb001Status">
-                    <option value="UNVERIFIED">미확인</option>
-                    <option value="APPROVED">허용 확인</option>
-                    <option value="APPROVED_WITH_LIMITATIONS">제한부 허용</option>
-                    <option value="REJECTED">불가 확인</option>
-                  </select>
-                </label>
-                <label>
-                  확인일
-                  <input id="authLcb001Date" type="date" />
-                </label>
-                <label>
-                  확인자
-                  <input id="authLcb001Reviewer" placeholder="예: 김준 / 계좌 명의자" />
-                </label>
-              </div>
-              <label>
-                입력 내용
-                <textarea id="authLcb001Notes" placeholder="예: 2026-07-29 토스증권 공식 안내/고객센터 확인. 개인 계좌에서 API를 통한 주문 가능 여부, 자동매매 허용 범위, 클라우드 24시간 실행 제한 여부를 확인함. 결과: 제한부 허용. 제한: 계좌 명의자 본인 사용, 타인 자금 운용 금지, API 주문 한도 준수."></textarea>
-              </label>
-            </div>
-          </div>
-
-          <div class="auth-card">
-            <h3>LCB-002 · 계좌 권한 및 실매매 가능 여부</h3>
-            <p class="help">
-              연결된 토스증권 계좌가 실제 주문 가능한 상태인지, 어떤 시장과 자산을 허용하는지 적습니다.
-              계좌번호와 원문 응답은 적지 말고 마스킹된 요약만 남깁니다.
-            </p>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  상태
-                  <select id="authLcb002Status">
-                    <option value="NOT_STARTED">미작성</option>
-                    <option value="VERIFIED">확인 완료</option>
-                    <option value="LIMITED">제한 있음</option>
-                    <option value="BLOCKED">차단</option>
-                  </select>
-                </label>
-                <label>
-                  확인일
-                  <input id="authLcb002Date" type="date" />
-                </label>
-                <label>
-                  확인자
-                  <input id="authLcb002Reviewer" placeholder="예: 김준 / 운영자" />
-                </label>
-              </div>
-              <label>
-                입력 내용
-                <textarea id="authLcb002Notes" placeholder="예: 토스증권 계좌 연결 확인. 국내주식/해외주식 보유, 원화 소액 및 USD 10 보유. 주문 가능 시장: 국내주식, 해외주식. 계좌 식별자는 화면/로그에 저장하지 않음. 실매매 시작 시 최초 주문은 최소금액 1건으로 제한."></textarea>
-              </label>
-            </div>
-          </div>
-
-          <div class="auth-card">
-            <h3>LCB-004 · 사람 승인 기록</h3>
-            <p class="help">
-              AI가 스스로 승인한 것이 아니라, 계좌 명의자인 사람이 위험을 이해하고 실매매 준비 단계를 승인했다는 기록을 남깁니다.
-            </p>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  상태
-                  <select id="authLcb004Status">
-                    <option value="NOT_STARTED">미승인</option>
-                    <option value="APPROVED">승인</option>
-                    <option value="APPROVED_LIMITED">제한부 승인</option>
-                    <option value="REVOKED">철회</option>
-                  </select>
-                </label>
-                <label>
-                  승인일
-                  <input id="authLcb004Date" type="date" />
-                </label>
-                <label>
-                  승인자
-                  <input id="authLcb004Reviewer" placeholder="예: 김준 / 계좌 명의자" />
-                </label>
-              </div>
-              <label>
-                입력 내용
-                <textarea id="authLcb004Notes" placeholder="예: 본인은 AI 자동매매 시스템이 손실을 낼 수 있음을 이해함. 최초 실매매는 최소금액, 1회 주문, 사람 확인 후 시작하도록 제한함. 손실 한도/킬스위치/로그 기록을 유지하는 조건으로 다음 준비 단계 진행을 승인함."></textarea>
-              </label>
-            </div>
-          </div>
-
-          <div class="auth-card">
-            <h3>LCB-005 · 컴플라이언스/법적 검토</h3>
-            <p class="help">
-              개인 사용 범위, 토스 약관, 데이터 사용, 세금 기록, 타인 자금 운용 금지, AI 판단의 책임 주체를 확인한 내용을 적습니다.
-            </p>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  상태
-                  <select id="authLcb005Status">
-                    <option value="UNVERIFIED">미확인</option>
-                    <option value="REVIEWED">검토 완료</option>
-                    <option value="REVIEWED_WITH_LIMITATIONS">제한부 검토</option>
-                    <option value="BLOCKED">차단</option>
-                  </select>
-                </label>
-                <label>
-                  검토일
-                  <input id="authLcb005Date" type="date" />
-                </label>
-                <label>
-                  검토자
-                  <input id="authLcb005Reviewer" placeholder="예: 김준 / 필요 시 전문가 이름" />
-                </label>
-              </div>
-              <label>
-                입력 내용
-                <textarea id="authLcb005Notes" placeholder="예: 개인 본인 계좌 운용 목적. 타인 자금 운용/투자 자문/수익 보장 표현 없음. 거래 기록, 수수료, 세금, AI 토큰 비용을 내보내기 기록에 포함. 약관상 제한 사항 발견 시 실매매 중단."></textarea>
-              </label>
-            </div>
-          </div>
-
-          <div class="auth-card">
-            <h3>Phase5 · Toss 준비 완료 근거</h3>
-            <p class="help">
-              read-only 확인, 엔드포인트 검증, 증거 검토, call-gate 승인 등 현재 점검 스크립트가 실패한 항목을 사람이 보완한 기록을 남깁니다.
-            </p>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  상태
-                  <select id="authPhase5Status">
-                    <option value="INCOMPLETE">미완료</option>
-                    <option value="READ_ONLY_READY">읽기 전용 준비 완료</option>
-                    <option value="EVIDENCE_REVIEWED">증거 검토 완료</option>
-                    <option value="COMPLETE">Phase5 완료</option>
-                  </select>
-                </label>
-                <label>
-                  확인일
-                  <input id="authPhase5Date" type="date" />
-                </label>
-                <label>
-                  확인자
-                  <input id="authPhase5Reviewer" placeholder="예: 김준 / 운영자" />
-                </label>
-              </div>
-              <label>
-                입력 내용
-                <textarea id="authPhase5Notes" placeholder="예: npm run phase5:toss:doctor 결과 확인. 미검토 항목 4개를 사람이 검토했고, OQ-002/OQ-003/OQ-004 증거를 보완함. 최초 실제 네트워크 호출은 read-only 1회만 허용하고, 주문/write 호출은 여전히 금지."></textarea>
-              </label>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel section hidden" id="firstTradePanel">
-        <div class="section-head">
-          <h2>최소실전</h2>
-          <div class="actions" style="justify-content: flex-end">
-            <button class="button" type="button" id="firstTradeSaveButton">체크 저장</button>
-            <button class="button primary" type="button" id="firstTradeTicketButton">승인 주문표 생성</button>
-          </div>
-        </div>
-        <div class="mode-output">
-          <strong>반자동 실매매 흐름</strong>
-          <div>
-            주문 후보값은 운영 기록 기준으로 자동 입력됩니다. 이 화면에서는 체크 상태만 확인하고 저장합니다.
-            승인 주문표를 만든 뒤 사용자가 토스증권에서 직접 주문하고, 체결 결과를 운영 기록에 반영합니다.
-          </div>
-          <div id="firstTradeStatus" style="margin-top: 6px"></div>
-        </div>
-
-        <div class="content-grid" style="margin-top: 14px">
-          <div class="settings-card">
-            <h3>전환 체크리스트</h3>
-            <div class="checklist-grid">
-              <label class="check-row">
-                <input id="firstTradeCheckCapital" type="checkbox" />
-                <span>
-                  <strong>제한 자본 모드</strong>
-                  <span>최초 실전은 정해진 최대 총 노출과 1회 주문 한도 안에서만 진행합니다.</span>
-                </span>
-              </label>
-              <label class="check-row">
-                <input id="firstTradeCheckLimitOnly" type="checkbox" />
-                <span>
-                  <strong>지정가 주문만 사용</strong>
-                  <span>시장가, 시간외, 소수점 주문은 사용하지 않습니다.</span>
-                </span>
-              </label>
-              <label class="check-row">
-                <input id="firstTradeCheckSingleOrder" type="checkbox" />
-                <span>
-                  <strong>최초 1건만 승인</strong>
-                  <span>첫 주문 이후에는 결과, 체결, 정산 상태를 사람이 검토하기 전까지 추가 주문하지 않습니다.</span>
-                </span>
-              </label>
-              <label class="check-row">
-                <input id="firstTradeCheckKillSwitch" type="checkbox" />
-                <span>
-                  <strong>킬스위치 확인</strong>
-                  <span>문제 발생 시 신규 주문을 즉시 막을 수 있음을 확인했습니다.</span>
-                </span>
-              </label>
-              <label class="check-row">
-                <input id="firstTradeCheckReconciliation" type="checkbox" />
-                <span>
-                  <strong>정산/복구 절차 확인</strong>
-                  <span>주문 결과가 불명확하거나 체결 기록이 어긋날 때 확인할 절차를 정했습니다.</span>
-                </span>
-              </label>
-              <label class="check-row">
-                <input id="firstTradeCheckManualReview" type="checkbox" />
-                <span>
-                  <strong>사람 사후 검토</strong>
-                  <span>첫 주문 뒤 계좌와 체결을 확인하고, AI 비용은 체결금액의 10%로 자동 계산합니다.</span>
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="settings-card">
-            <h3>자동 입력된 1건 주문 후보</h3>
-            <div id="firstTradeCandidateSummary" class="metrics" style="margin-top: 10px"></div>
-            <p class="help" style="margin-top: 10px">
-              후보값은 운영 기록에 저장된 최소실전 기준값을 사용합니다. 화면에서 값을 직접 입력하지 않습니다.
-            </p>
-          </div>
-
-          <div class="settings-card">
-            <h3>자동매매 전환 준비</h3>
-            <div class="list">
-              <div class="item">
-                <div><strong>1단계</strong><span>AI 후보 생성 + 사람 승인 주문표</span></div>
-                <span class="tag green">현재</span>
-              </div>
-              <div class="item">
-                <div><strong>2단계</strong><span>체결 결과 기록 + AI 비용 자동 차감</span></div>
-                <span class="tag amber">다음</span>
-              </div>
-              <div class="item">
-                <div><strong>3단계</strong><span>여러 건 반복 검증 후 승인 기반 주문 자동화 검토</span></div>
-                <span class="tag">대기</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-card">
-            <h3>체결 결과 기록</h3>
-            <div class="form-grid">
-              <div class="auth-fields">
-                <label>
-                  체결 상태
-                  <select id="executionStatus">
-                    <option value="PENDING">대기</option>
-                    <option value="FILLED">체결</option>
-                    <option value="PARTIALLY_FILLED">부분 체결</option>
-                    <option value="CANCELED">취소</option>
-                    <option value="REJECTED">거절</option>
-                  </select>
-                </label>
-                <label>
-                  체결일시
-                  <input id="executionFilledAt" type="datetime-local" />
-                </label>
-                <label>
-                  체결수량
-                  <input id="executionFilledQuantity" inputmode="decimal" placeholder="예: 1" />
-                </label>
-              </div>
-              <div class="auth-fields">
-                <label>
-                  평균체결가
-                  <input id="executionAveragePrice" inputmode="decimal" placeholder="예: 7.05" />
-                </label>
-                <label>
-                  체결 확인자
-                  <input id="executionReviewer" placeholder="예: 김준" />
-                </label>
-                <label>
-                  저장 상태
-                  <input id="executionSavedAt" readonly />
-                </label>
-              </div>
-              <label>
-                메모
-                <textarea id="executionNotes" placeholder="예: 토스증권에서 직접 주문 후 체결 내역을 확인함. 수수료/세금은 토스 화면에서 즉시 확인하기 어려워 미확인 0 추정으로 두고, AI 토큰 비용은 체결금액의 10%로 자동 차감함."></textarea>
-              </label>
-            </div>
-            <div id="executionSummary" class="mode-output" style="margin-top: 12px"></div>
-            <button class="button primary" type="button" id="executionSaveButton" style="margin-top: 12px">
-              체결 결과 저장
-            </button>
-          </div>
-
-          <div class="settings-card">
-            <h3>추가 반복 검증 2건</h3>
-            <p class="help">
-              자동매매로 넘어가기 전, 같은 반자동 흐름을 2건 더 반복합니다. 종목/방향/수량/지정가는 사용자가 정하고,
-              사이트는 주문표 생성과 체결 결과 기록만 처리합니다.
-            </p>
-            <div id="repeatValidationList" class="auth-grid" style="margin-top: 12px"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel section hidden" id="settingsPanel">
-        <div class="section-head">
-          <h2>설정</h2>
-          <span class="tag">secret 값 저장 안 함</span>
-        </div>
-        <div class="settings-grid">
-          <div class="settings-card">
-            <h3>증권사 API</h3>
-            <div class="form-grid">
-              <label>
-                기본 증권사
-                <select id="brokerProvider">
-                  <option value="TOSS">토스증권</option>
-                  <option value="KIS">한국투자증권</option>
-                  <option value="MULTI">토스 + 한국투자증권</option>
-                </select>
-              </label>
-              <label>
-                API 키 보관 방식
-                <select id="brokerSecretMode">
-                  <option value="LOCAL_ENV">로컬 .env 참조</option>
-                  <option value="KEYCHAIN">Mac Keychain / 1Password</option>
-                  <option value="SECRET_MANAGER">Secret Manager</option>
-                </select>
-              </label>
-              <p class="help">여기에는 실제 키를 입력하지 않습니다. 키는 별도 보관소에 둡니다.</p>
-            </div>
-          </div>
-
-          <div class="settings-card">
-            <h3>AI API</h3>
-            <div class="form-grid">
-              <label>
-                AI 제공자
-                <select id="aiProvider">
-                  <option value="CLAUDE">Claude</option>
-                  <option value="OPENAI">OpenAI</option>
-                  <option value="MULTI">복수 모델 비교</option>
-                </select>
-              </label>
-              <label>
-                모델 정책
-                <select id="aiModelPolicy">
-                  <option value="PINNED">검증된 모델 고정</option>
-                  <option value="REVIEW_BEFORE_UPGRADE">업그레이드 전 비교 검토</option>
-                  <option value="ENSEMBLE">복수 모델 합의 필요</option>
-                </select>
-              </label>
-              <p class="help">새 AI 모델은 바로 실거래에 쓰지 않고 Paper/비교 검증을 먼저 합니다.</p>
-            </div>
-          </div>
-
-          <div class="settings-card">
-            <h3>사용자 / 로그인</h3>
-            <div class="form-grid">
-              <label>
-                사용 범위
-                <select id="userMode">
-                  <option value="PERSONAL">나 혼자 사용</option>
-                  <option value="INVITED">초대 사용자</option>
-                  <option value="PUBLIC_DISABLED">공개 회원가입은 보류</option>
-                </select>
-              </label>
-              <label>
-                로그인 방식
-                <select id="loginProvider">
-                  <option value="LOCAL_ONLY">로컬 전용</option>
-                  <option value="GOOGLE_PLANNED">Google 로그인 예정</option>
-                </select>
-              </label>
-              <p class="help">다른 사용자 기능은 법적/보안 검토 전에는 실제 활성화하지 않습니다.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <div id="toast" class="toast hidden"></div>
+        <div class="timestamp" id="lastUpdate">마지막 업데이트: -</div>
+    </div>
 
     <script>
-      const STORAGE_KEY = "aios.operatorDashboardSettings.v3";
-
-      const defaultData = {
-        safetyType: "OPERATOR_DASHBOARD_SANITIZED_INPUT",
-        liveBrokerWriteAllowed: false,
-        account: {
-          tossState: "읽기 전용",
-          broker: "토스증권",
-          accountRef: "masked",
-          liveOrder: "차단"
-        },
-        performance: {
-          week: [
-            { label: "월", returnPct: 0.0, balance: 1000000 },
-            { label: "화", returnPct: 0.4, balance: 1004000 },
-            { label: "수", returnPct: 0.1, balance: 1001000 },
-            { label: "목", returnPct: 0.8, balance: 1008000 },
-            { label: "금", returnPct: 0.6, balance: 1006000 }
-          ],
-          month: [
-            { label: "1주", returnPct: 0.6, balance: 1006000 },
-            { label: "2주", returnPct: 1.1, balance: 1011000 },
-            { label: "3주", returnPct: 0.7, balance: 1007000 },
-            { label: "4주", returnPct: 1.4, balance: 1014000 }
-          ]
-        },
-        signals: [
-          {
-            name: "뉴스 기반 후보 1",
-            rationale: "Naver News + AI 분석 연결 예정",
-            status: "관찰",
-            nextAction: "Paper 검토"
-          },
-          {
-            name: "AI 발굴 후보 2",
-            rationale: "시장/뉴스/리스크 점수 연결 예정",
-            status: "대기",
-            nextAction: "근거 확인"
-          }
-        ]
-      };
-
-      const firstTradeCandidateDefaults = {
-        firstTradeMarket: "US",
-        firstTradeSide: "SELL",
-        firstTradeOrderType: "LIMIT",
-        firstTradeSymbol: "TSLL",
-        firstTradeQuantity: "1",
-        firstTradeLimitPrice: "7.05",
-        firstTradeMaxAmount: "7.10",
-        firstTradeCurrency: "USD",
-        firstTradeApprovalStatus: "HUMAN_APPROVED",
-          firstTradeRationale: "최소실전 검증을 위한 TSLL 1주 지정가 매도 후보입니다.",
-        firstTradeStopNotes: "지정가 미체결, 오류, 계좌 불일치, 예상 비용 이상 발생 시 추가 주문을 중단합니다.",
-        firstTradeApprovalNotes: "운영자가 최소실전 1건 후보를 확인했습니다."
-      };
-
-      const repeatValidationDefaults = [
-        { id: "validation-2", label: "반복 검증 2번" },
-        { id: "validation-3", label: "반복 검증 3번" }
-      ].map((item) => ({
-        ...item,
-        market: "US",
-        side: "SELL",
-        orderType: "LIMIT",
-        symbol: "",
-        quantity: "",
-        limitPrice: "",
-        maxOrderAmount: "",
-        currency: "USD",
-        ticketGeneratedAt: "",
-        executionStatus: "PENDING",
-        filledAt: "",
-        filledQuantity: "",
-        averagePrice: "",
-        fee: "",
-        tax: "",
-        aiTokenCost: "",
-        reviewer: "",
-        notes: "",
-        savedAt: ""
-      }));
-
-      const state = loadState();
-      let data = defaultData;
-      let chartRange = { return: "week", balance: "week" };
-
-      function normalizeState(input = {}) {
-        const next = {
-          activeView: "dashboard",
-          operationMode: "STABLE",
-          incidentMode: "PAUSE",
-          withdrawalTarget: "",
-          brokerProvider: "TOSS",
-          brokerSecretMode: "LOCAL_ENV",
-          aiProvider: "CLAUDE",
-          aiModelPolicy: "PINNED",
-          userMode: "PERSONAL",
-          loginProvider: "LOCAL_ONLY",
-          authLcb001Status: "UNVERIFIED",
-          authLcb001Date: "",
-          authLcb001Reviewer: "",
-          authLcb001Notes: "",
-          authLcb002Status: "NOT_STARTED",
-          authLcb002Date: "",
-          authLcb002Reviewer: "",
-          authLcb002Notes: "",
-          authLcb004Status: "NOT_STARTED",
-          authLcb004Date: "",
-          authLcb004Reviewer: "",
-          authLcb004Notes: "",
-          authLcb005Status: "UNVERIFIED",
-          authLcb005Date: "",
-          authLcb005Reviewer: "",
-          authLcb005Notes: "",
-          authPhase5Status: "INCOMPLETE",
-          authPhase5Date: "",
-          authPhase5Reviewer: "",
-          authPhase5Notes: "",
-          liveAuthSavedAt: "",
-          firstTradeCheckCapital: false,
-          firstTradeCheckLimitOnly: false,
-          firstTradeCheckSingleOrder: false,
-          firstTradeCheckKillSwitch: false,
-          firstTradeCheckReconciliation: false,
-          firstTradeCheckManualReview: false,
-          ...firstTradeCandidateDefaults,
-          firstTradeSavedAt: "",
-          firstTradeTicketGeneratedAt: "",
-          executionStatus: "PENDING",
-          executionFilledAt: "",
-          executionFilledQuantity: "",
-          executionAveragePrice: "",
-          executionFee: "",
-          executionTax: "",
-          executionAiTokenCost: "",
-          executionReviewer: "",
-          executionNotes: "",
-          executionSavedAt: "",
-          repeatValidations: repeatValidationDefaults,
-          ...input
-        };
-        next.repeatValidations = normalizeRepeatValidations(next.repeatValidations);
-        Object.entries(firstTradeCandidateDefaults).forEach(([key, value]) => {
-          if (!next[key]) next[key] = value;
-        });
-        if (!["AGGRESSIVE", "STABLE", "CONSERVATIVE"].includes(next.operationMode)) {
-          next.operationMode = "STABLE";
+        async function loadDailyReport() {
+            try {
+                const response = await fetch('/api/crypto/daily-report');
+                if (!response.ok) {
+                    console.error(`API error: ${response.status}`);
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Data load error:', error);
+                return null;
+            }
         }
-        if (!["dashboard", "principles", "firstTrade", "settings"].includes(next.activeView)) {
-          next.activeView = "dashboard";
-        }
-        if (next.incidentMode === "REVIEW_SELL") next.incidentMode = "SELL_ALL";
-        if (next.incidentMode === "CONSERVATIVE") next.incidentMode = "SELL_PARTIAL";
-        if (!["PAUSE", "SELL_ALL", "SELL_PARTIAL"].includes(next.incidentMode)) {
-          next.incidentMode = "PAUSE";
-        }
-        return next;
-      }
 
-      function loadState() {
-        try {
-          return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"));
-        } catch {
-          return normalizeState();
-        }
-      }
+        async function refreshDashboard() {
+            const report = await loadDailyReport();
 
-      function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state, null, 2));
-      }
+            if (!report) {
+                document.getElementById('reportContent').innerHTML = `
+                    <div class="error-message">
+                    ⚠️ 보고서 데이터를 로드할 수 없습니다. 시스템을 확인해주세요.
+                    </div>
+                `;
+                return;
+            }
 
-      function escapeHtml(value) {
-        return String(value ?? "")
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#039;");
-      }
+            let html = '';
 
-      function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.textContent = message;
-        toast.classList.remove("hidden");
-        window.setTimeout(() => toast.classList.add("hidden"), 2400);
-      }
+            // 1. 시장 현황
+            html += '<div class="report-section">';
+            html += '<h3>📈 시장 현황</h3>';
+            html += '<div class="report-content">';
+            html += '<div class="market-grid">';
 
-      function render() {
-        renderView();
-        bindValues();
-        renderMode();
-        renderWithdrawal();
-        renderCharts();
-        renderSignals();
-        renderAccount();
-        renderLiveAuthSaveStatus();
-        renderFirstTradeStatus();
-        renderExecutionSummary();
-        renderRepeatValidations();
-      }
+            const markets = [
+                { symbol: 'BTC', name: 'Bitcoin' },
+                { symbol: 'ETH', name: 'Ethereum' },
+                { symbol: 'SOL', name: 'Solana' },
+                { symbol: 'ADA', name: 'Cardano' }
+            ];
 
-      function renderView() {
-        document.querySelectorAll(".dashboard-view").forEach((section) => {
-          section.classList.toggle("hidden", state.activeView !== "dashboard");
-        });
-        document.getElementById("principlesPanel").classList.toggle("hidden", state.activeView !== "principles");
-        document.getElementById("liveAuthPanel").classList.add("hidden");
-        document.getElementById("firstTradePanel").classList.toggle("hidden", state.activeView !== "firstTrade");
-        document.getElementById("settingsPanel").classList.toggle("hidden", state.activeView !== "settings");
-        document.getElementById("principlesButton").setAttribute(
-          "aria-pressed",
-          String(state.activeView === "principles")
-        );
-        document.getElementById("firstTradeButton").setAttribute("aria-pressed", String(state.activeView === "firstTrade"));
-        document.getElementById("settingsButton").setAttribute("aria-pressed", String(state.activeView === "settings"));
-      }
+            for (const market of markets) {
+                let price = 0;
 
-      function showView(view) {
-        state.activeView = state.activeView === view ? "dashboard" : view;
-        saveState();
-        renderView();
-        renderLiveAuthSaveStatus();
-        renderFirstTradeStatus();
-      }
+                const status = report.market_status?.[`KRW-${market.symbol}`];
+                if (status?.price > 0) {
+                    price = status.price;
+                } else {
+                    const portfolio = report.portfolio || {};
+                    const pos = portfolio.positions?.find(p => p.symbol === `KRW-${market.symbol}`);
+                    if (pos?.current_price > 0) {
+                        price = pos.current_price;
+                    }
+                }
 
-      function renderLiveAuthSaveStatus() {
-        const status = document.getElementById("liveAuthSaveStatus");
-        if (!status) return;
-        status.textContent = state.liveAuthSavedAt
-          ? `마지막 저장: ${state.liveAuthSavedAt}`
-          : "아직 저장 버튼을 누르지 않았습니다.";
-      }
+                const displayPrice = price > 0 ? `₩${Math.floor(price).toLocaleString('ko-KR')}` : '-';
 
-      function firstTradeChecklistComplete() {
-        return [
-          state.firstTradeCheckCapital,
-          state.firstTradeCheckLimitOnly,
-          state.firstTradeCheckSingleOrder,
-          state.firstTradeCheckKillSwitch,
-          state.firstTradeCheckReconciliation,
-          state.firstTradeCheckManualReview
-        ].every(Boolean);
-      }
+                html += `
+                    <div class="market-item">
+                        <div class="market-symbol">${market.symbol}</div>
+                        <div class="market-price">${displayPrice}</div>
+                    </div>
+                `;
+            }
 
-      function firstTradeOrderCandidateComplete() {
-        return Boolean(
-          state.firstTradeSymbol &&
-            state.firstTradeQuantity &&
-            state.firstTradeLimitPrice &&
-            state.firstTradeMaxAmount &&
-            state.firstTradeRationale &&
-            state.firstTradeStopNotes &&
-            state.firstTradeApprovalNotes
-        );
-      }
+            html += '</div></div></div>';
 
-      function firstTradeCandidateReview() {
-        const quantity = Number(state.firstTradeQuantity);
-        const limitPrice = Number(state.firstTradeLimitPrice);
-        const maxAmount = Number(state.firstTradeMaxAmount);
-        const notional = Number.isFinite(quantity) && Number.isFinite(limitPrice) ? quantity * limitPrice : NaN;
-        const checklist = firstTradeChecklistComplete();
-        const candidate = firstTradeOrderCandidateComplete();
-        const approved = state.firstTradeApprovalStatus === "HUMAN_APPROVED";
-        const limitOnly = state.firstTradeOrderType === "LIMIT";
-        const amountOk = Number.isFinite(notional) && Number.isFinite(maxAmount) && notional <= maxAmount;
-        const saved = Boolean(state.firstTradeSavedAt);
-        const ready = checklist && candidate && approved && limitOnly && amountOk && saved;
-        return {
-          ready,
-          rows: [
-            ["체크리스트", checklist ? "완료" : "미완료"],
-            ["주문 후보 입력", candidate ? "완료" : "미완료"],
-            ["주문 방식", limitOnly ? "지정가" : "차단"],
-            ["사람 승인", approved ? "완료" : "미완료"],
-            ["금액 한도", amountOk ? "한도 이내" : "확인 필요"],
-            ["저장 상태", saved ? `저장됨 (${state.firstTradeSavedAt})` : "저장 전"],
-            ["승인 주문표", state.firstTradeTicketGeneratedAt ? `생성됨 (${state.firstTradeTicketGeneratedAt})` : "생성 전"],
-            ["실제 주문 전송", "차단"]
-          ]
-        };
-      }
+            // 2. 포트폴리오 현황
+            html += '<div class="report-section">';
+            html += '<h3>💰 포트폴리오 현황</h3>';
+            html += '<div class="report-content">';
+            html += '<div class="portfolio-grid">';
 
-      function renderFirstTradeCandidateSummary() {
-        const summary = document.getElementById("firstTradeCandidateSummary");
-        if (!summary) return;
-        const rows = [
-          ["시장", state.firstTradeMarket === "US" ? "해외주식" : "국내주식"],
-          ["종목", state.firstTradeSymbol],
-          ["방향", state.firstTradeSide === "SELL" ? "매도" : "매수"],
-          ["수량", state.firstTradeQuantity],
-          ["주문 방식", "지정가"],
-          ["지정가", `${state.firstTradeLimitPrice} ${state.firstTradeCurrency}`],
-          ["최대 주문금액", `${state.firstTradeMaxAmount} ${state.firstTradeCurrency}`],
-          ["승인 상태", "사람 승인"],
-          ["주문표", state.firstTradeTicketGeneratedAt ? "생성됨" : "생성 전"],
-          ["전송 상태", "차단"]
-        ];
-        summary.innerHTML = rows
-          .map(
-            ([label, value]) => `
-              <div class="metric">
-                <span>${escapeHtml(label)}</span>
-                <strong>${escapeHtml(value)}</strong>
-              </div>
-            `
-          )
-          .join("");
-      }
+            const portfolio = report.portfolio || {};
+            const totalAssets = portfolio.total_assets || 0;
+            const totalPnl = portfolio.total_pnl || 0;
+            const totalReturn = portfolio.total_return || 0;
+            const pnlClass = totalPnl >= 0 ? 'positive' : 'negative';
 
-      function renderFirstTradeStatus() {
-        const status = document.getElementById("firstTradeStatus");
-        if (!status) return;
-        const review = firstTradeCandidateReview();
-        renderFirstTradeCandidateSummary();
-        status.innerHTML = `
-          <div class="status ${review.ready ? "ok" : "warn"}" style="margin-top: 10px">
-            <strong>${review.ready ? "사람 검토 가능" : "사람 검토 전"}</strong>
-            <span>
-              ${review.ready
-                ? "최소금액 1건 주문 후보가 저장되어 사람이 최종 검토할 수 있습니다. 실제 Toss 주문 전송은 차단 상태입니다."
-                : "체크리스트, 후보 입력, 사람 승인, 저장, 금액 한도 확인이 모두 완료되어야 검토 가능 상태가 됩니다."}
-            </span>
-          </div>
-          <div class="metrics" style="margin-top: 10px">
-            ${review.rows.map(([label, value]) => `
-              <div class="metric">
-                <span>${label}</span>
-                <strong>${value}</strong>
-              </div>
-            `).join("")}
-          </div>
-        `;
-      }
-
-      function buildFirstTradeTicket() {
-        return {
-          ticketVersion: "1",
-          generatedAt: new Date().toISOString(),
-          workflow: "SEMI_AUTOMATED_HUMAN_EXECUTED_ORDER",
-          broker: "TOSS_SECURITIES",
-          market: state.firstTradeMarket,
-          symbol: state.firstTradeSymbol,
-          side: state.firstTradeSide,
-          orderType: state.firstTradeOrderType,
-          quantity: state.firstTradeQuantity,
-          limitPrice: state.firstTradeLimitPrice,
-          maxOrderAmount: state.firstTradeMaxAmount,
-          currency: state.firstTradeCurrency,
-          humanApprovalStatus: state.firstTradeApprovalStatus,
-          aiRationale: state.firstTradeRationale,
-          stopCondition: state.firstTradeStopNotes,
-          humanApprovalMemo: state.firstTradeApprovalNotes,
-          orderSubmissionAllowedByThisSite: false,
-          liveBrokerWriteAllowed: false,
-          instructions: [
-            "이 주문표는 토스증권 주문 API를 호출하지 않습니다.",
-            "사용자가 토스증권 화면에서 직접 동일 조건을 확인한 뒤 주문합니다.",
-            "체결 뒤 수수료/세금은 미확인 0 추정으로 두고, AI 토큰 비용은 체결금액의 10%로 자동 차감합니다."
-          ]
-        };
-      }
-
-      function downloadFirstTradeTicket() {
-        Object.assign(state, firstTradeCandidateDefaults);
-        if (!firstTradeChecklistComplete()) {
-          showToast("체크리스트를 모두 확인한 뒤 주문표를 생성할 수 있습니다.");
-          renderFirstTradeStatus();
-          return;
-        }
-        state.firstTradeSavedAt = state.firstTradeSavedAt || new Date().toLocaleString("ko-KR");
-        state.firstTradeTicketGeneratedAt = new Date().toLocaleString("ko-KR");
-        saveState();
-        const ticket = buildFirstTradeTicket();
-        const blob = new Blob([JSON.stringify(ticket, null, 2)], { type: "application/json;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "aios-approved-first-order-ticket.json";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        renderFirstTradeStatus();
-        showToast("승인 주문표를 생성했습니다.");
-      }
-
-      function numberOrZero(value) {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : 0;
-      }
-
-      function normalizeRepeatValidations(value) {
-        const incoming = Array.isArray(value) ? value : [];
-        return repeatValidationDefaults.map((defaults, index) => ({
-          ...defaults,
-          ...(incoming[index] || {})
-        }));
-      }
-
-      function executionGrossAmount() {
-        return numberOrZero(state.executionFilledQuantity) * numberOrZero(state.executionAveragePrice);
-      }
-
-      function estimatedAiTokenCostFromGross(gross) {
-        return gross * 0.1;
-      }
-
-      function executionNetAmount() {
-        const gross = executionGrossAmount();
-        return gross - estimatedAiTokenCostFromGross(gross);
-      }
-
-      function renderExecutionSummary() {
-        const summary = document.getElementById("executionSummary");
-        if (!summary) return;
-        const gross = executionGrossAmount();
-        const net = executionNetAmount();
-        const filled = ["FILLED", "PARTIALLY_FILLED"].includes(state.executionStatus);
-        summary.innerHTML = `
-          <strong>${filled ? "체결 기록 계산" : "체결 대기"}</strong>
-          <div>총 체결금액: ${gross.toFixed(2)} ${state.firstTradeCurrency}</div>
-          <div>수수료/세금: 미확인 0 추정</div>
-          <div>AI 토큰 비용: ${estimatedAiTokenCostFromGross(gross).toFixed(2)} ${state.firstTradeCurrency} (체결금액의 10%)</div>
-          <div>순현금화 금액: ${net.toFixed(2)} ${state.firstTradeCurrency}</div>
-          <div style="margin-top: 6px">이 값은 주문 체결 후 운영 데이터 내보내기에 포함됩니다.</div>
-        `;
-      }
-
-      function repeatValidationNetAmount(item) {
-        const gross = numberOrZero(item.filledQuantity) * numberOrZero(item.averagePrice);
-        return gross - estimatedAiTokenCostFromGross(gross);
-      }
-
-      function repeatValidationReadyForTicket(item) {
-        return Boolean(item.symbol && item.side && item.quantity && item.limitPrice && item.maxOrderAmount);
-      }
-
-      function renderRepeatValidations() {
-        const list = document.getElementById("repeatValidationList");
-        if (!list) return;
-        list.innerHTML = state.repeatValidations
-          .map((item, index) => {
-            const net = repeatValidationNetAmount(item);
-            const ready = repeatValidationReadyForTicket(item);
-            return `
-              <div class="auth-card" data-repeat-card="${index}">
-                <h3>${escapeHtml(item.label)}</h3>
-                <div class="form-grid">
-                  <div class="auth-fields">
-                    <label>
-                      시장
-                      <select data-repeat-index="${index}" data-repeat-field="market">
-                        <option value="US" ${item.market === "US" ? "selected" : ""}>해외주식</option>
-                        <option value="KR" ${item.market === "KR" ? "selected" : ""}>국내주식</option>
-                      </select>
-                    </label>
-                    <label>
-                      방향
-                      <select data-repeat-index="${index}" data-repeat-field="side">
-                        <option value="SELL" ${item.side === "SELL" ? "selected" : ""}>매도</option>
-                        <option value="BUY" ${item.side === "BUY" ? "selected" : ""}>매수</option>
-                      </select>
-                    </label>
-                    <label>
-                      통화
-                      <select data-repeat-index="${index}" data-repeat-field="currency">
-                        <option value="USD" ${item.currency === "USD" ? "selected" : ""}>USD</option>
-                        <option value="KRW" ${item.currency === "KRW" ? "selected" : ""}>KRW</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="auth-fields">
-                    <label>종목<input data-repeat-index="${index}" data-repeat-field="symbol" value="${escapeHtml(item.symbol)}" placeholder="예: TSLL" /></label>
-                    <label>수량<input data-repeat-index="${index}" data-repeat-field="quantity" value="${escapeHtml(item.quantity)}" inputmode="decimal" placeholder="예: 1" /></label>
-                    <label>지정가<input data-repeat-index="${index}" data-repeat-field="limitPrice" value="${escapeHtml(item.limitPrice)}" inputmode="decimal" placeholder="예: 7.05" /></label>
-                  </div>
-                  <div class="auth-fields">
-                    <label>최대 주문금액<input data-repeat-index="${index}" data-repeat-field="maxOrderAmount" value="${escapeHtml(item.maxOrderAmount)}" inputmode="decimal" placeholder="예: 7.10" /></label>
-                    <label>
-                      체결 상태
-                      <select data-repeat-index="${index}" data-repeat-field="executionStatus">
-                        <option value="PENDING" ${item.executionStatus === "PENDING" ? "selected" : ""}>대기</option>
-                        <option value="FILLED" ${item.executionStatus === "FILLED" ? "selected" : ""}>체결</option>
-                        <option value="PARTIALLY_FILLED" ${item.executionStatus === "PARTIALLY_FILLED" ? "selected" : ""}>부분 체결</option>
-                        <option value="CANCELED" ${item.executionStatus === "CANCELED" ? "selected" : ""}>취소</option>
-                        <option value="REJECTED" ${item.executionStatus === "REJECTED" ? "selected" : ""}>거절</option>
-                      </select>
-                    </label>
-                    <label>체결일시<input data-repeat-index="${index}" data-repeat-field="filledAt" value="${escapeHtml(item.filledAt)}" type="datetime-local" /></label>
-                  </div>
-                  <div class="auth-fields">
-                    <label>체결수량<input data-repeat-index="${index}" data-repeat-field="filledQuantity" value="${escapeHtml(item.filledQuantity)}" inputmode="decimal" /></label>
-                    <label>평균체결가<input data-repeat-index="${index}" data-repeat-field="averagePrice" value="${escapeHtml(item.averagePrice)}" inputmode="decimal" /></label>
-                    <label>확인자<input data-repeat-index="${index}" data-repeat-field="reviewer" value="${escapeHtml(item.reviewer)}" /></label>
-                  </div>
-                  <label>메모<textarea data-repeat-index="${index}" data-repeat-field="notes">${escapeHtml(item.notes)}</textarea></label>
+            html += `
+                <div class="portfolio-stat">
+                    <div class="portfolio-label">총 자산</div>
+                    <div class="portfolio-value">₩${Math.floor(totalAssets).toLocaleString('ko-KR')}</div>
                 </div>
-                <div class="mode-output" style="margin-top: 12px">
-                  <strong>${ready ? "주문표 생성 가능" : "주문 조건 입력 필요"}</strong>
-                  <div>승인 주문표: ${item.ticketGeneratedAt || "생성 전"}</div>
-                  <div>수수료/세금: 미확인 0 추정</div>
-                  <div>AI 토큰 비용: ${estimatedAiTokenCostFromGross(numberOrZero(item.filledQuantity) * numberOrZero(item.averagePrice)).toFixed(2)} ${escapeHtml(item.currency)} (체결금액의 10%)</div>
-                  <div>순현금화 금액: ${net.toFixed(2)} ${escapeHtml(item.currency)}</div>
-                  <div>체결 저장: ${item.savedAt || "저장 전"}</div>
+                <div class="portfolio-stat">
+                    <div class="portfolio-label">총 손익</div>
+                    <div class="portfolio-value ${pnlClass}">
+                        ${totalReturn.toFixed(2)}% (₩${Math.floor(totalPnl).toLocaleString('ko-KR')})
+                    </div>
                 </div>
-                <div class="actions" style="margin-top: 12px">
-                  <button class="button" type="button" data-repeat-ticket="${index}">주문표 생성</button>
-                  <button class="button primary" type="button" data-repeat-save="${index}">체결 저장</button>
-                </div>
-              </div>
             `;
-          })
-          .join("");
-      }
 
-      function buildRepeatValidationTicket(item) {
-        return {
-          ticketVersion: "1",
-          generatedAt: new Date().toISOString(),
-          workflow: "SEMI_AUTOMATED_REPEAT_VALIDATION_HUMAN_EXECUTED_ORDER",
-          broker: "TOSS_SECURITIES",
-          validationId: item.id,
-          label: item.label,
-          market: item.market,
-          symbol: item.symbol,
-          side: item.side,
-          orderType: "LIMIT",
-          quantity: item.quantity,
-          limitPrice: item.limitPrice,
-          maxOrderAmount: item.maxOrderAmount,
-          currency: item.currency,
-          orderSubmissionAllowedByThisSite: false,
-          liveBrokerWriteAllowed: false,
-          instructions: [
-            "이 주문표는 토스증권 주문 API를 호출하지 않습니다.",
-            "사용자가 토스증권 화면에서 직접 동일 조건을 확인한 뒤 주문합니다.",
-            "체결 뒤 수수료/세금은 미확인 0 추정으로 두고, AI 토큰 비용은 체결금액의 10%로 자동 차감합니다."
-          ]
-        };
-      }
+            html += '</div>';
 
-      function downloadRepeatValidationTicket(index) {
-        const item = state.repeatValidations[index];
-        if (!item || !repeatValidationReadyForTicket(item)) {
-          showToast("종목, 수량, 지정가, 최대 주문금액을 입력한 뒤 주문표를 생성할 수 있습니다.");
-          return;
+            // 각 포지션 상세
+            html += '<div style="margin-top: 15px;">';
+            html += '<div style="font-size: 12px; color: #999; margin-bottom: 10px;">보유 포지션</div>';
+            html += '<div class="positions-list">';
+
+            const positions = portfolio.positions || [];
+            if (positions.length > 0) {
+                for (const pos of positions) {
+                    const pnlPct = pos.pnl_pct || 0;
+                    const pnl = pos.pnl || 0;
+                    const pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                    const qty = pos.quantity || 0;
+
+                    let displayQty = '';
+                    if (qty > 1) {
+                        displayQty = qty.toFixed(2);
+                    } else {
+                        displayQty = qty.toFixed(8);
+                    }
+                    displayQty = parseFloat(displayQty).toString();
+
+                    html += `
+                        <div class="position-item">
+                            <div class="position-symbol">${pos.symbol}</div>
+                            <div class="position-qty">${displayQty}개</div>
+                            <div class="position-pnl ${pnlClass}">${pnlPct.toFixed(2)}%</div>
+                            <div class="position-pnl ${pnlClass}">₩${Math.floor(pnl).toLocaleString('ko-KR')}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                html += '<div style="padding: 15px; text-align: center; color: #999;">포지션 없음</div>';
+            }
+
+            html += '</div></div></div>';
+
+            // 3. 오늘의 매매 전략
+            html += '<div class="report-section">';
+            html += '<h3>🎯 오늘의 매매 전략</h3>';
+            html += '<div class="report-content">';
+            html += '<div class="strategy-list">';
+
+            const strategy = report.strategy || [];
+            if (strategy.length > 0) {
+                for (const item of strategy) {
+                    html += `
+                        <div class="strategy-item">
+                            <span class="strategy-symbol">${item.symbol}</span>
+                            <span class="strategy-text">${item.strategy} ${item.reason}</span>
+                        </div>
+                    `;
+                }
+            } else {
+                html += '<div style="padding: 15px; text-align: center; color: #999;">전략 정보 없음</div>';
+            }
+
+            html += '</div></div>';
+
+            // 4. 조치사항
+            html += '<div class="report-section">';
+            html += '<h3>⚠️ 조치사항</h3>';
+            html += '<div class="report-content">';
+
+            const actions = report.actions || [];
+            if (actions.length > 0) {
+                html += '<ul style="padding-left: 20px;">';
+                for (const action of actions) {
+                    html += `<li style="margin-bottom: 8px;">${action}</li>`;
+                }
+                html += '</ul>';
+            } else {
+                html += '<div style="padding: 10px 0; color: #666;">없음 (정상 운영)</div>';
+            }
+
+            html += '</div></div>';
+
+            document.getElementById('reportContent').innerHTML = html;
+
+            const now = new Date();
+            const dateStr = now.toLocaleString('ko-KR');
+            document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${dateStr}`;
         }
-        item.ticketGeneratedAt = new Date().toLocaleString("ko-KR");
-        saveState();
-        const ticket = buildRepeatValidationTicket(item);
-        const blob = new Blob([JSON.stringify(ticket, null, 2)], { type: "application/json;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `aios-${item.id}-approved-order-ticket.json`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        renderRepeatValidations();
-        showToast(`${item.label} 주문표를 생성했습니다.`);
-      }
 
-      function drawLineChart(canvasId, points) {
-        points = Array.isArray(points) && points.length ? points : defaultData.performance.week;
-        const canvas = document.getElementById(canvasId);
-        const ctx = canvas.getContext("2d");
-        const width = canvas.width;
-        const height = canvas.height;
-        ctx.clearRect(0, 0, width, height);
-        const padding = 28;
-        const values = points.map((point) => Number(point.returnPct || 0));
-        const min = Math.min(...values, 0);
-        const max = Math.max(...values, 1);
-        const span = max - min || 1;
-        ctx.strokeStyle = "#d9e0ea";
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 4; i += 1) {
-          const y = padding + ((height - padding * 2) / 3) * i;
-          ctx.beginPath();
-          ctx.moveTo(padding, y);
-          ctx.lineTo(width - padding, y);
-          ctx.stroke();
-        }
-        ctx.strokeStyle = "#1f66d1";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        points.forEach((point, index) => {
-          const x = padding + ((width - padding * 2) / Math.max(points.length - 1, 1)) * index;
-          const y = height - padding - ((Number(point.returnPct || 0) - min) / span) * (height - padding * 2);
-          if (index === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshDashboard();
+            setInterval(refreshDashboard, 10000);
         });
-        ctx.stroke();
-        ctx.fillStyle = "#182230";
-        ctx.font = "12px system-ui";
-        points.forEach((point, index) => {
-          const x = padding + ((width - padding * 2) / Math.max(points.length - 1, 1)) * index;
-          ctx.fillText(String(point.label || ""), x - 8, height - 8);
-        });
-      }
-
-      function drawBarChart(canvasId, points) {
-        points = Array.isArray(points) && points.length ? points : defaultData.performance.week;
-        const canvas = document.getElementById(canvasId);
-        const ctx = canvas.getContext("2d");
-        const width = canvas.width;
-        const height = canvas.height;
-        ctx.clearRect(0, 0, width, height);
-        const padding = 28;
-        const values = points.map((point) => Number(point.balance || 0));
-        const max = Math.max(...values, 1);
-        const barGap = 10;
-        const barWidth = (width - padding * 2 - barGap * (points.length - 1)) / Math.max(points.length, 1);
-        ctx.strokeStyle = "#d9e0ea";
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 4; i += 1) {
-          const y = padding + ((height - padding * 2) / 3) * i;
-          ctx.beginPath();
-          ctx.moveTo(padding, y);
-          ctx.lineTo(width - padding, y);
-          ctx.stroke();
-        }
-        points.forEach((point, index) => {
-          const value = Number(point.balance || 0);
-          const barHeight = (value / max) * (height - padding * 2);
-          const x = padding + index * (barWidth + barGap);
-          const y = height - padding - barHeight;
-          ctx.fillStyle = "#087a4b";
-          ctx.fillRect(x, y, Math.max(barWidth, 4), barHeight);
-          ctx.fillStyle = "#182230";
-          ctx.font = "12px system-ui";
-          ctx.fillText(String(point.label || ""), x, height - 8);
-        });
-      }
-
-      function renderCharts() {
-        const performance = data.performance || defaultData.performance;
-        drawLineChart("returnChart", performance[chartRange.return] || performance.week);
-        drawBarChart("balanceChart", performance[chartRange.balance] || performance.week);
-      }
-
-      function bindValues() {
-        [
-          "operationMode",
-          "incidentMode",
-          "withdrawalTarget",
-          "brokerProvider",
-          "brokerSecretMode",
-          "aiProvider",
-          "aiModelPolicy",
-          "userMode",
-          "loginProvider",
-          "authLcb001Status",
-          "authLcb001Date",
-          "authLcb001Reviewer",
-          "authLcb001Notes",
-          "authLcb002Status",
-          "authLcb002Date",
-          "authLcb002Reviewer",
-          "authLcb002Notes",
-          "authLcb004Status",
-          "authLcb004Date",
-          "authLcb004Reviewer",
-          "authLcb004Notes",
-          "authLcb005Status",
-          "authLcb005Date",
-          "authLcb005Reviewer",
-          "authLcb005Notes",
-          "authPhase5Status",
-          "authPhase5Date",
-          "authPhase5Reviewer",
-          "authPhase5Notes",
-          "firstTradeMarket",
-          "firstTradeSide",
-          "firstTradeOrderType",
-          "firstTradeSymbol",
-          "firstTradeQuantity",
-          "firstTradeLimitPrice",
-          "firstTradeMaxAmount",
-          "firstTradeCurrency",
-          "firstTradeApprovalStatus",
-          "firstTradeRationale",
-          "firstTradeStopNotes",
-          "firstTradeApprovalNotes"
-        ].forEach((id) => {
-          const element = document.getElementById(id);
-          if (element) element.value = state[id];
-        });
-        [
-          "firstTradeCheckCapital",
-          "firstTradeCheckLimitOnly",
-          "firstTradeCheckSingleOrder",
-          "firstTradeCheckKillSwitch",
-          "firstTradeCheckReconciliation",
-          "firstTradeCheckManualReview"
-        ].forEach((id) => {
-          const element = document.getElementById(id);
-          if (element) element.checked = Boolean(state[id]);
-        });
-      }
-
-      function renderMode() {
-        const operationText = {
-          AGGRESSIVE: "공격적 모드: 원금 보호 게이트는 유지하되, 조건을 만족한 후보의 기회 포착을 더 적극적으로 평가합니다.",
-          STABLE: "안정적 모드: 기본 운영 방식입니다. 수익 기회와 현금 비중, 리스크 제한의 균형을 우선합니다.",
-          CONSERVATIVE: "보수적 모드: 신규 매수는 줄이고 현금 비중, 손실 제한, 방어적 매도 후보를 더 우선합니다."
-        }[state.operationMode];
-        const incidentText = {
-          PAUSE: "문제가 생기면 새 매수/매도 판단을 멈추고 읽기 전용/Paper 기준으로 돌아갑니다.",
-          SELL_ALL: "문제가 크면 전량 매도 후보와 청산 순서를 산출합니다. 현재 단계에서는 실행하지 않습니다.",
-          SELL_PARTIAL: "문제가 제한적이면 일부 매도 후보와 축소 순서를 산출합니다. 현재 단계에서는 실행하지 않습니다."
-        }[state.incidentMode];
-        document.getElementById("modeOutput").innerHTML = `
-          <strong>현재 방침</strong>
-          <div>${escapeHtml(operationText)}</div>
-          <div>${escapeHtml(incidentText)}</div>
-          <div style="margin-top: 6px">수익은 기본적으로 재투자 기준이며, 현금이 필요할 때만 계좌현황에서 현금화 목표 금액을 입력합니다.</div>
-        `;
-      }
-
-      function renderWithdrawal() {
-        const raw = String(state.withdrawalTarget || "").replace(/[^\d]/g, "");
-        const amount = raw ? Number(raw).toLocaleString("ko-KR") : "0";
-        const text = raw
-          ? `${amount}원 현금화 목표. 활성화 이후에는 AI가 이 금액을 만들기 위한 매도 후보와 현금화 순서를 산출합니다. 현재 단계에서는 주문/현금화를 실행하지 않습니다.`
-          : "현금화 목표가 없습니다. 자동 현금화는 실행하지 않습니다.";
-        document.getElementById("withdrawalOutput").innerHTML = `
-          <strong>현금화 목표</strong>
-          <div>${escapeHtml(text)}</div>
-        `;
-      }
-
-      function renderSignals() {
-        document.getElementById("signalsBody").innerHTML = (data.signals || [])
-          .map(
-            (signal) => `
-              <tr>
-                <td>${escapeHtml(signal.name)}</td>
-                <td>${escapeHtml(signal.rationale)}</td>
-                <td><span class="tag amber">${escapeHtml(signal.status)}</span></td>
-                <td>${escapeHtml(signal.nextAction)}</td>
-              </tr>
-            `
-          )
-          .join("");
-      }
-
-      function renderAccount() {
-        const account = data.account || {};
-        const brokerLabel = {
-          TOSS: "토스증권",
-          KIS: "한국투자증권",
-          MULTI: "토스증권 + 한국투자증권"
-        }[state.brokerProvider];
-        document.getElementById("accountList").innerHTML = `
-          <div class="item">
-            <div><strong>연결된 증권사</strong><span>${escapeHtml(brokerLabel)}</span></div>
-            <span class="tag green">${escapeHtml(account.tossState || "읽기 전용")}</span>
-          </div>
-        `;
-      }
-
-      function buildTable(title, headers, rows) {
-        const bodyRows = rows.length ? rows : [headers.map(() => "-")];
-        return `
-          <h2>${escapeHtml(title)}</h2>
-          <table border="1">
-            <thead>
-              <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${bodyRows
-                .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
-                .join("")}
-            </tbody>
-          </table>
-        `;
-      }
-
-      function performanceRows(points, rangeLabel) {
-        return (Array.isArray(points) ? points : []).map((point) => [
-          rangeLabel,
-          point.label || "",
-          `${Number(point.returnPct || 0).toFixed(2)}%`,
-          Number(point.balance || 0).toLocaleString("ko-KR")
-        ]);
-      }
-
-      function liveAuthRows() {
-        return [
-          [
-            "LCB-001 Toss 자동매매 허용 근거",
-            state.authLcb001Status,
-            state.authLcb001Date,
-            state.authLcb001Reviewer,
-            state.authLcb001Notes
-          ],
-          [
-            "LCB-002 계좌 권한 및 실매매 가능 여부",
-            state.authLcb002Status,
-            state.authLcb002Date,
-            state.authLcb002Reviewer,
-            state.authLcb002Notes
-          ],
-          [
-            "LCB-004 사람 승인 기록",
-            state.authLcb004Status,
-            state.authLcb004Date,
-            state.authLcb004Reviewer,
-            state.authLcb004Notes
-          ],
-          [
-            "LCB-005 컴플라이언스/법적 검토",
-            state.authLcb005Status,
-            state.authLcb005Date,
-            state.authLcb005Reviewer,
-            state.authLcb005Notes
-          ],
-          [
-            "Phase5 Toss 준비 완료 근거",
-            state.authPhase5Status,
-            state.authPhase5Date,
-            state.authPhase5Reviewer,
-            state.authPhase5Notes
-          ]
-        ];
-      }
-
-      function firstTradeRows() {
-        return [
-          ["체크리스트 완료", firstTradeChecklistComplete() ? "완료" : "미완료"],
-          ["제한 자본 모드", state.firstTradeCheckCapital ? "확인" : "미확인"],
-          ["지정가 주문만 사용", state.firstTradeCheckLimitOnly ? "확인" : "미확인"],
-          ["최초 1건만 승인", state.firstTradeCheckSingleOrder ? "확인" : "미확인"],
-          ["킬스위치 확인", state.firstTradeCheckKillSwitch ? "확인" : "미확인"],
-          ["정산/복구 절차 확인", state.firstTradeCheckReconciliation ? "확인" : "미확인"],
-          ["사람 사후 검토", state.firstTradeCheckManualReview ? "확인" : "미확인"],
-          ["시장", state.firstTradeMarket],
-          ["매수/매도", state.firstTradeSide],
-          ["주문 방식", state.firstTradeOrderType],
-          ["종목명/티커", state.firstTradeSymbol],
-          ["수량", state.firstTradeQuantity],
-          ["지정가", state.firstTradeLimitPrice],
-          ["최대 주문금액", state.firstTradeMaxAmount],
-          ["통화", state.firstTradeCurrency],
-          ["승인 상태", state.firstTradeApprovalStatus],
-          ["AI 후보 근거", state.firstTradeRationale],
-          ["손실 제한 / 중단 조건", state.firstTradeStopNotes],
-          ["사람 승인 메모", state.firstTradeApprovalNotes],
-          ["마지막 저장", state.firstTradeSavedAt],
-          ["승인 주문표 생성", state.firstTradeTicketGeneratedAt],
-          ["체결 상태", state.executionStatus],
-          ["체결일시", state.executionFilledAt],
-          ["체결수량", state.executionFilledQuantity],
-          ["평균체결가", state.executionAveragePrice],
-          ["수수료", "미확인 0 추정"],
-          ["세금", "미확인 0 추정"],
-          ["AI 토큰 비용", `${estimatedAiTokenCostFromGross(executionGrossAmount()).toFixed(2)} ${state.firstTradeCurrency}`],
-          ["순현금화 금액", `${executionNetAmount().toFixed(2)} ${state.firstTradeCurrency}`],
-          ["체결 결과 저장", state.executionSavedAt],
-          ["실제 주문 전송", "차단"]
-        ];
-      }
-
-      function repeatValidationRows() {
-        return state.repeatValidations.flatMap((item) => [
-          [item.label, "시장", item.market],
-          [item.label, "매수/매도", item.side],
-          [item.label, "종목", item.symbol],
-          [item.label, "수량", item.quantity],
-          [item.label, "지정가", item.limitPrice],
-          [item.label, "최대 주문금액", item.maxOrderAmount],
-          [item.label, "통화", item.currency],
-          [item.label, "주문표 생성", item.ticketGeneratedAt],
-          [item.label, "체결 상태", item.executionStatus],
-          [item.label, "체결일시", item.filledAt],
-          [item.label, "체결수량", item.filledQuantity],
-          [item.label, "평균체결가", item.averagePrice],
-          [item.label, "수수료", "미확인 0 추정"],
-          [item.label, "세금", "미확인 0 추정"],
-          [
-            item.label,
-            "AI 토큰 비용",
-            `${estimatedAiTokenCostFromGross(numberOrZero(item.filledQuantity) * numberOrZero(item.averagePrice)).toFixed(2)} ${item.currency}`
-          ],
-          [item.label, "순현금화 금액", `${repeatValidationNetAmount(item).toFixed(2)} ${item.currency}`],
-          [item.label, "체결 저장", item.savedAt],
-          [item.label, "실제 주문 전송", "사용자 직접 실행"]
-        ]);
-      }
-
-      function downloadOperationalData() {
-        const performance = data.performance || defaultData.performance;
-        const generatedAt = new Date().toLocaleString("ko-KR");
-        const account = data.account || {};
-        const trades = Array.isArray(data.trades) ? data.trades : [];
-        const excelHtml = `
-          <!doctype html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <style>
-                body { font-family: Arial, sans-serif; }
-                h1, h2 { color: #182230; }
-                table { border-collapse: collapse; margin-bottom: 20px; }
-                th { background: #eef2f6; }
-                th, td { padding: 8px; border: 1px solid #9aa4b2; }
-              </style>
-            </head>
-            <body>
-              <h1>AI Investment OS 운영 데이터</h1>
-              ${buildTable("내보내기 정보", ["항목", "값"], [
-                ["생성 시각", generatedAt],
-                ["실거래 주문", account.liveOrder || "차단"],
-                ["수익률 기준", "수익 금액 - 수수료 - 세금 - AI 토큰 비용"],
-                ["현금화 원칙", "자동 현금화 없음. 목표 금액 입력 시 매도 후보 산출"],
-                ["투자금 원칙", "계좌 입금액은 비정기 입금을 포함해 투자원금으로 취급"]
-              ])}
-              ${buildTable("운영원칙", ["원칙", "내용"], [
-                ["핵심 철학", "돈을 버는 것보다 살아남는 것이 먼저다"],
-                ["원금 보호", "감당 불가능한 계좌 손실을 막기 위해 최대 예상 손실을 먼저 통제한다"],
-                ["거래 대상", "이해 가능한 주식과 ETF 중심으로 운용하며 복잡한 고위험 상품은 초기 버전에서 제외한다"],
-                ["분산과 한도", "한 종목, 한 산업, 한 국가, 한 전략에 계좌 전체를 의존하지 않는다"],
-                ["현금", "현금은 방어와 기회를 위한 투자 자산이며 최소 현금 비중을 유지한다"],
-                ["입금", "계좌 입금액은 비정기 입금을 포함해 투자원금으로 운영한다"],
-                ["규칙 기반 매매", "감정, 뉴스, 커뮤니티 의견만으로 매매하지 않고 복수매매와 추격매수를 금지한다"],
-                ["매수 전 매도 계획", "모든 매수에는 목적, 보유 기간, 손실 제한, 가설 무효 조건이 있어야 한다"],
-                ["순수익률", "수수료, 세금, 환전 비용, 슬리피지, AI 토큰 비용 차감 후 계산한다"],
-                ["현금화", "자동 현금화는 없으며 사용자 입력 목표 금액이 있을 때만 매도 후보를 산출한다"],
-                ["운영 모드", "공격적, 안정적, 보수적 모드는 위험 한도를 다르게 적용하지만 원금 보호 게이트를 우회하지 않는다"],
-                ["킬 스위치", "손실 한도, 중복 주문, 비정상 가격, API 오류, 주문 이상 발생 시 신규 주문을 중단한다"],
-                ["연속 손실", "연속 손실 후에는 투자금을 늘리지 않고 축소 또는 중단 후 재검증한다"],
-                ["추가매수", "가격 하락만으로 추가매수하지 않으며 최초 전략과 한도 안에서만 허용한다"],
-                ["검증 단계", "백테스트, 구간 외 검증, 페이퍼, 최소 금액 실전, 점진적 증액을 건너뛰지 않는다"],
-                ["판단 유예", "최소 30회 거래 또는 약 3개월 전에는 성급한 전략 폐기나 수정을 피한다"],
-                ["시스템 수정", "손실 직후 48시간 동안 전략 수정과 투자금 확대를 금지하고 모든 변경을 기록한다"],
-                ["과최적화 방지", "조건 과다, 특정 기간 맞춤, 비용 차감 후 무수익 전략은 실전 투입을 제한한다"],
-                ["운영 순서", "생존, 손실 통제, 검증, 실행, 평가, 개선, 점진적 확대 순서를 지킨다"]
-              ])}
-              ${buildTable("최소실전 체크 및 자동 후보 기록", ["항목", "값"], firstTradeRows())}
-              ${buildTable("추가 반복 검증 2건", ["검증", "항목", "값"], repeatValidationRows())}
-              ${buildTable("수익률 및 잔고 현황", ["구분", "기간", "순수익률", "잔고"], [
-                ...performanceRows(performance.week, "주간"),
-                ...performanceRows(performance.month, "월간")
-              ])}
-              ${buildTable(
-                "매매기록",
-                ["일시", "종목", "구분", "수량", "금액", "수수료", "세금", "AI 토큰 비용", "순손익"],
-                trades.map((trade) => [
-                  trade.timestamp || trade.date || "",
-                  trade.symbol || trade.name || "",
-                  trade.side || "",
-                  trade.quantity || "",
-                  trade.amount || "",
-                  trade.fee || "",
-                  trade.tax || "",
-                  trade.aiTokenCost || "",
-                  trade.netPnl || ""
-                ])
-              )}
-              ${buildTable(
-                "뉴스 + AI 관심 종목",
-                ["종목/후보", "근거", "상태", "할 일"],
-                (data.signals || []).map((signal) => [
-                  signal.name || "",
-                  signal.rationale || "",
-                  signal.status || "",
-                  signal.nextAction || ""
-                ])
-              )}
-            </body>
-          </html>
-        `;
-        const blob = new Blob([excelHtml], { type: "application/vnd.ms-excel;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "operator-dashboard-operational-data.xls";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        showToast("운영 데이터를 엑셀 파일로 내보냈습니다.");
-      }
-
-      [
-        "operationMode",
-        "incidentMode",
-        "withdrawalTarget",
-        "brokerProvider",
-        "brokerSecretMode",
-        "aiProvider",
-        "aiModelPolicy",
-        "userMode",
-        "loginProvider",
-        "authLcb001Status",
-        "authLcb001Date",
-        "authLcb001Reviewer",
-        "authLcb001Notes",
-        "authLcb002Status",
-        "authLcb002Date",
-        "authLcb002Reviewer",
-        "authLcb002Notes",
-        "authLcb004Status",
-        "authLcb004Date",
-        "authLcb004Reviewer",
-        "authLcb004Notes",
-        "authLcb005Status",
-        "authLcb005Date",
-        "authLcb005Reviewer",
-        "authLcb005Notes",
-        "authPhase5Status",
-        "authPhase5Date",
-        "authPhase5Reviewer",
-        "authPhase5Notes",
-        "firstTradeMarket",
-        "firstTradeSide",
-        "firstTradeOrderType",
-        "firstTradeSymbol",
-        "firstTradeQuantity",
-        "firstTradeLimitPrice",
-        "firstTradeMaxAmount",
-        "firstTradeCurrency",
-          "firstTradeApprovalStatus",
-          "firstTradeRationale",
-          "firstTradeStopNotes",
-          "firstTradeApprovalNotes",
-          "executionStatus",
-          "executionFilledAt",
-          "executionFilledQuantity",
-          "executionAveragePrice",
-          "executionReviewer",
-          "executionNotes",
-          "executionSavedAt"
-        ].forEach((id) => {
-        const element = document.getElementById(id);
-        if (!element) return;
-        element.addEventListener("input", (event) => {
-          state[id] = event.target.value;
-          saveState();
-          render();
-        });
-      });
-
-      [
-        "firstTradeCheckCapital",
-        "firstTradeCheckLimitOnly",
-        "firstTradeCheckSingleOrder",
-        "firstTradeCheckKillSwitch",
-        "firstTradeCheckReconciliation",
-        "firstTradeCheckManualReview"
-      ].forEach((id) => {
-        const element = document.getElementById(id);
-        if (!element) return;
-        element.addEventListener("change", (event) => {
-          state[id] = event.target.checked;
-          saveState();
-          render();
-        });
-      });
-
-      document.getElementById("settingsButton").addEventListener("click", () => {
-        showView("settings");
-      });
-
-      document.getElementById("principlesButton").addEventListener("click", () => {
-        showView("principles");
-      });
-
-      document.getElementById("firstTradeButton").addEventListener("click", () => {
-        showView("firstTrade");
-      });
-
-      document.getElementById("firstTradeSaveButton").addEventListener("click", () => {
-        Object.assign(state, firstTradeCandidateDefaults);
-        state.firstTradeSavedAt = new Date().toLocaleString("ko-KR");
-        saveState();
-        renderFirstTradeStatus();
-        showToast("최소실전 체크를 저장했습니다.");
-      });
-
-      document.getElementById("firstTradeTicketButton").addEventListener("click", downloadFirstTradeTicket);
-
-      document.getElementById("executionSaveButton").addEventListener("click", () => {
-        state.executionSavedAt = new Date().toLocaleString("ko-KR");
-        saveState();
-        bindValues();
-        renderExecutionSummary();
-        showToast("체결 결과를 저장했습니다.");
-      });
-
-      document.getElementById("repeatValidationList").addEventListener("input", (event) => {
-        const index = Number(event.target.dataset.repeatIndex);
-        const field = event.target.dataset.repeatField;
-        if (!Number.isInteger(index) || !field || !state.repeatValidations[index]) return;
-        state.repeatValidations[index][field] = event.target.value;
-        saveState();
-      });
-
-      document.getElementById("repeatValidationList").addEventListener("change", (event) => {
-        const index = Number(event.target.dataset.repeatIndex);
-        const field = event.target.dataset.repeatField;
-        if (!Number.isInteger(index) || !field || !state.repeatValidations[index]) return;
-        state.repeatValidations[index][field] = event.target.value;
-        saveState();
-        renderRepeatValidations();
-      });
-
-      document.getElementById("repeatValidationList").addEventListener("click", (event) => {
-        const ticketIndex = event.target.dataset.repeatTicket;
-        const saveIndex = event.target.dataset.repeatSave;
-        if (ticketIndex !== undefined) {
-          downloadRepeatValidationTicket(Number(ticketIndex));
-          return;
-        }
-        if (saveIndex !== undefined) {
-          const index = Number(saveIndex);
-          const item = state.repeatValidations[index];
-          if (!item) return;
-          item.savedAt = new Date().toLocaleString("ko-KR");
-          saveState();
-          renderRepeatValidations();
-          showToast(`${item.label} 체결 결과를 저장했습니다.`);
-        }
-      });
-
-      document.querySelectorAll("[data-chart]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const chart = button.dataset.chart;
-          chartRange[chart] = button.dataset.range;
-          document.querySelectorAll(`[data-chart="${chart}"]`).forEach((item) => {
-            item.setAttribute("aria-pressed", String(item === button));
-          });
-          renderCharts();
-        });
-      });
-
-      document.getElementById("exportButton").addEventListener("click", downloadOperationalData);
-
-      render();
     </script>
-  </body>
+</body>
 </html>

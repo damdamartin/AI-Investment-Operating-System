@@ -5,9 +5,10 @@
  */
 
 import crypto from "crypto";
-import { promisify } from "util";
 
-const generateSignature = promisify(crypto.generateHmac) as any;
+const generateSignature = (secret: string, message: string): string => {
+  return crypto.createHmac("sha256", secret).update(message).digest("hex");
+};
 
 export interface UpbitConfig {
   accessKey: string;
@@ -163,6 +164,9 @@ export class UpbitClient {
    */
   async getTicker(market: string): Promise<UpbitTicker> {
     const tickers = await this.getTickers([market]);
+    if (!tickers[0]) {
+      throw new Error(`Failed to get ticker for market: ${market}`);
+    }
     return tickers[0];
   }
 
@@ -292,17 +296,45 @@ export class UpbitClient {
     const url = new URL(`${this.baseUrl}${endpoint}`);
     const queryString = this.buildQueryString(params || {});
 
-    // 서명 생성
-    const message = queryString || "";
+    // 업비트 JWT 토큰 생성
+    const nonce = crypto.randomUUID();
+    const timestamp = Date.now().toString();
+
+    // Query Hash 생성 (선택사항)
+    let queryHash: string | undefined;
+    let queryHashAlg: string | undefined;
+
+    if (queryString) {
+      queryHash = crypto.createHash("sha256").update(queryString).digest("hex");
+      queryHashAlg = "SHA256";
+    }
+
+    // Payload 생성
+    const payload: Record<string, any> = {
+      access_key: this.config.accessKey,
+      nonce,
+      timestamp
+    };
+
+    if (queryHash) {
+      payload.query_hash = queryHash;
+      payload.query_hash_alg = queryHashAlg;
+    }
+
+    // Payload를 Base64로 인코딩
+    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64");
+
+    // Signature 생성
     const signature = crypto
       .createHmac("sha256", this.config.secretKey)
-      .update(message)
-      .digest("hex");
+      .update(encodedPayload)
+      .digest("base64");
 
-    const nonce = Date.now().toString();
+    // Authorization 헤더: Bearer {base64_payload}.{signature}
+    const authHeader = `Bearer ${encodedPayload}.${signature}`;
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.buildAuthorizationHeader(signature, nonce)}`,
+      Authorization: authHeader,
       Accept: "application/json"
     };
 
@@ -337,12 +369,9 @@ export class UpbitClient {
   }
 
   private buildAuthorizationHeader(signature: string, nonce: string): string {
-    const payload = {
-      access_key: this.config.accessKey,
-      nonce,
-      timestamp: Date.now(),
-      signature
-    };
-    return JSON.stringify(payload);
+    // Upbit API 인증: Base64 인코딩된 access_key:nonce:timestamp:signature
+    const timestamp = Date.now().toString();
+    const authString = `${this.config.accessKey}:${nonce}:${timestamp}:${signature}`;
+    return Buffer.from(authString).toString("base64");
   }
 }

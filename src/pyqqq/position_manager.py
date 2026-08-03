@@ -1,8 +1,14 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
 import json
+import logging
+
+if TYPE_CHECKING:
+    from .upbit_client import UpbitClient
+
+logger = logging.getLogger(__name__)
 
 
 class PositionStatus(str, Enum):
@@ -72,6 +78,7 @@ class PositionManager:
     def __init__(self):
         self.open_positions: Dict[str, Position] = {}
         self.closed_positions: List[Position] = []
+        self.logger = logging.getLogger(__name__)
 
     def add_position(self, position: Position) -> None:
         """포지션 추가"""
@@ -193,3 +200,77 @@ class PositionManager:
 
         except FileNotFoundError:
             print(f"⚠️  포지션 파일 없음: {filename}")
+
+    async def monitor_position_for_exit(
+        self,
+        position: Position,
+        current_price: float,
+        upbit_client: "UpbitClient"
+    ) -> Optional[str]:
+        """
+        포지션의 손절/익절 조건 확인 및 자동 매도
+
+        Args:
+            position: 모니터링할 포지션
+            current_price: 현재가
+            upbit_client: Upbit 클라이언트 (매도 주문 실행용)
+
+        Returns:
+            "STOPPED": 손절 실행됨
+            "PROFITED": 익절 실행됨
+            None: 아직 유지 중
+        """
+        if position.status != PositionStatus.OPEN:
+            return None
+
+        # 현재가 업데이트
+        position.update_current_price(current_price)
+
+        # 손절/익절 조건 확인
+        exit_condition = position.check_exit_condition()
+
+        if exit_condition == PositionStatus.STOPPED:
+            self.logger.warning(f"🔴 손절 발동: {position.symbol}")
+            self.logger.warning(f"   진입가: ₩{position.entry_price:,.0f}")
+            self.logger.warning(f"   현재가: ₩{current_price:,.0f}")
+            self.logger.warning(f"   손실: {position.pnl_pct:.2f}%")
+
+            # 매도 주문 실행
+            result = await upbit_client.place_order(
+                market=position.symbol,
+                side="sell",
+                volume=position.quantity,
+                price=current_price
+            )
+
+            if result and result.get("uuid"):
+                position.close_position(current_price, PositionStatus.STOPPED)
+                self.logger.info(f"✅ 손절 주문 완료: UUID={result['uuid']}")
+                return "STOPPED"
+            else:
+                self.logger.error(f"❌ 손절 주문 실패: {position.symbol}")
+                return None
+
+        elif exit_condition == PositionStatus.PROFITED:
+            self.logger.warning(f"🟢 익절 발동: {position.symbol}")
+            self.logger.warning(f"   진입가: ₩{position.entry_price:,.0f}")
+            self.logger.warning(f"   현재가: ₩{current_price:,.0f}")
+            self.logger.warning(f"   수익: {position.pnl_pct:.2f}%")
+
+            # 매도 주문 실행
+            result = await upbit_client.place_order(
+                market=position.symbol,
+                side="sell",
+                volume=position.quantity,
+                price=current_price
+            )
+
+            if result and result.get("uuid"):
+                position.close_position(current_price, PositionStatus.PROFITED)
+                self.logger.info(f"✅ 익절 주문 완료: UUID={result['uuid']}")
+                return "PROFITED"
+            else:
+                self.logger.error(f"❌ 익절 주문 실패: {position.symbol}")
+                return None
+
+        return None

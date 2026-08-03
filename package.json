@@ -33,6 +33,7 @@
     "phase5:toss:operator:completion": "node scripts/phase5-toss-completion.mjs docs/phase5/toss-read-only-endpoints.operator.json docs/phase5/evidence-manifest.operator.json docs/phase5/evidence-intake.operator.json",
     "phase10:first-order:candidate": "node scripts/phase10-first-order-candidate-review.mjs",
     "pipeline:run-cycle": "node dist/src/entrypoints/run-trading-cycle.js",
+    "crypto:trading:local": "npm run build && node dist/src/entrypoints/crypto-trading-local.js",
     "deploy:cloudflare:pages": "npx wrangler pages deploy public --project-name ai-investment-operating-system",
     "deploy:cloudflare:worker": "npm run build && wrangler deploy --env production",
     "worker:dev": "npm run build && wrangler dev --env production",
