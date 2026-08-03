@@ -3,3 +3,5 @@ anthropic
 python-dotenv
 pydantic
 pydantic-settings
+PyJWT
+pyupbit

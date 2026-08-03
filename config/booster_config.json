@@ -1,0 +1,68 @@
+{
+  "mode": "BOOSTER",
+  "description": "급등락주 초단타 자동매매 부스터 모드",
+  "enabled": true,
+  "created_at": "2026-08-03T10:21:00Z",
+  "last_updated": "2026-08-03T10:21:00Z",
+
+  "strategy": {
+    "name": "급등락주 초단타",
+    "cycle_seconds": 30,
+    "description": "변동성 높은 종목을 30초 단위로 분석하고 초단타 거래"
+  },
+
+  "trading": {
+    "enabled": true,
+    "mode": "LIVE",
+    "target_coins": ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-ADA"],
+    "buy_mode": "MARKET",
+    "sell_mode": "MARKET"
+  },
+
+  "signal": {
+    "min_confidence": 0.60,
+    "volatility_threshold": 5.0,
+    "rsi_oversold": 30,
+    "rsi_overbought": 70,
+    "use_claude_ai": true
+  },
+
+  "position": {
+    "hold_policy": "NO_HOLD",
+    "max_hold_seconds": 300,
+    "target_profit": 3.5,
+    "stop_loss": -2.5,
+    "description": "수익 달성 시 즉시 매도, 보유 금지"
+  },
+
+  "risk": {
+    "daily_loss_limit": -10.0,
+    "consecutive_losses_limit": 3,
+    "max_drawdown": -5.0,
+    "kelly_factor": 0.25
+  },
+
+  "monitoring": {
+    "dashboard_enabled": true,
+    "dashboard_url": "https://ai-investment-trading-cycle-production.junkim-life360.workers.dev/dashboard",
+    "log_file": "/tmp/booster_trading.log",
+    "log_level": "INFO"
+  },
+
+  "booster_period": {
+    "start_date": "2026-08-03",
+    "end_date": "2026-08-10",
+    "duration_days": 7,
+    "operating_hours": "09:00-23:00",
+    "timezone": "KST"
+  },
+
+  "api": {
+    "provider": "UPBIT",
+    "use_official_cli": true,
+    "cli_version": "0.9.3",
+    "auth_method": "CLI_CONFIG"
+  },
+
+  "notes": "부스터 모드: 1주일 최대 수익 극대화 프로젝트"
+}
