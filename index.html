@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Upbit 자동매매 대시보드</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 28px; color: #667eea; margin-bottom: 10px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-title { font-size: 14px; color: #999; text-transform: uppercase; margin-bottom: 10px; }
+        .card-value { font-size: 32px; font-weight: bold; color: #333; margin-bottom: 5px; }
+        .positive { color: #28a745; }
+        .negative { color: #dc3545; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .info-label { color: #999; font-size: 12px; }
+        .info-value { font-weight: bold; margin-top: 5px; }
+        .schedule-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .schedule-item:last-child { border-bottom: none; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ccc;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 20px; }
+            .card-value { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Upbit 자동매매 대시보드</h1>
+            <p id="timestamp" style="font-size: 12px; color: #999; margin-top: 5px;"></p>
+        </header>
+
+        <div id="content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">📊 상태</div>
+                    <div class="card-value" id="status">--</div>
+                    <div style="font-size: 12px; color: #999;" id="mode">--</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">💰 자산</div>
+                    <div class="card-value" id="current-value">₩--</div>
+                    <div style="font-size: 12px; color: #999;">초기: <span id="initial-capital">₩--</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 수익률</div>
+                    <div class="card-value" id="roi-percent">--%</div>
+                    <div style="font-size: 12px;" id="roi-amount">±₩--</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">🎯 거래</div>
+                    <div class="card-value" id="trades-count">0</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">포지션</div>
+                            <div class="info-value" id="positions-count">0</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">운영 시간</div>
+                            <div class="info-value" id="operating-time">0분</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🔍 종목 & 스케줄</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">안전 종목</div>
+                            <div class="info-value" id="safe-symbols">0</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">거래 종목</div>
+                            <div class="info-value" id="trading-symbols">0</div>
+                        </div>
+                    </div>
+                    <div class="schedule-box" id="schedule-list">
+                        <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">⏰ 다음 업데이트</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+                마지막 업데이트: <span id="last-update">--</span>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">
+            <h2>📊 데이터 로드 중...</h2>
+            <p style="margin-top: 10px;">거래 데이터를 수집하는 중입니다</p>
+        </div>
+    </div>
+
+    <script>
+        // JSON 데이터 로드
+        async function loadDashboard() {
+            try {
+                document.getElementById('content').style.display = 'none';
+                document.getElementById('loading').style.display = 'block';
+
+                // 로컬 JSON 파일 로드
+                const response = await fetch('trading_dashboard.json');
+                if (!response.ok) throw new Error('JSON 로드 실패');
+                const data = await response.json();
+
+                // UI 업데이트
+                updateUI(data);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
+            } catch (error) {
+                console.error('에러:', error);
+                document.getElementById('loading').innerHTML = `
+                    <h2>⚠️ 데이터 로드 실패</h2>
+                    <p style="margin-top: 10px;">거래 시스템이 아직 시작되지 않았거나 데이터가 없습니다</p>
+                    <p style="margin-top: 20px; font-size: 12px; color: #999;">자동매매 시스템 시작 후 30초 후에 새로고침 해주세요</p>
+                `;
+            }
+        }
+
+        function updateUI(data) {
+            const roiAmount = data.roi_amount || 0;
+
+            document.getElementById('status').textContent = data.status === 'running' ? '✅ 운영 중' : '⏸️ 대기 중';
+            document.getElementById('status').className = 'card-value ' + (data.status === 'running' ? 'positive' : '');
+            document.getElementById('mode').textContent = data.mode || '--';
+
+            document.getElementById('initial-capital').textContent = formatCurrency(data.initial_capital);
+            document.getElementById('current-value').textContent = formatCurrency(data.current_value);
+
+            const roiClass = data.roi_percent > 0 ? 'positive' : data.roi_percent < 0 ? 'negative' : '';
+            document.getElementById('roi-percent').textContent = formatPercent(data.roi_percent);
+            document.getElementById('roi-percent').className = 'card-value ' + roiClass;
+
+            const sign = roiAmount > 0 ? '+' : '';
+            document.getElementById('roi-amount').textContent = `${sign}₩${Math.abs(roiAmount).toLocaleString()}`;
+            document.getElementById('roi-amount').className = 'info-label ' + roiClass;
+
+            document.getElementById('trades-count').textContent = data.trades_count || 0;
+            document.getElementById('positions-count').textContent = data.positions_count || 0;
+            document.getElementById('operating-time').textContent = `${data.operating_minutes || 0}분`;
+            document.getElementById('safe-symbols').textContent = data.symbols?.safe || 0;
+            document.getElementById('trading-symbols').textContent = data.symbols?.total || 0;
+
+            const scheduleList = document.getElementById('schedule-list');
+            scheduleList.innerHTML = '<div style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">⏰ 다음 업데이트</div>';
+            for (const [time, action] of Object.entries(data.next_update || {})) {
+                const item = document.createElement('div');
+                item.className = 'schedule-item';
+                item.innerHTML = `<span style="font-weight: bold; color: #667eea;">${time}</span><span style="color: #999;">${action}</span>`;
+                scheduleList.appendChild(item);
+            }
+
+            const updateTime = new Date(data.timestamp).toLocaleString('ko-KR');
+            document.getElementById('last-update').textContent = updateTime;
+            document.getElementById('timestamp').textContent = updateTime;
+        }
+
+        function formatCurrency(value) {
+            if (!value) return '₩0';
+            return '₩' + Math.round(value).toLocaleString();
+        }
+
+        function formatPercent(value) {
+            if (!value) return '0%';
+            const sign = value > 0 ? '+' : '';
+            return `${sign}${value.toFixed(2)}%`;
+        }
+
+        // 30초마다 새로고침
+        setInterval(loadDashboard, 30000);
+
+        // 초기 로드
+        loadDashboard();
+    </script>
+</body>
+</html>
