@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-09T13:15:45.394864",
+  "timestamp": "2026-08-09T13:20:49.635821",
   "status": "running",
   "mode": "주간 거래",
   "initial_capital": 80223,
@@ -8,7 +8,7 @@
   "roi_amount": 0,
   "trades_count": 3,
   "positions_count": 3,
-  "operating_minutes": 81,
+  "operating_minutes": 86,
   "symbols": {
     "total": 14,
     "safe": 264
