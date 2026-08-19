@@ -56,7 +56,7 @@ PIPELINE_MONEY_MAX_STRATEGY_ALLOCATION=5000000
 # ===== API 설정 =====
 NAVER_CLIENT_ID=replace-with-local-secret
 NAVER_CLIENT_SECRET=replace-with-local-secret
-CLAUDE_API_KEY=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
+CLAUDE_API_KEY=replace-with-local-secret
 EOF
 
 echo "✅ 설정 파일 생성 완료"
@@ -134,7 +134,7 @@ PIPELINE_MONEY_MAX_STRATEGY_ALLOCATION=5000000
 # ===== API 설정 =====
 NAVER_CLIENT_ID=replace-with-local-secret
 NAVER_CLIENT_SECRET=replace-with-local-secret
-CLAUDE_API_KEY=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
+CLAUDE_API_KEY=replace-with-local-secret
 ENVEOF
 
 # 서비스 재시작
