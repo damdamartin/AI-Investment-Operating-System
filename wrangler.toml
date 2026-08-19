@@ -9,7 +9,7 @@ type = "durable-object"
 storage = "sqlite"
 
 [env.production]
-vars = { ENVIRONMENT = "production", CLOUDFLARE_ACCOUNT_ID = "87b29e119026eda88a305476a9c28adb", CLOUDFLARE_D1_DATABASE_ID = "9d287512-e226-4d7f-b739-d54098b36e0d", TOSS_CLIENT_ID = "tsck_live_xOGg7QZbI1Im34ldMpal9D", TOSS_CLIENT_SECRET = "tssk_live_L33b3zbjbfYaLBxlqnvYVpG9QWJtIetvkeJ4ZmK6cctA", TOSS_ACCOUNT_REF = "1", ALPACA_API_KEY = "", ALPACA_SECRET_KEY = "", ALPACA_BASE_URL = "https://api.alpaca.markets", CRYPTO_TRADING_MODE = "LIVE", CRYPTO_DAILY_LOSS_LIMIT = "-0.10", CRYPTO_MAX_POSITION_PERCENT = "0.20" }
+vars = { ENVIRONMENT = "production", CLOUDFLARE_ACCOUNT_ID = "87b29e119026eda88a305476a9c28adb", CLOUDFLARE_D1_DATABASE_ID = "9d287512-e226-4d7f-b739-d54098b36e0d", TOSS_CLIENT_ID = "tsck_live_xOGg7QZbI1Im34ldMpal9D", TOSS_CLIENT_SECRET = "tssk_live_L33b3zbjbfYaLBxlqnvYVpG9QWJtIetvkeJ4ZmK6cctA", TOSS_ACCOUNT_REF = "1", KIS_APP_KEY = "", KIS_APP_SECRET = "", KIS_ACCOUNT_NUMBER = "46410502-01", KIS_ENV = "production", ALPACA_API_KEY = "", ALPACA_SECRET_KEY = "", ALPACA_BASE_URL = "https://api.alpaca.markets", CRYPTO_TRADING_MODE = "LIVE", CRYPTO_DAILY_LOSS_LIMIT = "-0.10", CRYPTO_MAX_POSITION_PERCENT = "0.20" }
 
 # ✅ Durable Object 바인딩 (production 환경)
 # KIS 에이전트 (한투) - LIVE TRADING

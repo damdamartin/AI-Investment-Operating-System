@@ -1,0 +1,27 @@
+[Unit]
+Description=AIOS Health Check Monitor
+After=network.target
+Wants=aios-healthcheck.timer
+
+[Service]
+Type=oneshot
+User=junkim_life360
+WorkingDirectory=/opt/aios/src
+EnvironmentFile=/etc/aios/aios.env
+
+# Python healthcheck 실행
+ExecStart=/opt/aios/src/venv/bin/python3 /opt/aios/src/deployment/check_aios_health.py
+
+# 타임아웃
+TimeoutStartSec=30
+
+# 로깅
+StandardOutput=append:/var/log/aios/healthcheck.log
+StandardError=append:/var/log/aios/healthcheck.log
+SyslogIdentifier=aios-healthcheck
+
+# Python 설정
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=AIOS Health Check Timer (Every 5 minutes)
+Requires=aios-healthcheck.service
+
+[Timer]
+OnBootSec=30sec
+OnUnitActiveSec=5min
+AccuracySec=1min
+Unit=aios-healthcheck.service
+
+[Install]
+WantedBy=timers.target

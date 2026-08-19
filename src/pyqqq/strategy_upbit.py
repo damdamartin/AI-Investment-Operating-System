@@ -2,6 +2,8 @@ import asyncio
 import logging
 import time
 import math
+import json
+import os
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from .config import settings
@@ -20,6 +22,59 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+MIN_ORDER_AMOUNT = 5000  # 최소주문금액 (원)
+HEARTBEAT_FILE = "/tmp/crypto_heartbeat.json"  # 헬스체크용 하트비트 파일
+
+
+class Heartbeat:
+    """실시간 자동매매 헬스체크 - 루프 모니터링용"""
+
+    def __init__(self):
+        self.heartbeat_file = HEARTBEAT_FILE
+        self.loop_count = 0
+        self.last_error = None
+        self.last_account_check = datetime.now().isoformat()
+        self.last_order_attempt = None
+        self.last_successful_order = None
+
+    def update(self, account_ok: bool = True, krw_balance: float = 0,
+               holdings_count: int = 0, error_msg: str = None,
+               order_attempted: bool = False, order_successful: bool = False):
+        """하트비트 파일 갱신 (매 루프마다 호출)"""
+        try:
+            self.loop_count += 1
+            current_time = datetime.now()
+
+            if error_msg:
+                self.last_error = f"{current_time.isoformat()}: {error_msg}"
+
+            if order_attempted:
+                self.last_order_attempt = current_time.isoformat()
+
+            if order_successful:
+                self.last_successful_order = current_time.isoformat()
+
+            if account_ok:
+                self.last_account_check = current_time.isoformat()
+
+            heartbeat_data = {
+                "timestamp": current_time.isoformat(),
+                "loop_count": self.loop_count,
+                "pid": os.getpid(),
+                "krw_balance": krw_balance,
+                "holdings_count": holdings_count,
+                "status": "RUNNING",
+                "last_account_check": self.last_account_check,
+                "last_order_attempt": self.last_order_attempt,
+                "last_successful_order": self.last_successful_order,
+                "last_error": self.last_error
+            }
+
+            with open(self.heartbeat_file, 'w') as f:
+                json.dump(heartbeat_data, f, indent=2)
+        except Exception as e:
+            logger.warning(f"⚠️  하트비트 파일 업데이트 실패: {e}")
 
 
 # 암호화폐 매매 규칙 (부스터 모드: 최대 수익/리스크)
@@ -64,6 +119,9 @@ class UpbitTradingStrategy:
         self.last_portfolio_state = None  # 이전 포트폴리오 상태
         self.portfolio_alerts = []  # 주요 변화/경고
         self.daily_report = None  # 일일 종합 보고서
+
+        # 헬스체크: 실시간 모니터링용 하트비트
+        self.heartbeat = Heartbeat()
 
     def _parse_markets(self) -> List[str]:
         """마켓 목록 파싱"""
@@ -740,11 +798,27 @@ class UpbitTradingStrategy:
                 await asyncio.sleep(10)
 
     async def _analysis_loop(self) -> None:
-        """주기적 신호 분석 루프 (매 1분)"""
+        """주기적 신호 분석 루프 (매 30초) - 명확한 상태 로깅 포함"""
         last_reset_date = datetime.now().date()
 
         while self.trading_active:
+            loop_start_time = time.time()
+            loop_number = self.heartbeat.loop_count + 1
+            account_ok = False
+            krw_balance = 0
+            holdings_count = 0
+            order_attempted = False
+            order_successful = False
+            loop_error = None
+
             try:
+                # ============================================
+                # [LOOP START] 명확한 루프 시작 로그
+                # ============================================
+                logger.info(f"\n{'=' * 80}")
+                logger.info(f"🔄 LOOP #{loop_number} START: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+                logger.info(f"{'=' * 80}")
+
                 # ============================================
                 # 일일 손실 리셋 (자정)
                 # ============================================
@@ -758,52 +832,103 @@ class UpbitTradingStrategy:
                     last_reset_date = current_date
 
                 # ============================================
-                # 1. 신호 분석
+                # 1️⃣ 신호 분석
                 # ============================================
+                logger.info("▶️ [STEP 1] 신호 분석 중...")
                 signals = await self._analyze_markets()
+                logger.info(f"✅ [STEP 1] 신호 분석 완료: {len(signals)}개 신호")
 
                 # 현재 신호를 파일에 저장 (대시보드용)
                 self._save_current_signals(signals)
 
                 # ============================================
-                # 2. 신호 기반 매매
+                # 2️⃣ 계좌 상태 확인
                 # ============================================
-                # 실시간 KRW 잔액 조회 (항상 조회)
-                krw_balance = 0
+                logger.info("▶️ [STEP 2] 계좌 상태 확인 중...")
                 krw_balance_data = await self.upbit.get_account_balance()
                 if krw_balance_data:
                     krw_balance = float(krw_balance_data.get('balance', 0))
-                    logger.info(f"✅ 실시간 KRW 잔액: ₩{krw_balance:,.0f}")
+                    account_ok = True
+                    logger.info(f"✅ [STEP 2] 계좌 OK: KRW ₩{krw_balance:,.0f}")
                 else:
-                    logger.warning("⚠️  KRW 잔액 조회 실패")
+                    logger.warning("❌ [STEP 2] 계좌 조회 FAIL")
+                    loop_error = "account_query_failed"
 
+                # ============================================
+                # 3️⃣ 신호 기반 매매 실행
+                # ============================================
+                logger.info("▶️ [STEP 3] 주문 실행 중...")
                 if krw_balance and krw_balance > 0:
                     for signal in signals:
                         if signal["recommendation"] == "BUY" and self.trading_enabled:
-                            await self._execute_buy_order(signal, krw_balance)
+                            order_attempted = True
+                            result = await self._execute_buy_order(signal, krw_balance)
+                            if result:
+                                order_successful = True
                         elif signal["recommendation"] == "SELL" and self.trading_enabled:
+                            order_attempted = True
                             # SELL 신호에서 market 추출
                             market = signal.get("market")
                             if market:
                                 # 보유 포지션 찾기 (position_manager 사용)
                                 position = self.position_manager.get_position_by_symbol(market)
                                 if position:
-                                    await self._execute_sell_order(position)
+                                    result = await self._execute_sell_order(position)
+                                    if result:
+                                        order_successful = True
+                        elif signal["recommendation"] == "HOLD":
+                            logger.debug(f"⏸️  {signal.get('market', 'UNKNOWN')}: HOLD (신뢰도: {signal.get('confidence', 0)*100:.0f}%)")
+
+                    if not order_attempted:
+                        logger.info(f"ℹ️  [STEP 3] 주문 신호 없음 (신뢰도 미달 또는 현금 부족)")
+                    else:
+                        logger.info(f"✅ [STEP 3] 주문 완료")
+                else:
+                    logger.warning(f"⚠️  [STEP 3] 현금 부족 (₩{krw_balance:,.0f}) - 주문 스킵")
 
                 # ============================================
-                # 3. 보유 포지션 모니터링 (손절/익절) 🎯 부스터 모드
+                # 4️⃣ 보유 포지션 모니터링 (손절/익절)
                 # ============================================
+                logger.info("▶️ [STEP 4] 포지션 모니터링 (손절/익절) 중...")
+                open_positions = self.position_manager.get_open_positions()
+                holdings_count = len(open_positions) if open_positions else 0
                 await self._monitor_positions()
+                logger.info(f"✅ [STEP 4] 포지션 모니터링 완료: {holdings_count}개 보유")
 
                 # ============================================
-                # 4. 다음 분석까지 대기 (30초 - 초단타 모드)
+                # [LOOP END] 명확한 루프 종료 로그 + Heartbeat 업데이트
+                # ============================================
+                loop_elapsed = time.time() - loop_start_time
+                logger.info(f"{'=' * 80}")
+                logger.info(f"✅ LOOP #{loop_number} END: {datetime.now().strftime('%H:%M:%S.%f')[:-3]} ({loop_elapsed:.2f}초)")
+                logger.info(f"{'=' * 80}\n")
+
+                # Heartbeat 파일 업데이트
+                self.heartbeat.update(
+                    account_ok=account_ok,
+                    krw_balance=krw_balance,
+                    holdings_count=holdings_count,
+                    error_msg=loop_error,
+                    order_attempted=order_attempted,
+                    order_successful=order_successful
+                )
+
+                # ============================================
+                # 5️⃣ 다음 분석까지 대기 (30초 - 초단타 모드)
                 # ============================================
                 await asyncio.sleep(30)
 
             except asyncio.CancelledError:
+                logger.info("⏹️  분석 루프 취소됨")
                 break
             except Exception as e:
-                logger.error(f"❌ 분석 루프 오류: {e}")
+                logger.error(f"❌ 분석 루프 오류: {e}", exc_info=True)
+                self.heartbeat.update(
+                    account_ok=account_ok,
+                    krw_balance=krw_balance,
+                    holdings_count=holdings_count,
+                    error_msg=str(e)
+                )
                 await asyncio.sleep(10)
 
     async def _run_cycle(self) -> None:
@@ -1310,8 +1435,9 @@ class UpbitTradingStrategy:
             available_cash = max(0, current_balance - total_open_value)
 
             # 포지션 비중: Kelly 크기 × 사용 가능 현금 비율
-            max_position_size = min(kelly_size, 0.3)  # 최대 30%
-            position_size = available_cash * max_position_size / current_balance if current_balance > 0 else 0.05
+            max_position_size = min(kelly_size, 0.5)  # 최대 50% (공격적 매매)
+            min_order_amount = 5000  # 최소 주문금액 (원)
+            position_size = max(available_cash * max_position_size / current_balance if current_balance > 0 else 0.1, min_order_amount / current_balance)  # 최소주문금액 보장
 
             # ============================================
             # 최종 승인
@@ -1480,7 +1606,7 @@ class UpbitTradingStrategy:
                 market=market,
                 side="BUY",
                 volume=volume,
-                price=entry_price,
+                price=order_amount,
                 ord_type="MARKET"
             )
 
@@ -1611,6 +1737,11 @@ class UpbitTradingStrategy:
                                 ticker = await self.upbit.get_ticker(symbol)
                                 if ticker:
                                     current_price = float(ticker.get('trade_price', 0))
+                                    # 최소금액 검증
+                                    order_value = position.quantity * current_price
+                                    if order_value < 5000:
+                                        logger.warning(f"⚠️  주문금액 부족 (시간제한 손절): {symbol} (₩{order_value:,.0f} < 5,000원) - 스킵")
+                                        continue
                                     result = await self.upbit.place_order(
                                         market=symbol,
                                         side="sell",
@@ -1752,11 +1883,17 @@ class UpbitTradingStrategy:
             logger.warning(f"   예상액: ₩{current_price * quantity:,.0f}")
             logger.warning("=" * 60)
 
+            # 최소금액 검증
+            order_value = quantity * current_price
+            if order_value < 5000:
+                logger.warning(f"⚠️  주문금액 부족 (일반 매도): {market} (₩{order_value:,.0f} < 5,000원) - 스킵")
+                return False
+
             order = await self.upbit.place_order(
                 market=market,
                 side="SELL",
                 volume=quantity,
-                price=current_price,
+                price=quantity * current_price,
                 ord_type="MARKET"
             )
 
@@ -1833,6 +1970,10 @@ class UpbitTradingStrategy:
                     "daily_pnl": self.daily_pnl
                 }
                 self.dashboard.send_trade_order(trade_data)
+
+                # 매도 완료 후 position_manager에서 즉시 제거
+                self.position_manager.remove_position(market)
+                logger.info(f"🗑️  position_manager에서 {market} 제거 (매도 완료)")
 
                 return True
             else:

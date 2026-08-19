@@ -1,0 +1,44 @@
+[Unit]
+Description=AIOS Upbit Crypto Auto Trading (24/7)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=junkim_life360
+WorkingDirectory=/opt/aios/src
+EnvironmentFile=/etc/aios/aios.env
+
+# Python venv 활성화
+ExecStart=/opt/aios/src/venv/bin/python3 -u -m src.pyqqq.strategy_upbit
+
+# 자동 재시작
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# 타임아웃
+TimeoutStopSec=15
+KillMode=mixed
+
+# 로깅
+StandardOutput=append:/var/log/aios/crypto.log
+StandardError=append:/var/log/aios/crypto.log
+SyslogIdentifier=aios-crypto
+
+# Python 설정
+Environment="PYTHONUNBUFFERED=1"
+Environment="LOG_LEVEL=INFO"
+
+# 리소스 제한
+MemoryLimit=2G
+CPUQuota=50%
+
+# 보안
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -382,20 +382,25 @@ class UpbitClient:
         market: str,
         side: str,
         ord_type: str,
-        volume: float = 0
+        volume: float = 0,
+        price: float = 0
     ) -> Optional[Dict[str, Any]]:
         """
-        Upbit REST API v1/orders로 직접 주문 실행 (비동기)
+        Upbit REST API v1/orders로 직접 주문 실행 (비동기) - 정확한 규격
 
         Args:
             market: "KRW-BTC" 등
             side: "bid" (매수) 또는 "ask" (매도)
-            ord_type: "market" (시장가) 또는 "limit" (지정가)
-            price: 주문 가격 또는 매수 금액 (bid일 때는 KRW 금액)
-            volume: 주문 수량 (ask일 때는 필수)
+            ord_type: "market" (시장가) 또는 "limit" (지정가) 또는 "price" (매수 시)
+            price: 매수 금액 (KRW, bid일 때는 price 사용)
+            volume: 매도 수량 (코인 수량, ask일 때는 volume 사용)
 
         Returns:
             {"uuid": "...", "state": "wait", ...} 또는 None
+
+        Upbit API 규격:
+            매수(bid): ord_type=price, price=KRW금액
+            매도(ask): ord_type=market, volume=수량
         """
         try:
             url = f"{self.base_url}/v1/orders"
@@ -405,20 +410,28 @@ class UpbitClient:
                 "side": side,
             }
 
-            # 시장가 주문: ord_type 제외 (Upbit API)
-            # 지정가 주문: ord_type="limit" 추가
-            if ord_type and ord_type.lower() == "limit":
-                payload["ord_type"] = "limit"
-
-            # bid/ask: 모두 volume (코인 수량) 사용
-            if volume > 0:
-                # volume을 문자열로 변환 (8자리 이상 소수점 지원)
-                if volume < 0.00000001:
-                    logger.error(f"❌ 주문 수량이 너무 작습니다: {volume}")
+            # Upbit API 정확한 규격
+            if side == "bid":
+                # 매수: ord_type=price, price=KRW금액
+                payload["ord_type"] = "price"  # 시장가 매수
+                if price > 0:
+                    payload["price"] = str(int(price))
+                else:
+                    logger.error(f"❌ 매수 주문은 price(KRW금액)이 필수입니다")
                     return None
-                payload["volume"] = str(volume)
+            elif side == "ask":
+                # 매도: ord_type=market, volume=수량
+                payload["ord_type"] = "market"  # 시장가 매도
+                if volume > 0:
+                    if volume < 0.00000001:
+                        logger.error(f"❌ 주문 수량이 너무 작습니다: {volume}")
+                        return None
+                    payload["volume"] = str(volume)
+                else:
+                    logger.error(f"❌ 매도 주문은 volume(수량)이 필수입니다")
+                    return None
             else:
-                logger.error(f"❌ 주문은 volume(수량)이 필수입니다")
+                logger.error(f"❌ 잘못된 side: {side}")
                 return None
 
             # 쿼리 스트링 생성
@@ -587,12 +600,13 @@ class UpbitClient:
                 logger.warning(f"🔴 실거래 요청: 매도 {market} x {actual_volume:.8f}")
 
             # Step 1: REST API 직접 호출 (JWT 인증)
-            # Upbit API: volume만 필수
+            # Upbit API 규격: 매수=price, 매도=volume
             result = await self._rest_api_order(
                 market=market,
                 side=normalized_side,
                 ord_type=ord_type.lower() if isinstance(ord_type, str) else "market",
-                volume=actual_volume
+                volume=actual_volume,
+                price=price  # 매수 금액 전달
             )
 
             # Step 2: 응답 처리
@@ -720,7 +734,7 @@ class UpbitClient:
         if callback not in self.asset_listeners:
             self.asset_listeners.append(callback)
 
-        reconnect_delay = 1  # 초기 재연결 대기 시간 (1초)
+        reconnect_delay = 3  # 초기 재연결 대기 시간 (1초)
         max_reconnect_delay = 60  # 최대 재연결 대기 시간 (60초)
         reconnect_count = 0
         max_reconnect_attempts = 10  # 최대 재연결 시도 횟수
@@ -753,10 +767,16 @@ class UpbitClient:
                             if data.get('type') == 'myAsset' and 'assets' in data:
                                 logger.info(f"📊 자산 변동 감지: {len(data['assets'])}개 항목")
 
-                                # 모든 리스너에 콜백
+                                # 모든 리스너에 콜백 (async/sync 모두 지원)
                                 for listener in self.asset_listeners:
                                     try:
-                                        listener(data)
+                                        import inspect
+                                        if inspect.iscoroutinefunction(listener):
+                                            # async 함수인 경우 await
+                                            await listener(data)
+                                        else:
+                                            # sync 함수인 경우 직접 호출
+                                            listener(data)
                                     except Exception as e:
                                         logger.error(f"⚠️  리스너 실행 오류: {e}")
 
@@ -767,11 +787,14 @@ class UpbitClient:
                             logger.info("⏹️  WebSocket 구독 취소됨")
                             return
                         except Exception as e:
-                            if "1000" in str(e):
-                                logger.info(f"ℹ️  WebSocket 정상 종료 (1000 OK): {e}")
+                            error_str = str(e)
+                            # 정상 종료 코드 1000은 재연결하지 않음
+                            if "1000" in error_str or "code=1000" in error_str:
+                                logger.info(f"ℹ️  WebSocket 정상 종료 (1000 Close OK)")
+                                break
                             else:
                                 logger.error(f"❌ WebSocket 메시지 처리 오류: {e}")
-                            break
+                                break
 
             except asyncio.CancelledError:
                 logger.info("⏹️  WebSocket 구독 취소됨")
@@ -793,7 +816,7 @@ class UpbitClient:
 
     async def subscribe_ticker(self, markets: List[str], callback: Callable[[Dict], None]) -> None:
         """시세 WebSocket 구독 (실시간 가격 변동) - 재연결 로직 포함"""
-        reconnect_delay = 1  # 초기 재연결 대기 시간 (1초)
+        reconnect_delay = 3  # 초기 재연결 대기 시간 (1초)
         max_reconnect_delay = 60  # 최대 재연결 대기 시간 (60초)
         reconnect_count = 0
         max_reconnect_attempts = 10  # 최대 재연결 시도 횟수
@@ -822,7 +845,12 @@ class UpbitClient:
                             data = json.loads(message)
 
                             if data.get('type') == 'ticker':
-                                callback(data)
+                                # async/sync 콜백 모두 지원
+                                import inspect
+                                if inspect.iscoroutinefunction(callback):
+                                    await callback(data)
+                                else:
+                                    callback(data)
 
                         except asyncio.TimeoutError:
                             logger.debug("⏳ WebSocket 타임아웃 (정상)")
@@ -831,11 +859,14 @@ class UpbitClient:
                             logger.info("⏹️  WebSocket 구독 취소됨")
                             return
                         except Exception as e:
-                            if "1000" in str(e):
-                                logger.info(f"ℹ️  WebSocket 정상 종료 (1000 OK): {e}")
+                            error_str = str(e)
+                            # 정상 종료 코드 1000은 재연결하지 않음
+                            if "1000" in error_str or "code=1000" in error_str:
+                                logger.info(f"ℹ️  WebSocket 정상 종료 (1000 Close OK)")
+                                break
                             else:
                                 logger.error(f"❌ WebSocket 메시지 처리 오류: {e}")
-                            break
+                                break
 
             except asyncio.CancelledError:
                 logger.info("⏹️  WebSocket 구독 취소됨")

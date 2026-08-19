@@ -1,0 +1,43 @@
+[Unit]
+Description=AIOS Upbit Crypto Auto Trading (24/7 Operation)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/aios-booster
+
+# 환경 변수 로드 (배포 시 .env 파일에서 로드)
+EnvironmentFile=/home/ubuntu/aios-booster/.env
+
+# Python 모듈 실행
+ExecStart=/usr/bin/python3 -u -m src.pyqqq.strategy_upbit
+
+# 자동 재시작 설정
+Restart=always
+RestartSec=30
+
+# 타임아웃 설정
+TimeoutStopSec=10
+KillMode=mixed
+
+# 표준 출력/에러를 journalctl로 리다이렉트
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aios-crypto-trader
+
+# 프로세스 격리
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# 리소스 제한
+MemoryLimit=1G
+CPUQuota=80%
+
+# 로그 설정
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

@@ -554,6 +554,213 @@ export default {
       }
     }
 
+    // ✅ 초단타 거래 데이터 엔드포인트
+    if (url.pathname === "/api/scalping-trades") {
+      // POST: 새 초단타 거래 기록 저장
+      if (request.method === "POST") {
+        try {
+          const body = await request.json() as any;
+
+          // 거래 유형에 따라 처리
+          if (body.type === "trade_result") {
+            // 개별 거래 결과
+            const trade = body.data;
+            console.log(`[Scalping] 거래 기록: ${trade.symbol} #${trade.trade_id} (수익률: ${trade.pnl_rate?.toFixed(2)}%)`);
+
+            if (env.DB) {
+              try {
+                await env.DB.prepare(`
+                  CREATE TABLE IF NOT EXISTS scalping_trades (
+                    id TEXT PRIMARY KEY,
+                    trade_id INTEGER,
+                    symbol TEXT,
+                    buy_price REAL,
+                    sell_price REAL,
+                    quantity REAL,
+                    entry_time TEXT,
+                    exit_time TEXT,
+                    status TEXT,
+                    pnl_rate REAL,
+                    pnl_amount REAL,
+                    duration_seconds INTEGER,
+                    is_success BOOLEAN,
+                    timestamp TEXT
+                  )
+                `).run();
+
+                await env.DB.prepare(`
+                  INSERT INTO scalping_trades
+                  (id, trade_id, symbol, buy_price, sell_price, quantity, entry_time, exit_time, status, pnl_rate, pnl_amount, duration_seconds, is_success, timestamp)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                  `${trade.symbol}-${trade.trade_id}-${Date.now()}`,
+                  trade.trade_id,
+                  trade.symbol,
+                  trade.buy_price,
+                  trade.sell_price,
+                  trade.quantity,
+                  trade.entry_time,
+                  trade.exit_time,
+                  trade.status,
+                  trade.pnl_rate,
+                  trade.pnl_amount,
+                  trade.duration_seconds,
+                  trade.is_success,
+                  new Date().toISOString()
+                ).run();
+              } catch (e) {
+                console.error(`[D1] Trade save error:`, e);
+              }
+            }
+
+            return new Response(JSON.stringify({
+              status: "success",
+              message: "Trade recorded",
+              data: { trade_id: trade.trade_id, success: trade.is_success }
+            }), { status: 201, headers: { "Content-Type": "application/json" } });
+          }
+          else if (body.type === "session_summary") {
+            // 세션 요약 (100회 거래 완료)
+            const summary = body.summary;
+            console.log(`[Scalping] 세션 완료: ${summary.symbol} (거래: ${summary.total_trades}회, 성공률: ${summary.success_rate?.toFixed(1)}%)`);
+
+            if (env.DB) {
+              try {
+                await env.DB.prepare(`
+                  CREATE TABLE IF NOT EXISTS scalping_sessions (
+                    id TEXT PRIMARY KEY,
+                    symbol TEXT,
+                    start_time TEXT,
+                    end_time TEXT,
+                    duration_seconds INTEGER,
+                    total_trades INTEGER,
+                    successful_trades INTEGER,
+                    failed_trades INTEGER,
+                    success_rate REAL,
+                    cumulative_pnl REAL,
+                    initial_investment REAL,
+                    final_capital REAL,
+                    roi REAL,
+                    avg_trade_duration REAL,
+                    timestamp TEXT
+                  )
+                `).run();
+
+                await env.DB.prepare(`
+                  INSERT INTO scalping_sessions
+                  (id, symbol, start_time, end_time, duration_seconds, total_trades, successful_trades, failed_trades, success_rate, cumulative_pnl, initial_investment, final_capital, roi, avg_trade_duration, timestamp)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                  `${summary.symbol}-${Date.now()}`,
+                  summary.symbol,
+                  summary.start_time,
+                  summary.end_time,
+                  summary.duration_seconds,
+                  summary.total_trades,
+                  summary.successful_trades,
+                  summary.failed_trades,
+                  summary.success_rate,
+                  summary.cumulative_pnl,
+                  summary.initial_investment,
+                  summary.final_capital,
+                  summary.roi,
+                  summary.avg_trade_duration,
+                  new Date().toISOString()
+                ).run();
+              } catch (e) {
+                console.error(`[D1] Session save error:`, e);
+              }
+            }
+
+            return new Response(JSON.stringify({
+              status: "success",
+              message: "Session summary recorded",
+              data: { symbol: summary.symbol, roi: summary.roi }
+            }), { status: 201, headers: { "Content-Type": "application/json" } });
+          }
+          else if (body.type === "progress_update") {
+            // 진행 상황 업데이트 (매 거래마다)
+            const progress = body.data;
+            console.log(`[Scalping] 진행: ${progress.symbol} (${progress.completed_trades}/${progress.completed_trades + progress.success_rate * 100})`);
+
+            return new Response(JSON.stringify({
+              status: "success",
+              message: "Progress update received"
+            }), { status: 200, headers: { "Content-Type": "application/json" } });
+          }
+
+          return new Response(JSON.stringify({
+            status: "error",
+            message: "Unknown type"
+          }), { status: 400, headers: { "Content-Type": "application/json" } });
+        } catch (error) {
+          console.error(`[Scalping] Request failed:`, error);
+          return new Response(JSON.stringify({
+            status: "error",
+            message: String(error)
+          }), { status: 400, headers: { "Content-Type": "application/json" } });
+        }
+      }
+
+      // GET: 최근 초단타 거래 조회
+      if (request.method === "GET") {
+        try {
+          const limit = url.searchParams.get("limit") || "100";
+          const symbol = url.searchParams.get("symbol") || "";
+          const sessionId = url.searchParams.get("session") || "";
+
+          let query = `SELECT * FROM scalping_trades ORDER BY timestamp DESC LIMIT ${limit}`;
+          if (symbol) {
+            query = `SELECT * FROM scalping_trades WHERE symbol = '${symbol}' ORDER BY timestamp DESC LIMIT ${limit}`;
+          }
+
+          const result = await env.DB.prepare(query).all() as any;
+          const trades = (result.results || []).map((r: any) => ({
+            tradeId: r.trade_id,
+            symbol: r.symbol,
+            buyPrice: r.buy_price,
+            sellPrice: r.sell_price,
+            quantity: r.quantity,
+            entryTime: r.entry_time,
+            exitTime: r.exit_time,
+            status: r.status,
+            pnlRate: r.pnl_rate,
+            pnlAmount: r.pnl_amount,
+            durationSeconds: r.duration_seconds,
+            isSuccess: r.is_success,
+            timestamp: r.timestamp
+          }));
+
+          // 요약 통계
+          const totalTrades = trades.length;
+          const successfulTrades = trades.filter((t: any) => t.isSuccess).length;
+          const totalPnL = trades.reduce((sum: number, t: any) => sum + (t.pnlAmount || 0), 0);
+          const avgDuration = trades.length > 0
+            ? trades.reduce((sum: number, t: any) => sum + (t.durationSeconds || 0), 0) / trades.length
+            : 0;
+
+          return new Response(JSON.stringify({
+            status: "success",
+            summary: {
+              totalTrades,
+              successfulTrades,
+              successRate: totalTrades > 0 ? (successfulTrades / totalTrades * 100).toFixed(2) : 0,
+              totalPnL,
+              avgDuration: avgDuration.toFixed(1)
+            },
+            trades,
+            count: trades.length
+          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        } catch (error) {
+          console.error(`[Scalping] Query failed:`, error);
+          return new Response(JSON.stringify({
+            status: "error",
+            message: "Scalping trades table not found or query error"
+          }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+      }
+    }
+
     // ✅ 최근 손절/익절 모니터링 로그
     if (url.pathname === "/api/recent-monitoring-logs") {
       try {

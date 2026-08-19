@@ -1,0 +1,45 @@
+[Unit]
+Description=AIOS Toss Securities US Stock Auto Trading (Market Hours)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=junkim_life360
+WorkingDirectory=/opt/aios/src
+EnvironmentFile=/etc/aios/aios.env
+
+# Python venv 활성화
+ExecStart=/opt/aios/src/venv/bin/python3 -u -m src.pyqqq.strategy_toss
+
+# 자동 재시작
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# 타임아웃
+TimeoutStopSec=15
+KillMode=mixed
+
+# 로깅
+StandardOutput=append:/var/log/aios/toss.log
+StandardError=append:/var/log/aios/toss.log
+SyslogIdentifier=aios-toss
+
+# Python 설정
+Environment="PYTHONUNBUFFERED=1"
+Environment="LOG_LEVEL=INFO"
+Environment="TRADING_MARKET=TOSS"
+
+# 리소스 제한
+MemoryLimit=1G
+CPUQuota=30%
+
+# 보안
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

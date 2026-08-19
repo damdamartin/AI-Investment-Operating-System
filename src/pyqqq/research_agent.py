@@ -11,9 +11,17 @@ from typing import Optional
 import anthropic
 
 # 팀장 추가: 데이터 소스 및 API 비용 관리 통합
-from data_source_manager import DataSourceManager
-from api_cost_manager import APICallWrapper
-from config import settings
+try:
+    from .data_source_manager import DataSourceManager
+except ImportError:
+    DataSourceManager = None
+
+try:
+    from .api_cost_manager import APICallWrapper
+except ImportError:
+    APICallWrapper = None
+
+from .config import settings
 
 class ResearchAgent:
     def __init__(self, data_source_manager=None, api_wrapper=None):
@@ -22,15 +30,20 @@ class ResearchAgent:
 
         # 팀장 추가: 데이터 소스와 API 래퍼 주입
         self.data_source = data_source_manager
-        self.api_wrapper = api_wrapper or APICallWrapper(self.client)
+        if api_wrapper:
+            self.api_wrapper = api_wrapper
+        elif APICallWrapper:
+            self.api_wrapper = APICallWrapper(self.client)
+        else:
+            self.api_wrapper = None
 
     async def analyze_symbol(self, symbol: str, symbol_name: str, recent_news: list = None) -> dict:
         """
-        종목의 뉴스, 공시, 산업 정보를 분석해서 신호를 생성합니다.
+        로컬 키워드 분석 기반 신호 (Claude API 비용 절감)
 
         Args:
-            symbol: 종목코드 (예: 005930)
-            symbol_name: 종목명 (예: Samsung Electronics)
+            symbol: 종목코드
+            symbol_name: 종목명
             recent_news: 최신 뉴스 리스트 (optional)
 
         Returns:
@@ -43,106 +56,69 @@ class ResearchAgent:
             }
         """
 
-        # 팀장 추가: 데이터 소스에서 실제 뉴스 조회
+        # 뉴스 데이터 조회 (있으면)
         if self.data_source and not recent_news:
             try:
                 recent_news = await self.data_source.news.get_recent_news(symbol)
-            except Exception as e:
-                print(f"뉴스 데이터 조회 오류: {e}")
+            except:
                 recent_news = []
 
-        prompt = f"""
-당신은 경험 많은 리서치 애널리스트입니다. 주어진 정보를 분석해서 투자 신호를 생성하세요.
+        # 로컬 키워드 기반 신호 분석
+        positive_keywords = ["신제품", "실적 개선", "호재", "증가", "성공", "계약", "파트너십", "공모"]
+        negative_keywords = ["실적 악화", "부진", "하락", "손실", "리스크", "우려", "악재", "소송"]
 
-[종목 정보]
-- 종목코드: {symbol}
-- 종목명: {symbol_name}
-- 분석 시간: {datetime.now().isoformat()}
+        positive_count = 0
+        negative_count = 0
+        factors = []
 
-[최근 뉴스/정보]
-{self._format_news(recent_news) if recent_news else "뉴스 데이터를 조회할 수 없습니다. 일반적인 분석을 기반으로 판단하세요."}
+        if recent_news:
+            for news in recent_news[:5]:  # 최근 5개만 확인
+                news_text = str(news).lower()
 
-[분석 관점]
-1. 긍정 신호 (BUY):
-   - 신제품 출시/기술 혁신
-   - 실적 개선 (매출, 순이익)
-   - 산업 트렌드 긍정
-   - 주요 계약/파트너십
-   - 정부 정책 지원
+                for keyword in positive_keywords:
+                    if keyword.lower() in news_text:
+                        positive_count += 1
+                        if keyword not in factors:
+                            factors.append(f"✅ {keyword}")
 
-2. 부정 신호 (SELL):
-   - 실적 악화/적자
-   - 제품 결함/리콜
-   - 경영진 교체
-   - 소송/규제 이슈
-   - 산업 불황
+                for keyword in negative_keywords:
+                    if keyword.lower() in news_text:
+                        negative_count += 1
+                        if keyword not in factors:
+                            factors.append(f"❌ {keyword}")
 
-3. 중립 신호 (HOLD):
-   - 명확한 신호 없음
-   - 상충되는 정보
+        # 신호 결정 (작업지시서 #5: 명확한 신호만 허용)
+        if positive_count == 0 and negative_count == 0:
+            # 뉴스 없음: HOLD
+            signal = "HOLD"
+            confidence = 0.0
+            reasoning = "뉴스 데이터 부족: 거래 신호 생성 불가"
+        elif positive_count >= negative_count + 2:
+            # 긍정 신호가 명확히 많음
+            signal = "BUY"
+            confidence = min(0.95, 0.5 + (positive_count * 0.1))
+            reasoning = f"긍정 신호 {positive_count}개 > 부정 신호 {negative_count}개. 매수 신호"
+        elif negative_count >= positive_count + 1:
+            # 부정 신호가 명확히 많음
+            signal = "SELL"
+            confidence = min(0.95, 0.5 + (negative_count * 0.1))
+            reasoning = f"부정 신호 {negative_count}개 > 긍정 신호 {positive_count}개. 매도 신호"
+        else:
+            # 신호 충돌 또는 약함
+            signal = "HOLD"
+            confidence = 0.0
+            reasoning = f"신호 약함: 긍정={positive_count}, 부정={negative_count}"
 
-[응답 형식]
-JSON 형식으로 다음을 포함:
-- signal: "BUY" | "SELL" | "HOLD"
-- confidence: 0.0~1.0 (신뢰도)
-- reasoning: 종합적인 분석 근거 (2-3줄)
-- factors: 주요 긍정/부정 요인 리스트
-- market_context: 거시경제/산업 영향
-"""
-
-        try:
-            # 팀장 추가: API 래퍼를 통한 안전한 호출 (rate limiting, 재시도, 토큰 추적)
-            if self.api_wrapper:
-                response_text = await self.api_wrapper.call_claude(
-                    prompt=prompt,
-                    max_tokens=1024,
-                    team_name="research"
-                )
-            else:
-                # Fallback: 직접 호출
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=1024,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                response_text = message.content[0].text
-
-            # JSON 파싱
-            try:
-                # "```json" 형식으로 감싸져 있을 수 있음
-                if "```json" in response_text:
-                    json_str = response_text.split("```json")[1].split("```")[0]
-                else:
-                    json_str = response_text
-
-                analysis = json.loads(json_str)
-            except json.JSONDecodeError:
-                # 파싱 실패 시 기본값
-                analysis = {
-                    "signal": "HOLD",
-                    "confidence": 0.5,
-                    "reasoning": response_text,
-                    "factors": [],
-                    "market_context": ""
-                }
-
-            analysis["timestamp"] = datetime.now().isoformat()
-            analysis["symbol"] = symbol
-            analysis["symbol_name"] = symbol_name
-
-            return analysis
-
-        except Exception as e:
-            print(f"리서치팀 분석 오류 ({symbol}): {e}")
-            return {
-                "signal": "HOLD",
-                "confidence": 0.0,
-                "reasoning": f"API 오류: {str(e)}",
-                "factors": [],
-                "timestamp": datetime.now().isoformat(),
-                "symbol": symbol,
-                "symbol_name": symbol_name
-            }
+        return {
+            "signal": signal,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "factors": factors if factors else ["정보 부족"],
+            "market_context": f"{symbol_name} 종목의 최근 뉴스 기반 분석",
+            "timestamp": datetime.now().isoformat(),
+            "symbol": symbol,
+            "symbol_name": symbol_name
+        }
 
     def _format_news(self, news_list: list) -> str:
         """뉴스 리스트를 포맷팅"""

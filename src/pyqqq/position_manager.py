@@ -110,6 +110,29 @@ class PositionManager:
             return True
         return False
 
+    def remove_position(self, symbol: str) -> bool:
+        """종목별 포지션 제거 (symbol 기반)
+
+        Args:
+            symbol: 종목 심볼 (예: "KRW-BTC")
+
+        Returns:
+            제거 성공 여부
+        """
+        keys_to_remove = [k for k, pos in self.open_positions.items() if pos.symbol == symbol]
+
+        if not keys_to_remove:
+            logger.warning(f"⚠️  제거할 포지션 없음: {symbol}")
+            return False
+
+        for key in keys_to_remove:
+            pos = self.open_positions[key]
+            self.closed_positions.append(pos)
+            del self.open_positions[key]
+            logger.info(f"🗑️  포지션 제거: {symbol} (수량: {pos.quantity})")
+
+        return True
+
     def update_all_positions(self, symbol: str, current_price: float) -> None:
         """모든 포지션 업데이트"""
         for pos in self.open_positions.values():
@@ -235,6 +258,12 @@ class PositionManager:
             self.logger.warning(f"   현재가: ₩{current_price:,.0f}")
             self.logger.warning(f"   손실: {position.pnl_pct:.2f}%")
 
+            # 최소주문금액 검증 (5,000원 이상)
+            order_value = position.quantity * current_price
+            if order_value < 5000:
+                self.logger.warning(f"⚠️  주문금액 부족 (손절): {position.symbol} (₩{order_value:,.0f} < 5,000원) - 스킵")
+                return None
+
             # 매도 주문 실행
             result = await upbit_client.place_order(
                 market=position.symbol,
@@ -256,6 +285,12 @@ class PositionManager:
             self.logger.warning(f"   진입가: ₩{position.entry_price:,.0f}")
             self.logger.warning(f"   현재가: ₩{current_price:,.0f}")
             self.logger.warning(f"   수익: {position.pnl_pct:.2f}%")
+
+            # 최소주문금액 검증 (5,000원 이상)
+            order_value = position.quantity * current_price
+            if order_value < 5000:
+                self.logger.warning(f"⚠️  주문금액 부족 (익절): {position.symbol} (₩{order_value:,.0f} < 5,000원) - 스킵")
+                return None
 
             # 매도 주문 실행
             result = await upbit_client.place_order(

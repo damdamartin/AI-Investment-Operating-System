@@ -19,7 +19,14 @@ class Settings(BaseSettings):
     toss_client_secret: str = os.getenv("TOSS_CLIENT_SECRET", "")
     toss_api_base_url: str = os.getenv("TOSS_API_BASE_URL", "https://openapi.tossinvest.com")
     toss_account_ref: str = os.getenv("TOSS_ACCOUNT_REF", "1")
-    toss_read_only_mode: str = os.getenv("TOSS_READ_ONLY_MODE", "true")
+    toss_read_only_mode: str = os.getenv("TOSS_READ_ONLY_MODE", "false")  # LIVE 모드 기본값
+
+    # KIS API (한국 주식)
+    kis_app_key: str = os.getenv("KIS_APP_KEY", "")
+    kis_app_secret: str = os.getenv("KIS_APP_SECRET", "")
+    kis_account_no: str = os.getenv("KIS_ACCOUNT_NO", "")
+    kis_api_base_url: str = os.getenv("KIS_API_BASE_URL", "https://openapi.koreainvestment.com:9443")
+    kis_trading_enabled: str = os.getenv("KIS_TRADING_ENABLED", "false")
 
     # Upbit API (암호화폐)
     upbit_access_key: str = os.getenv("UPBIT_ACCESS_KEY", "")

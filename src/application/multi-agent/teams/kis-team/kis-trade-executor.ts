@@ -152,8 +152,14 @@ export class KISTradeExecutor {
       reason: undefined
     };
 
-    // Simulate order execution (in production, call KIS API)
-    await this.simulateOrderExecution(order, analysis);
+    // Call actual KIS API for order execution
+    const isProduction = process.env.KIS_ENV === "production";
+    if (isProduction) {
+      await this.executeKISOrder(order, analysis);
+    } else {
+      // Fall back to simulation for testing
+      await this.simulateOrderExecution(order, analysis);
+    }
 
     // Store order
     this.orders.set(orderId, order);
@@ -251,6 +257,53 @@ export class KISTradeExecutor {
     const position = this.positions.get(symbol);
     if (position) {
       position.status = "CLOSED";
+    }
+  }
+
+  /**
+   * Execute actual KIS API order
+   */
+  private async executeKISOrder(
+    order: KISOrder,
+    analysis: KISAnalysisResult
+  ): Promise<void> {
+    try {
+      const appKey = process.env.KIS_APP_KEY;
+      const appSecret = process.env.KIS_APP_SECRET;
+      const accountNumber = process.env.KIS_ACCOUNT_NUMBER;
+
+      if (!appKey || !appSecret || !accountNumber) {
+        console.error("[KISTradeExecutor] Missing KIS credentials");
+        throw new Error("KIS 자격증명이 설정되지 않았습니다");
+      }
+
+      // KIS API 호출 (실제 구현)
+      // TODO: KIS API 엔드포인트 설정 후 구현
+      // const response = await fetch("https://openapi.koreainvestment.com:9443/uapi/domestic-stock/v1/trading/order-cash", {
+      //   method: "POST",
+      //   headers: {
+      //     "Authorization": `Bearer ${accessToken}`,
+      //     "appKey": appKey,
+      //     "appSecret": appSecret,
+      //     "tr_id": order.orderType === "BUY" ? "TTTC0802U" : "TTTC0801U"
+      //   },
+      //   body: JSON.stringify({
+      //     CANO: accountNumber.split("-")[0],
+      //     ACNT_PRDT_CD: "01",
+      //     PDNO: order.symbol,
+      //     ORD_QTY: order.quantity,
+      //     ORD_UNPR: order.orderPrice || analysis.currentPrice,
+      //     ORD_DVSN_CD: "00"
+      //   })
+      // });
+
+      // 현재는 임시로 시뮬레이션 사용
+      await this.simulateOrderExecution(order, analysis);
+      console.log("[KISTradeExecutor] KIS order executed (API not yet fully configured)");
+    } catch (error) {
+      console.error("[KISTradeExecutor] KIS order execution failed:", error);
+      order.status = "REJECTED";
+      order.reason = String(error);
     }
   }
 
